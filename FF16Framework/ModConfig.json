@@ -14,18 +14,18 @@
   "CanUnload": false,
   "HasExports": false,
   "IsLibrary": false,
-  "ReleaseMetadataFileName": "ff16.utility.framework.ReleaseMetadata.json",
+  "ReleaseMetadataFileName": "FF16Framework.ReleaseMetadata.json",
   "PluginData": {
     "GitHubDependencies": {
       "IdToConfigMap": {
         "ff16.utility.framework": {
           "Config": {
             "UserName": "Nenkai",
-            "RepositoryName": "ff16.utility.framework",
+            "RepositoryName": "FF16Framework",
             "UseReleaseTag": true,
             "AssetFileName": "Mod.zip"
           },
-          "ReleaseMetadataName": "ff16.utility.framework.ReleaseMetadata.json"
+          "ReleaseMetadataName": "FF16Framework.ReleaseMetadata.json"
         },
         "reloaded.sharedlib.hooks": {
           "Config": {
@@ -37,6 +37,12 @@
           "ReleaseMetadataName": "Sewer56.Update.ReleaseMetadata.json"
         }
       }
+    },
+    "GitHubRelease": {
+      "UserName": "Nenkai",
+      "RepositoryName": "FF16Framework",
+      "UseReleaseTag": true,
+      "AssetFileName": "Mod.zip"
     }
   },
   "IsUniversalMod": false,
