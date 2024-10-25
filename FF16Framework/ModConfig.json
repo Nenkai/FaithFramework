@@ -1,0 +1,54 @@
+{
+  "ModId": "ff16.utility.framework",
+  "ModName": "Final Fantasy XVI / 16 Mod Framework",
+  "ModAuthor": "Nenkai",
+  "ModVersion": "1.0.0",
+  "ModDescription": "FFXVI Mod Framework (currently Nex API).",
+  "ModDll": "FF16Framework.dll",
+  "ModIcon": "Preview.png",
+  "ModR2RManagedDll32": "x86/FF16Framework.dll",
+  "ModR2RManagedDll64": "x64/FF16Framework.dll",
+  "ModNativeDll32": "",
+  "ModNativeDll64": "",
+  "Tags": [],
+  "CanUnload": false,
+  "HasExports": false,
+  "IsLibrary": false,
+  "ReleaseMetadataFileName": "ff16.utility.framework.ReleaseMetadata.json",
+  "PluginData": {
+    "GitHubDependencies": {
+      "IdToConfigMap": {
+        "ff16.utility.framework": {
+          "Config": {
+            "UserName": "Nenkai",
+            "RepositoryName": "ff16.utility.framework",
+            "UseReleaseTag": true,
+            "AssetFileName": "Mod.zip"
+          },
+          "ReleaseMetadataName": "ff16.utility.framework.ReleaseMetadata.json"
+        },
+        "reloaded.sharedlib.hooks": {
+          "Config": {
+            "UserName": "Sewer56",
+            "RepositoryName": "Reloaded.SharedLib.Hooks.ReloadedII",
+            "UseReleaseTag": true,
+            "AssetFileName": "reloaded.sharedlib.hooks.zip"
+          },
+          "ReleaseMetadataName": "Sewer56.Update.ReleaseMetadata.json"
+        }
+      }
+    }
+  },
+  "IsUniversalMod": false,
+  "ModDependencies": [
+    "Reloaded.Memory.SigScan.ReloadedII",
+    "reloaded.sharedlib.hooks",
+    "SharedScans.Reloaded"
+  ],
+  "OptionalDependencies": [],
+  "SupportedAppId": [
+    "ffxvi.exe",
+    "ffxvi_demo.exe"
+  ],
+  "ProjectUrl": ""
+}
