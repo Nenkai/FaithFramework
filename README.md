@@ -56,7 +56,7 @@ for (int i = 0; i < photoTable->NumRows; i++)
 
     // You have access to the row's data here. Make use of FF16Tools.Files's defined layout to read and edit it.
     NexStructColumn radiusColumn = layout.Columns.FirstOrDefault(e => e.Name == "CollisionSphereRadius");
-    *((float*)&rowData[radiusColumn.Offset]) = 5;
+    *(float*)&rowData[layout.Columns["CollisionSphereRadius"].Offset] = 69.420f;
 }
 ```
 
