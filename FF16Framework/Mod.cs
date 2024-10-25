@@ -90,6 +90,8 @@ public class Mod : ModBase, IExports // <= Do not Remove.
 
         _nexApi = new NextExcelDBApi(_nexHooks);
         _modLoader.AddOrReplaceController<INextExcelDBApi>(_owner, _nexApi);
+
+        _logger.WriteLine($"[{_modConfig.ModId}] Framework initted.");
     }
 
     #region Standard Overrides

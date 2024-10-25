@@ -3,7 +3,7 @@
   "ModName": "Final Fantasy XVI / 16 Mod Framework",
   "ModAuthor": "Nenkai",
   "ModVersion": "1.0.0",
-  "ModDescription": "FFXVI Mod Framework (currently Nex API).",
+  "ModDescription": "FFXVI Mod Framework (mod dependency, currently Nex API).",
   "ModDll": "FF16Framework.dll",
   "ModIcon": "Preview.png",
   "ModR2RManagedDll32": "x86/FF16Framework.dll",
