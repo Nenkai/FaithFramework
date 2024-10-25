@@ -24,7 +24,15 @@ Optionally, subscribe to an event when the game has loaded the nex database:
 nextExcelDBApi.OnNexLoaded += NextExcelDBApi_OnNexLoaded;
 ```
 
-You can use this to apply nex changes immediately.
+You can use this to apply nex changes immediately once the event fires.
+
+> [!NOTE]
+> Always ensure that the database is initialized before attempting to do any changes (especially if you are applying changes again from a configuration change through `ConfigurationUpdated`).
+
+```csharp
+if (!nextExcelDBApi.Initialized)
+    return;
+```
 
 ### Single-Keyed table fetching
 
