@@ -41,7 +41,9 @@ NexTableInstance* photoTable = nextExcelDBApi.GetTable(NexTableIds.photocamerapa
 if (photoTable is null)
     return;
 
+// Grab a mapped layout from FF16Tools.Files.
 NexTableLayout layout = TableMappingReader.ReadTableLayout("photocameraparam", new Version(1, 0, 0));
+
 for (int i = 0; i < photoTable->NumRows; i++)
 {
     NexRowInstance* rowInstance = nextExcelDBApi.SearchRow(photoTable, i);
@@ -55,8 +57,7 @@ for (int i = 0; i < photoTable->NumRows; i++)
     byte* rowData = nextExcelDBApi.GetRowData(rowInstance);
 
     // You have access to the row's data here. Make use of FF16Tools.Files's defined layout to read and edit it.
-    NexStructColumn radiusColumn = layout.Columns.FirstOrDefault(e => e.Name == "CollisionSphereRadius");
-    *((float*)&rowData[radiusColumn.Offset]) = 5;
+    *(float*)&rowData[layout.Columns["CollisionSphereRadius"].Offset] = 69.420f;
 }
 ```
 
