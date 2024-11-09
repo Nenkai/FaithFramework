@@ -112,5 +112,6 @@ if (questtodo is not null && questtodo->Type == (int)NexTableType.TripleKeyed)
     {
         // ...
     }
+    Marshal.FreeHGlobal(keys);
 }
 ```
