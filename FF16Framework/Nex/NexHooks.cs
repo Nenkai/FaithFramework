@@ -95,7 +95,7 @@ public unsafe class NexHooks : HookGroupBase
             _logger.WriteLine($"[{_modConfig.ModId}] Game successfully loaded nex tables.", _logger.ColorGreen);
 
             Instance = @this;
-            OnNexInitialized();
+            OnNexInitialized?.Invoke();
         }
         else
         {
