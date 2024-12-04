@@ -1,5 +1,8 @@
 ﻿namespace FF16Framework.Interfaces.Nex;
 
+/// <summary>
+/// Nex table.
+/// </summary>
 public interface INexTable
 {
     /// <summary>

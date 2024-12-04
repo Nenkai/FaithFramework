@@ -1,7 +1,7 @@
 ﻿namespace FF16Framework.Interfaces.Nex;
 
 /// <summary>
-/// Managed interface for the Nex API.
+/// Managed interface for accessing nex data.
 /// </summary>
 public interface INextExcelDBApiManaged
 {
