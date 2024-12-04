@@ -15,10 +15,22 @@ public unsafe struct NexTableInstance
     public nint field_0x18;
     public nint field_0x20;
     public nint NumRows;
-    public nint field_0x30;
+    public FileHandle* FileHandle;
     public uint Type;
     public byte field_0x40;
     public byte Unk_NxdField0x0A;
     public uint BaseRowId;
     public uint field_0x48;
+}
+
+public unsafe struct FileHandle
+{
+    public nint field_0x00;
+    public nint field_0x08;
+    public nint field_0x10;
+    public nint field_0x18;
+    public nint field_0x20;
+    public nint field_0x28;
+    public nint field_0x30;
+    public byte* Buffer;
 }

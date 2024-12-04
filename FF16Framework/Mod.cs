@@ -58,6 +58,7 @@ public class Mod : ModBase, IExports // <= Do not Remove.
 
     private NexHooks _nexHooks;
     private NextExcelDBApi _nexApi;
+    private NextExcelDBApiManaged _nexApiManaged;
 
     public Mod(ModContext context)
     {
@@ -90,6 +91,9 @@ public class Mod : ModBase, IExports // <= Do not Remove.
 
         _nexApi = new NextExcelDBApi(_nexHooks);
         _modLoader.AddOrReplaceController<INextExcelDBApi>(_owner, _nexApi);
+
+        _nexApiManaged = new NextExcelDBApiManaged(_nexHooks);
+        _modLoader.AddOrReplaceController<INextExcelDBApiManaged>(_owner, _nexApiManaged);
 
         _logger.WriteLine($"[{_modConfig.ModId}] Framework initted.");
     }

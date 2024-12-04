@@ -10,12 +10,12 @@
     <PackageProjectUrl>https://github.com/Nenkai/FF16Framework</PackageProjectUrl>
 	<PackageIconUrl>https://avatars1.githubusercontent.com/u/45473408</PackageIconUrl>
     <Authors>Nenkai</Authors>
-    <Version>1.0.0</Version>
+    <Version>1.0.1</Version>
     <Copyright>Copyright (c) Nenkai 2024</Copyright>
     <Description>Mod Framework for FFXVI using Reloaded-II.</Description>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <RepositoryUrl>https://github.com/Nenkai/FF16Framework</RepositoryUrl>
-    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <AssemblyVersion>1.0.1.0</AssemblyVersion>
     <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
   </PropertyGroup>
 
