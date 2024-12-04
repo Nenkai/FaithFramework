@@ -71,6 +71,8 @@ for (uint i = 0; i < numSubSets; i++)
 }
 
 // Manipulate/Fetch row
+NexTableLayout layout = TableMappingReader.ReadTableLayout("photocameraparam", ...); // From FF16Tools.Files
+
 float collisionSphereRadius = row.GetSingle((uint)layout.Columns["CollisionSphereRadius"].Offset);
 row.SetSingle((uint)layout.Columns["CollisionSphereRadius"].Offset, 133.7f;
 ```
