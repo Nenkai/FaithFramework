@@ -49,12 +49,24 @@ if (row is null)
     // Handle error
 }
 
-// Iterate through rows
+// Iterate through rows/get keys
 uint numSets = photoTable.GetNumSets();
 for (uint i = 0; i < numSets; i++)
 {
     uint key1 = photoTable.GetMainKeyByIndex(i);
     // ...
+}
+
+INexTable? gamemap = nextExcelDBApi.GetTable(NexTableIds.gamemap);
+uint numSubSets = gamemap.GetSubSetCount(200000);
+IReadOnlyList<NexSubSetInfo> allSubSets = photoTable.GetSubSetInfos(200000);
+for (uint i = 0; i < numSubSets; i++)
+{
+    NexSubSetInfo? subSetInfo = gamemap.GetSubSetInfoByIndex(200000, i);
+    if (subSetInfo is null)
+    {
+        // Handle error
+    }
 }
 
 // Manipulate/Fetch row
