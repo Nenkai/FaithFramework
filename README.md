@@ -57,6 +57,7 @@ for (uint i = 0; i < numSets; i++)
     // ...
 }
 
+// Double keyed (example)
 INexTable? gamemap = nextExcelDBApi.GetTable(NexTableIds.gamemap);
 uint numSubSets = gamemap.GetSubSetCount(200000);
 IReadOnlyList<NexSubSetInfo> allSubSets = photoTable.GetSubSetInfos(200000);
