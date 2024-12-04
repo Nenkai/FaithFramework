@@ -74,3 +74,6 @@ for (uint i = 0; i < numSubSets; i++)
 float collisionSphereRadius = row.GetSingle((uint)layout.Columns["CollisionSphereRadius"].Offset);
 row.SetSingle((uint)layout.Columns["CollisionSphereRadius"].Offset, 133.7f;
 ```
+
+> [!NOTE]
+> It is not yet possible to add/remove rows, access/manipulate structure arrays or edit strings.
