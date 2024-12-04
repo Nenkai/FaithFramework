@@ -77,3 +77,5 @@ row.SetSingle((uint)layout.Columns["CollisionSphereRadius"].Offset, 133.7f;
 
 > [!NOTE]
 > It is not yet possible to add/remove rows, access/manipulate structure arrays or edit strings.
+> 
+> `INextExcelDBApi` is still supported, but you should use the managed api instead to avoid dealing with pointers/unsafe code.
