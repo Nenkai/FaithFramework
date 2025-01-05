@@ -18,8 +18,11 @@ public unsafe static class NexSignatures
     public delegate NexRowInstance* NexSearchRow1K(NexTableInstance* @this, uint rowId);
     public delegate NexRowInstance* NexSearchRow2K(NexTableInstance* @this, uint key1, uint key2);
     public delegate NexRowInstance* NexSearchRow3K(NexTableInstance* @this, uint key1, uint key2, uint key3);
+
     public delegate byte* NexGetRow1KByIndex(NexTableInstance* @this, uint rowId);
-    public delegate byte* NexGetRow2K(NexTableInstance* @this, uint key1, uint key2);
+    public delegate byte* NexGetRow2KByIndex(NexTableInstance* @this, uint key1, uint key2);
+
+    public delegate byte* NexGetRowData2K(NexTableInstance* @this, uint key1, uint key2);
 
     public delegate void NexGetK2SetCountForType2(NexTableInstance* table, NexSetResult* result, uint key1);
     public delegate void NexGetK3SetCountForType3(NexTableInstance* table, NexSetResult* result, uint key1, uint key2);

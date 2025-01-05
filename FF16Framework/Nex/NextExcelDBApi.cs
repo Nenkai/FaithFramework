@@ -43,7 +43,7 @@ public unsafe class NextExcelDBApi : INextExcelDBApi
         => _nexHooks.NexGetRow1KByIndexFunction.Wrapper(table, (uint)key1);
     
     public byte* GetRow(NexTableInstance* table, int key1, int key2)
-        => _nexHooks.NexGetRow2KFunction.Wrapper(table, (uint)key1, (uint)key2);
+        => _nexHooks.NexGetRow2KByIndexFunction.Wrapper(table, (uint)key1, (uint)key2);
     
     public NexRowInstance* SearchRow(NexTableInstance* table, int key1)
         => _nexHooks.NexSearchRow1KFunction.Wrapper(table, (uint)key1);

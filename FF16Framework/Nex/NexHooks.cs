@@ -28,7 +28,12 @@ public unsafe class NexHooks : HookGroupBase
     public WrapperContainer<NexGetSetCount> NexGetSetCountFunction { get; private set; }
 
     public WrapperContainer<NexGetRow1KByIndex> NexGetRow1KByIndexFunction { get; private set; }
-    public WrapperContainer<NexGetRow2K> NexGetRow2KFunction { get; private set; }
+    public WrapperContainer<NexGetRow2KByIndex> NexGetRow2KByIndexFunction { get; private set; }
+
+    /// <summary>
+    /// Gets data directly for a 2K row
+    /// </summary>
+    public WrapperContainer<NexGetRowData2K> NexGetRowData2KFunction { get; private set; }
 
     public WrapperContainer<NexSearchRow1K> NexSearchRow1KFunction { get; private set; }
     public WrapperContainer<NexSearchRow2K> NexSearchRow2KFunction { get; private set; }
@@ -54,9 +59,10 @@ public unsafe class NexHooks : HookGroupBase
         [nameof(NexGetTable)] = "45 33 C0 89 54 24 ?? 45 8B D0 4C 8B D9 49 B9 25 23 22 84 E4 9C F2 CB 42 0F B6 44 14 ?? 48 B9 B3 01 00 00 00 01 00 00 4C 33 C8 49 FF C2 4C 0F AF C9 49 83 FA 04 72 ?? 49 8B 4B ?? 49 23 C9 4D 8B 4B ?? 48 03 C9 49 8B 44 C9 ?? 49 3B 43 ?? 74 ?? 4D 8B 0C C9 EB ?? 49 3B C1 74 ?? 48 8B 40 ?? 3B 50 ?? 75 ?? EB ?? 49 8B C0 48 85 C0 49 0F 44 43 ?? 49 3B 43 ?? 74 ?? 4C 8B 40",
         [nameof(NexGetSetCount)] = "40 53 48 83 EC ?? 8B D1 33 DB",
         [nameof(NexGetRow1KByIndex)] = "40 53 48 83 EC ?? 8B DA 8B D1 48 8B 0D ?? ?? ?? ?? 48 85 C9 74 ?? E8 ?? ?? ?? ?? 4C 8B C0 48 85 C0 74 ?? 8B 48 ?? 83 E9 ?? 83 F9 ?? 77 ?? 48 8B C8 E8 ?? ?? ?? ?? 84 C0 75 ?? 49 8B 40",
-        [nameof(NexGetRow2K)] = "48 89 5C 24 ?? 48 89 74 24 ?? 57 48 83 EC ?? 8B F2 41 8B F8 8B D1",
+        [nameof(NexGetRow2KByIndex)] = "48 89 5C 24 ?? 57 48 83 EC ?? 48 8B 41 ?? 49 8B D8 48 8B F9",
+        [nameof(NexGetRowData2K)] = "48 89 5C 24 ?? 48 89 74 24 ?? 57 48 83 EC ?? 8B F2 41 8B F8 8B D1",
         [nameof(NexSearchRow1K)] = "48 8B 41 ?? 48 85 C0 74 ?? 48 83 E8 ?? 74 ?? 48 83 F8 ?? 74 ?? 45 33 C9 45 33 C0",
-        [nameof(NexSearchRow2K)] = "48 89 5C 24 ?? 57 48 83 EC ?? 48 8B 41 ?? 49 8B D8 48 8B F9", 
+        [nameof(NexSearchRow2K)] = "48 8B 41 ?? 48 85 C0 74 ?? 48 83 E8 ?? 74 ?? 48 83 F8 ?? 74 ?? 45 33 C9 E9", 
         [nameof(NexSearchRow3K)] = "48 89 5C 24 ?? 48 89 74 24 ?? 57 48 83 EC 30 48 83 79 ?? ?? 49 8B F1" ,
         [nameof(NexGetK2SetCountForType2)] = "48 89 5C 24 ?? 48 89 74 24 ?? 57 48 83 EC ?? 48 83 79 ?? ?? 48 8B DA", // Only double keyed
         [nameof(NexGetK3SetCountForType3)] = "48 89 5C 24 ?? 48 89 74 24 ?? 57 48 83 EC ?? 48 83 79 ?? ?? 41 8B F1",
@@ -86,7 +92,8 @@ public unsafe class NexHooks : HookGroupBase
         NexGetTableFunction = _scans.CreateWrapper<NexGetTable>(_modConfig.ModId);
         NexGetSetCountFunction = _scans.CreateWrapper<NexGetSetCount>(_modConfig.ModId);
         NexGetRow1KByIndexFunction = _scans.CreateWrapper<NexGetRow1KByIndex>(_modConfig.ModId);
-        NexGetRow2KFunction = _scans.CreateWrapper<NexGetRow2K>(_modConfig.ModId);
+        NexGetRow2KByIndexFunction = _scans.CreateWrapper<NexGetRow2KByIndex>(_modConfig.ModId);
+        NexGetRowData2KFunction = _scans.CreateWrapper<NexGetRowData2K>(_modConfig.ModId);
         NexSearchRow1KFunction = _scans.CreateWrapper<NexSearchRow1K>(_modConfig.ModId);
         NexSearchRow2KFunction = _scans.CreateWrapper<NexSearchRow2K>(_modConfig.ModId);
         NexSearchRow3KFunction = _scans.CreateWrapper<NexSearchRow3K>(_modConfig.ModId);

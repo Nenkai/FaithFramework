@@ -21,7 +21,11 @@ namespace FF16Framework;
 /// </summary>
 public class Mod : ModBase, IExports // <= Do not Remove.
 {
-    public Type[] GetTypes() => [typeof(INextExcelDBApi)];
+    public Type[] GetTypes() =>
+    [
+        typeof(INextExcelDBApi),
+        typeof(INextExcelDBApiManaged)
+    ];
 
     /// <summary>
     /// Provides access to the mod loader API.
