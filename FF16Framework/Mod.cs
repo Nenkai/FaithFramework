@@ -6,13 +6,12 @@ using Reloaded.Memory.Sigscan;
 using Reloaded.Memory.Sigscan.Definitions.Structs;
 using Reloaded.Memory.SigScan.ReloadedII.Interfaces;
 using IReloadedHooks = Reloaded.Hooks.ReloadedII.Interfaces.IReloadedHooks;
-
-using FF16Framework.Configuration;
 using FF16Framework.Template;
 using FF16Framework.Nex;
 using FF16Framework.Interfaces.Nex;
 using FF16Framework.Interfaces.Nex.Structures;
 using SharedScans.Interfaces;
+using FF16Framework.Save;
 
 namespace FF16Framework;
 
@@ -61,6 +60,8 @@ public class Mod : ModBase, IExports // <= Do not Remove.
     private static IStartupScanner? _startupScanner = null!;
 
     private NexHooks _nexHooks;
+    private SaveHooks _saveHooks;
+
     private NextExcelDBApi _nexApi;
     private NextExcelDBApiManaged _nexApiManaged;
 
@@ -93,13 +94,16 @@ public class Mod : ModBase, IExports // <= Do not Remove.
         _nexHooks = new NexHooks(_configuration, _modConfig, scans, _logger);
         _nexHooks.Setup();
 
+        _saveHooks = new SaveHooks(_configuration, _modConfig, scans, _logger);
+        _saveHooks.Setup();
+
         _nexApi = new NextExcelDBApi(_nexHooks);
         _modLoader.AddOrReplaceController<INextExcelDBApi>(_owner, _nexApi);
 
         _nexApiManaged = new NextExcelDBApiManaged(_nexHooks);
         _modLoader.AddOrReplaceController<INextExcelDBApiManaged>(_owner, _nexApiManaged);
 
-        _logger.WriteLine($"[{_modConfig.ModId}] Framework initted.");
+        _logger.WriteLine($"[{_modConfig.ModId}] Framework {_modConfig.ModVersion} initted.", _logger.ColorGreen);
     }
 
     #region Standard Overrides

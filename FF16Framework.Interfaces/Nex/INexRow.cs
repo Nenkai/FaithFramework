@@ -1,4 +1,6 @@
-﻿namespace FF16Framework.Interfaces.Nex;
+﻿using FF16Framework.Interfaces.Nex.Structures;
+
+namespace FF16Framework.Interfaces.Nex;
 
 /// <summary>
 /// Nex row.
@@ -67,6 +69,13 @@ public interface INexRow
     float GetSingle(uint columnOffset);
 
     /// <summary>
+    /// Gets a <see cref="NexUnionElement"/> from the specified column offset.
+    /// </summary>
+    /// <param name="columnOffset"></param>
+    /// <returns></returns>
+    NexUnionElement GetUnion(uint columnOffset);
+
+    /// <summary>
     /// Gets a <see cref="string"/> from the specified column offset.
     /// </summary>
     /// <param name="columnOffset"></param>
@@ -107,6 +116,13 @@ public interface INexRow
     /// <param name="columnOffset"></param>
     /// <returns></returns>
     Span<float> GetSingleArrayView(uint columnOffset);
+
+    /// <summary>
+    /// Gets a memory view of a <see cref="NexUnionElement"/> array for manipulation.
+    /// </summary>
+    /// <param name="columnOffset"></param>
+    /// <returns></returns>
+    Span<NexUnionElement> GetUnionArrayView(uint columnOffset);
 
     /// <summary>
     /// Gets a copy of the row data based on specified row length. <br/>
@@ -164,4 +180,11 @@ public interface INexRow
     /// <param name="columnOffset"></param>
     /// <param name="value"></param>
     void SetSingle(uint columnOffset, float value);
+
+    /// <summary>
+    /// Sets a <see cref="NexUnionElement"/> value at the specified column offset.
+    /// </summary>
+    /// <param name="columnOffset"></param>
+    /// <param name="value"></param>
+    void SetUnion(uint columnOffset, NexUnionElement value);
 }

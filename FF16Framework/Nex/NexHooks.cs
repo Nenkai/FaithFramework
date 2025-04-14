@@ -7,14 +7,12 @@ using System.Threading.Tasks;
 using Reloaded.Memory.SigScan.ReloadedII.Interfaces;
 using Reloaded.Mod.Interfaces;
 using Reloaded.Hooks.Definitions;
-
-using FF16Framework.Configuration;
 using FF16Framework.Interfaces.Nex.Structures;
 using FF16Framework.Interfaces.Nex;
 
 using SharedScans.Interfaces;
 
-using static FF16Framework.Nex.NexSignatures;
+using static FF16Framework.Interfaces.Nex.NexSignatures;
 
 namespace FF16Framework.Nex;
 

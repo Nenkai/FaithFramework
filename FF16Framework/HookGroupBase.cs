@@ -5,8 +5,6 @@ using System.Text;
 using System.Threading.Tasks;
 
 using Reloaded.Memory.SigScan.ReloadedII.Interfaces;
-
-using FF16Framework.Configuration;
 using Reloaded.Hooks.Definitions;
 using Reloaded.Mod.Interfaces;
 using SharedScans.Interfaces;

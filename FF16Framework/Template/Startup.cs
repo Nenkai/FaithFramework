@@ -11,7 +11,6 @@
 // ...
 #endif
 
-using FF16Framework.Configuration;
 using FF16Framework.Template.Configuration;
 
 using Reloaded.Hooks.ReloadedII.Interfaces;

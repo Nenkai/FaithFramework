@@ -1,6 +1,4 @@
-﻿using FF16Framework.Configuration;
-
-namespace FF16Framework.Template
+﻿namespace FF16Framework.Template
 {
     /// <summary>
     /// Base class for implementing mod functionality.

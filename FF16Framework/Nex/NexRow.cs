@@ -83,6 +83,15 @@ public class NexRow : INexRow
         }
     }
 
+    public NexUnionElement GetUnion(uint columnOffset)
+    {
+        unsafe
+        {
+            NexUnionElement elem = *(NexUnionElement*)(_rowDataPtr + columnOffset);
+            return elem;
+        }
+    }
+
     public Span<byte> GetRowDataView(uint rowLength)
     {
         unsafe
@@ -136,6 +145,18 @@ public class NexRow : INexRow
 
             byte* arrayPtr = _rowDataPtr + arrayOffset;
             return new Span<float>(arrayPtr, arrayLength);
+        }
+    }
+
+    public Span<NexUnionElement> GetUnionArrayView(uint columnOffset)
+    {
+        unsafe
+        {
+            int arrayOffset = *(int*)(_rowDataPtr + columnOffset);
+            int arrayLength = *(int*)(_rowDataPtr + columnOffset + 4);
+
+            byte* arrayPtr = _rowDataPtr + arrayOffset;
+            return new Span<NexUnionElement>(arrayPtr, arrayLength);
         }
     }
 
@@ -235,6 +256,14 @@ public class NexRow : INexRow
         unsafe
         {
             *(float*)(_rowDataPtr + columnOffset) = value;
+        }
+    }
+
+    public void SetUnion(uint columnOffset, NexUnionElement value)
+    {
+        unsafe
+        {
+            *(NexUnionElement*)(_rowDataPtr + columnOffset) = value;
         }
     }
     #endregion

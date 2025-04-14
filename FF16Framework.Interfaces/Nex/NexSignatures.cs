@@ -4,10 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-using FF16Framework.Interfaces.Nex;
 using FF16Framework.Interfaces.Nex.Structures;
 
-namespace FF16Framework.Nex;
+namespace FF16Framework.Interfaces.Nex;
 
 public unsafe static class NexSignatures
 {

@@ -1,6 +1,4 @@
-﻿using FF16Framework.Configuration;
-
-using Reloaded.Mod.Interfaces;
+﻿using Reloaded.Mod.Interfaces;
 
 namespace FF16Framework.Template.Configuration
 {
