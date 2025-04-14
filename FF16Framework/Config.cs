@@ -19,7 +19,8 @@ namespace FF16Framework
             NOTE: You should only use this while tampering with one save only! Having all saves stored as XML can be pretty slow to load.
             Reminder: Saves are saved in "Documents/My Games/FINAL FANTASY XVI/Steam/<id>/<name>.png".
             """)]
-        public bool SerializeSavesAsXml { get; set; }
+        [DefaultValue(false)]
+        public bool SerializeSavesAsXml { get; set; } = false;
 
         /*
         [DisplayName("Load Saves from XML")]
