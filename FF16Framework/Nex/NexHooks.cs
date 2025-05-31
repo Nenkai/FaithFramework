@@ -110,6 +110,16 @@ public unsafe class NexHooks : HookGroupBase
         uint errorCode = NexInitializeHook.Hook.OriginalFunction(@this, a2);
         if (errorCode == 0)
         {
+            // The nxl/nxds were loaded and parsed/initialized. Now we Wait for a bit.
+
+            // The hook is installed in the .nxl load handler, which itself loads .nxds.
+            // When the function that opens and inits/parses the format for a registered game file format handler is done, the game still does some processing like
+            // setting the file open state to 1 and registering or caching the file in some map.
+
+            // anything that happens after the load but before the finalization is subject to a race. so we sleep for now.
+            // format loader ref: 89 54 24 ? 53 55 56 57 41 54 41 55 41 56 41 57 48 83 EC ? 48 8B 81
+            Thread.Sleep(100);
+
             _logger.WriteLine($"[{_modConfig.ModId}] Game successfully loaded nex tables.", _logger.ColorGreen);
 
             Instance = @this;
