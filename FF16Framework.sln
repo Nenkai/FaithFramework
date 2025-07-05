@@ -7,6 +7,14 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FF16Framework", "FF16Framew
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FF16Framework.Interfaces", "FF16Framework.Interfaces\FF16Framework.Interfaces.csproj", "{1E2FEAFC-5DF9-4819-918C-80C27EBDACFB}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImGuiInterfaceGenerator", "ImGuiInterfaceGenerator\ImGuiInterfaceGenerator.csproj", "{8F30D90D-292B-48A2-891A-BDCA85BE815B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FF16Framework.ImGui.Hooks", "FF16Framework.ImGui.Hooks\FF16Framework.ImGui.Hooks.csproj", "{08755613-1548-4113-859C-13472822AC70}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FF16Framework.ImGui.Hooks.DirectX12", "FF16Framework.ImGui.Hooks.DirectX12\FF16Framework.ImGui.Hooks.DirectX12.csproj", "{DFD8F8CB-8D40-423E-B539-17354033CB6B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FF16Framework.Native", "FF16Framework.Native\FF16Framework.Native.csproj", "{ED2E0417-FD86-458E-AC7A-9B0A5FEAEBEE}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -26,6 +34,30 @@ Global
 		{1E2FEAFC-5DF9-4819-918C-80C27EBDACFB}.Release|Any CPU.Build.0 = Release|Any CPU
 		{1E2FEAFC-5DF9-4819-918C-80C27EBDACFB}.Test|Any CPU.ActiveCfg = Debug|Any CPU
 		{1E2FEAFC-5DF9-4819-918C-80C27EBDACFB}.Test|Any CPU.Build.0 = Debug|Any CPU
+		{8F30D90D-292B-48A2-891A-BDCA85BE815B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8F30D90D-292B-48A2-891A-BDCA85BE815B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8F30D90D-292B-48A2-891A-BDCA85BE815B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8F30D90D-292B-48A2-891A-BDCA85BE815B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8F30D90D-292B-48A2-891A-BDCA85BE815B}.Test|Any CPU.ActiveCfg = Debug|Any CPU
+		{8F30D90D-292B-48A2-891A-BDCA85BE815B}.Test|Any CPU.Build.0 = Debug|Any CPU
+		{08755613-1548-4113-859C-13472822AC70}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{08755613-1548-4113-859C-13472822AC70}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{08755613-1548-4113-859C-13472822AC70}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{08755613-1548-4113-859C-13472822AC70}.Release|Any CPU.Build.0 = Release|Any CPU
+		{08755613-1548-4113-859C-13472822AC70}.Test|Any CPU.ActiveCfg = Debug|Any CPU
+		{08755613-1548-4113-859C-13472822AC70}.Test|Any CPU.Build.0 = Debug|Any CPU
+		{DFD8F8CB-8D40-423E-B539-17354033CB6B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DFD8F8CB-8D40-423E-B539-17354033CB6B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DFD8F8CB-8D40-423E-B539-17354033CB6B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DFD8F8CB-8D40-423E-B539-17354033CB6B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DFD8F8CB-8D40-423E-B539-17354033CB6B}.Test|Any CPU.ActiveCfg = Debug|Any CPU
+		{DFD8F8CB-8D40-423E-B539-17354033CB6B}.Test|Any CPU.Build.0 = Debug|Any CPU
+		{ED2E0417-FD86-458E-AC7A-9B0A5FEAEBEE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{ED2E0417-FD86-458E-AC7A-9B0A5FEAEBEE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{ED2E0417-FD86-458E-AC7A-9B0A5FEAEBEE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{ED2E0417-FD86-458E-AC7A-9B0A5FEAEBEE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{ED2E0417-FD86-458E-AC7A-9B0A5FEAEBEE}.Test|Any CPU.ActiveCfg = Debug|Any CPU
+		{ED2E0417-FD86-458E-AC7A-9B0A5FEAEBEE}.Test|Any CPU.Build.0 = Debug|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -1,0 +1,11 @@
+CreateEvent
+CloseHandle
+DefSubclassProc
+GetClassName
+GetCursorPos
+GetModuleHandle
+GetProcAddress
+LoadLibraryW
+LoadCursor
+IsWindowUnicode
+WaitForSingleObject

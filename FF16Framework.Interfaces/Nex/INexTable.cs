@@ -1,4 +1,7 @@
-﻿namespace FF16Framework.Interfaces.Nex;
+﻿using System;
+using System.Collections.Generic;
+
+namespace FF16Framework.Interfaces.Nex;
 
 /// <summary>
 /// Nex table.

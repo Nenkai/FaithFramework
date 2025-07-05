@@ -1,4 +1,5 @@
-﻿using FF16Framework.Interfaces.Nex.Structures;
+﻿using System;
+using FF16Framework.Interfaces.Nex.Structures;
 
 namespace FF16Framework.Interfaces.Nex;
 

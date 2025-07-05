@@ -1,17 +1,19 @@
-﻿using System.Diagnostics;
-
-using Reloaded.Mod.Interfaces;
-using Reloaded.Hooks.Definitions;
-using Reloaded.Memory.Sigscan;
-using Reloaded.Memory.Sigscan.Definitions.Structs;
-using Reloaded.Memory.SigScan.ReloadedII.Interfaces;
-using IReloadedHooks = Reloaded.Hooks.ReloadedII.Interfaces.IReloadedHooks;
-using FF16Framework.Template;
-using FF16Framework.Nex;
+﻿using FF16Framework.ImGui.Hooks;
+using FF16Framework.ImGuiManager;
+using FF16Framework.Interfaces.ImGui;
 using FF16Framework.Interfaces.Nex;
-using FF16Framework.Interfaces.Nex.Structures;
-using SharedScans.Interfaces;
+using FF16Framework.Nex;
 using FF16Framework.Save;
+using FF16Framework.Template;
+
+using Reloaded.Memory.SigScan.ReloadedII.Interfaces;
+using Reloaded.Mod.Interfaces;
+
+using SharedScans.Interfaces;
+
+using System.Diagnostics;
+
+using IReloadedHooks = Reloaded.Hooks.ReloadedII.Interfaces.IReloadedHooks;
 
 namespace FF16Framework;
 
@@ -23,7 +25,8 @@ public class Mod : ModBase, IExports // <= Do not Remove.
     public Type[] GetTypes() =>
     [
         typeof(INextExcelDBApi),
-        typeof(INextExcelDBApiManaged)
+        typeof(INextExcelDBApiManaged),
+        typeof(IImGui),
     ];
 
     /// <summary>
@@ -65,6 +68,8 @@ public class Mod : ModBase, IExports // <= Do not Remove.
     private NextExcelDBApi _nexApi;
     private NextExcelDBApiManaged _nexApiManaged;
 
+    private ImguiSupport _imguiSupport;
+
     public Mod(ModContext context)
     {
         _modLoader = context.ModLoader;
@@ -77,6 +82,11 @@ public class Mod : ModBase, IExports // <= Do not Remove.
 #if DEBUG
         Debugger.Launch();
 #endif
+        if (_hooks is null)
+        {
+            _logger.WriteLine($"[{_modConfig.ModId}] Hooks is null. Framework will not load!");
+            return;
+        }
 
         var startupScannerController = _modLoader.GetController<IStartupScanner>();
         if (startupScannerController == null || !startupScannerController.TryGetTarget(out _startupScanner))
@@ -85,7 +95,7 @@ public class Mod : ModBase, IExports // <= Do not Remove.
         }
 
         var sharedScansController = _modLoader.GetController<ISharedScans>();
-        if (sharedScansController == null || !sharedScansController.TryGetTarget(out ISharedScans scans))
+        if (sharedScansController == null || !sharedScansController.TryGetTarget(out ISharedScans? scans))
         {
             _logger.WriteLine($"[{_modConfig.ModId}] Unable to get ISharedScans. Framework will not load!");
             return;
@@ -98,10 +108,18 @@ public class Mod : ModBase, IExports // <= Do not Remove.
         _saveHooks.Setup();
 
         _nexApi = new NextExcelDBApi(_nexHooks);
-        _modLoader.AddOrReplaceController<INextExcelDBApi>(_owner, _nexApi);
 
         _nexApiManaged = new NextExcelDBApiManaged(_nexHooks);
         _modLoader.AddOrReplaceController<INextExcelDBApiManaged>(_owner, _nexApiManaged);
+
+        var imgui = new ImGuiManager.ImGui();
+        ImguiHook.imgui = imgui;
+        _imguiSupport = new ImguiSupport(_hooks, scans, _modConfig, imgui);
+        _imguiSupport.SetupImgui(_modLoader.GetDirectoryForModId(_modConfig.ModId));
+
+        _modLoader.AddOrReplaceController<INextExcelDBApi>(_owner, _nexApi);
+        _modLoader.AddOrReplaceController<INextExcelDBApiManaged>(_owner, _nexApiManaged);
+        _modLoader.AddOrReplaceController<IImGui>(_owner, imgui);
 
         _logger.WriteLine($"[{_modConfig.ModId}] Framework {_modConfig.ModVersion} initted.", _logger.ColorGreen);
     }
