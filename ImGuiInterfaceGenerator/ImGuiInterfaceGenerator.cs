@@ -196,13 +196,18 @@ public class ImGuiInterfaceGenerator
                             else if (structMember.IsKind(SyntaxKind.PropertyDeclaration))
                             {
                                 PropertyDeclarationSyntax propertyDeclaration = (PropertyDeclarationSyntax)structMember;
-
                                 TypeSyntax newType = FixupParameterType(propertyDeclaration.Type, propertyDeclaration.AttributeLists, ImGuiStructTypeKind.ForInterface, out _);
 
-                                newStructMembers.Add(propertyDeclaration.WithAttributeLists([])
+                                var fieldName = propertyDeclaration.Identifier.ValueText;
+                                StructFieldMetadata? fieldMetadata = _metadata.StructsByName![structName].Fields.FirstOrDefault(e => e.Name == fieldName);
+
+                                PropertyDeclarationSyntax newProperty = propertyDeclaration.WithAttributeLists([])
                                     .WithAccessorList(SyntaxTreeUtils.GetAccessorList(withSetter: !propertyDeclaration.Type.IsKind(SyntaxKind.RefType)))
                                     .WithModifiers(default)
-                                    .WithType(newType));
+                                    .WithType(newType);
+
+                                newProperty = DecorateWithComments(newProperty, fieldMetadata?.Comments?.Attached, fieldMetadata?.Comments?.Preceding, numTabs: 1);
+                                newStructMembers.Add(newProperty);
                             }
                             else if (structMember.IsKind(SyntaxKind.StructDeclaration))
                             {
@@ -214,12 +219,13 @@ public class ImGuiInterfaceGenerator
                                 newStructMembers.Add(structMember);
                         }
 
-
-                        InterfaceDeclarationSyntax newClass = SF.InterfaceDeclaration($"I{structName}")
+                        StructMetadata? structMetadata = _metadata.StructsByName![structName];
+                        InterfaceDeclarationSyntax newInterface = SF.InterfaceDeclaration($"I{structName}")
                             .WithMembers(SF.List<MemberDeclarationSyntax>(newStructMembers))
                             .WithModifiers(SF.TokenList(SF.Token(SyntaxKind.PublicKeyword), SF.Token(SyntaxKind.UnsafeKeyword)));
 
-                        _interfaceMembers.Add(newClass);
+                        newInterface = DecorateWithComments(newInterface, structMetadata.Comments?.Attached, structMetadata.Comments?.Preceding);
+                        _interfaceMembers.Add(newInterface);
                     }
                     else
                     {
@@ -237,11 +243,13 @@ public class ImGuiInterfaceGenerator
         if (attached is not null)
         {
             lines.Add(attached);
-            lines.Add(string.Empty);
         }
 
         if (preceding?.Count > 0)
         {
+            if (attached is not null)
+                lines.Add(string.Empty);
+
             foreach (var comment in preceding)
                 lines.Add(comment);
         }
@@ -255,7 +263,8 @@ public class ImGuiInterfaceGenerator
     {
         InterfaceDeclarationSyntax interfaceClass = SF.InterfaceDeclaration("IImGui")
             .WithModifiers(SF.TokenList(SF.Token(SyntaxKind.UnsafeKeyword), SF.Token(SyntaxKind.PublicKeyword)))
-            .WithMembers(new SyntaxList<MemberDeclarationSyntax>(_interfaceMethodList));
+            .WithMembers(new SyntaxList<MemberDeclarationSyntax>(_interfaceMethodList))
+            .AddSummary(["Interface to the ImGui library."]);
 
         var allMembers = new List<MemberDeclarationSyntax>();
         allMembers.Add(interfaceClass);
@@ -694,8 +703,8 @@ public class ImGuiInterfaceGenerator
     public string FinishImpl(string namespaceDeclaration, string interfacesNamespace)
     {
         ClassDeclarationSyntax implClass = SF.ClassDeclaration("ImGui")
-            .WithBaseList(SF.BaseList(SF.SeparatedList<BaseTypeSyntax>(new List<BaseTypeSyntax>() 
-            { 
+            .WithBaseList(SF.BaseList(SF.SeparatedList<BaseTypeSyntax>(new List<BaseTypeSyntax>()
+            {
                 SF.SimpleBaseType(SF.ParseTypeName("IImGui")),
             })))
             .WithModifiers(SF.TokenList(SF.Token(SyntaxKind.PublicKeyword), SF.Token(SyntaxKind.UnsafeKeyword)))

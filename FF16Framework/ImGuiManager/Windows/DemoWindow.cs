@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 
 namespace FF16Framework.ImGuiManager.Windows;
 
-public unsafe class DemoWindow : IImguiWindow, IImguiMenuComponent
+public unsafe class DemoWindow : IImGuiComponent
 {
     public bool IsOverlay => false;
     public bool IsOpen = false;
@@ -22,7 +22,7 @@ public unsafe class DemoWindow : IImguiWindow, IImguiMenuComponent
         
     }
 
-    public void BeginMenuComponent(IImGui imgui)
+    public void RenderMenu(IImGui imgui)
     {
         if (imgui.MenuItemEx("ImGui Demo Window", "", false, true))
         {
@@ -30,7 +30,7 @@ public unsafe class DemoWindow : IImguiWindow, IImguiMenuComponent
         }
     }
 
-    public void Render(IImguiSupport imguiSupport, IImGui imgui)
+    public void Render(IImGuiSupport imguiSupport, IImGui imgui)
     {
         if (!IsOpen)
             return;

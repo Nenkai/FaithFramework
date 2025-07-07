@@ -1,6 +1,9 @@
 ﻿using FF16Framework.ImGui.Hooks;
+using FF16Framework.ImGui.Hooks.DirectX12;
 using FF16Framework.ImGuiManager;
+using FF16Framework.ImGuiManager.Windows;
 using FF16Framework.Interfaces.ImGui;
+using FF16Framework.Interfaces.ImGuiManager;
 using FF16Framework.Interfaces.Nex;
 using FF16Framework.Nex;
 using FF16Framework.Save;
@@ -27,6 +30,8 @@ public class Mod : ModBase, IExports // <= Do not Remove.
         typeof(INextExcelDBApi),
         typeof(INextExcelDBApiManaged),
         typeof(IImGui),
+        typeof(IImGuiSupport),
+        typeof(IImGuiTextureManager),
     ];
 
     /// <summary>
@@ -68,7 +73,8 @@ public class Mod : ModBase, IExports // <= Do not Remove.
     private NextExcelDBApi _nexApi;
     private NextExcelDBApiManaged _nexApiManaged;
 
-    private ImguiSupport _imguiSupport;
+    private ImGuiSupport _imGuiSupport;
+    private ImGuiTextureManager _imGuiTextureManager;
 
     public Mod(ModContext context)
     {
@@ -101,27 +107,56 @@ public class Mod : ModBase, IExports // <= Do not Remove.
             return;
         }
 
+        InitSaveHooks(scans);
+        InitNex(scans);
+        InitImGui(scans);
+
+        _logger.WriteLine($"[{_modConfig.ModId}] Framework {_modConfig.ModVersion} initted.", _logger.ColorGreen);
+    }
+
+    private void InitImGui(ISharedScans scans)
+    {
+        var imgui = new ImGuiManager.ImGui();
+        var imguiHookDx12 = new ImguiHookDx12();
+        _imGuiTextureManager = new ImGuiTextureManager(_logger, imguiHookDx12);
+
+        ImguiHook.imgui = imgui;
+        _imGuiSupport = new ImGuiSupport(_hooks!, scans, _modConfig, _logger, imguiHookDx12, imgui);
+
+        if (_configuration.LoadImGuiHook)
+        {
+            _imGuiSupport.SetupImgui(_modLoader.GetDirectoryForModId(_modConfig.ModId));
+
+            string logPath = Path.Combine(_modLoader.GetDirectoryForModId(_modConfig.ModId), "framework_log.txt");
+            _imGuiSupport.AddComponent(new LogWindow(_logger, logPath), "File", "Log Window");
+            _imGuiSupport.AddComponent(new DemoWindow(), "Other", "Demo Window");
+            _imGuiSupport.AddComponent(new AboutWindow(_modConfig, _modLoader, _imGuiTextureManager), "Other", "About Window");
+        }
+        else
+        {
+            _logger.WriteLine($"[{_modConfig.ModId}] ImGui overlay/hook is currently disabled. You can enable it in the framework's configuration options.", _logger.ColorYellow);
+        }
+
+        _modLoader.AddOrReplaceController<IImGui>(_owner, imgui);
+        _modLoader.AddOrReplaceController<IImGuiSupport>(_owner, _imGuiSupport);
+        _modLoader.AddOrReplaceController<IImGuiTextureManager>(_owner, _imGuiTextureManager);
+    }
+
+    private void InitNex(ISharedScans scans)
+    {
         _nexHooks = new NexHooks(_configuration, _modConfig, scans, _logger);
         _nexHooks.Setup();
 
-        _saveHooks = new SaveHooks(_configuration, _modConfig, scans, _logger);
-        _saveHooks.Setup();
-
         _nexApi = new NextExcelDBApi(_nexHooks);
-
         _nexApiManaged = new NextExcelDBApiManaged(_nexHooks);
-        _modLoader.AddOrReplaceController<INextExcelDBApiManaged>(_owner, _nexApiManaged);
-
-        var imgui = new ImGuiManager.ImGui();
-        ImguiHook.imgui = imgui;
-        _imguiSupport = new ImguiSupport(_hooks, scans, _modConfig, imgui);
-        _imguiSupport.SetupImgui(_modLoader.GetDirectoryForModId(_modConfig.ModId));
-
         _modLoader.AddOrReplaceController<INextExcelDBApi>(_owner, _nexApi);
         _modLoader.AddOrReplaceController<INextExcelDBApiManaged>(_owner, _nexApiManaged);
-        _modLoader.AddOrReplaceController<IImGui>(_owner, imgui);
+    }
 
-        _logger.WriteLine($"[{_modConfig.ModId}] Framework {_modConfig.ModVersion} initted.", _logger.ColorGreen);
+    private void InitSaveHooks(ISharedScans scans)
+    {
+        _saveHooks = new SaveHooks(_configuration, _modConfig, scans, _logger);
+        _saveHooks.Setup();
     }
 
     #region Standard Overrides

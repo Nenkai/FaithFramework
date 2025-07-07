@@ -5,6 +5,7 @@
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+	<GenerateDocumentationFile>true</GenerateDocumentationFile>
     <Title>FF16Framework.Interfaces</Title>
     <PackageProjectUrl>https://github.com/Nenkai/FF16Framework</PackageProjectUrl>
 	<PackageIconUrl>https://avatars1.githubusercontent.com/u/45473408</PackageIconUrl>

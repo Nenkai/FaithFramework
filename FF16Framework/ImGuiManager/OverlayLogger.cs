@@ -9,10 +9,11 @@ using System.Threading.Tasks;
 
 using FF16Framework.ImGuiManager.Windows;
 using FF16Framework.Interfaces.ImGui;
+using FF16Framework.Interfaces.ImGuiManager;
 
 namespace FF16Framework.ImGuiManager;
 
-public unsafe class OverlayLogger : IImguiWindow
+public unsafe class OverlayLogger : IImGuiComponent
 {
     // Inspired by xenomods
     #region Properties
@@ -31,7 +32,7 @@ public unsafe class OverlayLogger : IImguiWindow
     public static OverlayLogger Instance => _instance;
     #endregion
 
-    public void AddMessage(string message, Color? messageColor = null)
+    public void AddMessage(string source, string message, Color? messageColor = null)
     {
         if (lines.Count >= MAX_LINES)
             lines.Remove(lines[0]);
@@ -39,6 +40,7 @@ public unsafe class OverlayLogger : IImguiWindow
         var now = DateTimeOffset.UtcNow;
         lines.Add(new LoggerMessage()
         {
+            Source = source,
             Text = message,
             Date = now,
             EndsAt = now + LINE_LIFETIME,
@@ -47,7 +49,12 @@ public unsafe class OverlayLogger : IImguiWindow
         });
     }
 
-    public void Render(IImguiSupport imguiSupport, IImGui imgui)
+    public void RenderMenu(IImGui imgui)
+    {
+
+    }
+
+    public void Render(IImGuiSupport imguiSupport, IImGui imgui)
     {
         float barHeight = 0;
         if (imguiSupport.IsMainMenuBarOpen)
@@ -78,9 +85,9 @@ public unsafe class OverlayLogger : IImguiWindow
                     lines.Remove(lines[i--]);
 
             }
-
-            imgui.End();
         }
+
+        imgui.End();
     }
 
     void DrawInternal(IImGui imgui, LoggerMessage msg, ushort x, ushort y)
@@ -97,19 +104,15 @@ public unsafe class OverlayLogger : IImguiWindow
         }
 
         imgui.SetCursorScreenPos(new Vector2(x, y));
-        imgui.TextColored(new Vector4(0.5f, 0.5f, 0.5f, alpha), $"{msg.Date:HH:mm:ss.fff} -"); imgui.SameLine();
+        imgui.TextColored(new Vector4(0.5f, 0.5f, 0.5f, alpha), $"[{msg.Source}]"); imgui.SameLineEx(0, 2);
+        imgui.TextColored(new Vector4(1.0f, 1.0f, 1.0f, alpha), $"{msg.Date:HH:mm:ss.fff} - "); imgui.SameLineEx(0, 2);
         imgui.TextColored(new Vector4(msg.Color.R / 255f, msg.Color.G / 255f, msg.Color.B / 255f, alpha), msg.Text);
 	}
-
-
-    public void BeginMenuComponent(IImGui imgui)
-    {
-
-    }
 }
 
 public class LoggerMessage
 {
+    public string Source { get; set; }
     public string Text { get; set; }
     public Color Color { get; set; } = Color.White;
     public DateTimeOffset Date { get; set; }

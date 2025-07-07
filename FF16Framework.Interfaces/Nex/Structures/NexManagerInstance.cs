@@ -4,8 +4,6 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-using FF16Framework.Structures;
-
 namespace FF16Framework.Interfaces.Nex.Structures;
 
 // Size: 0x80

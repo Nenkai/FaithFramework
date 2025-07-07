@@ -1,4 +1,5 @@
 ﻿using FF16Framework.ImGui.Hooks.Definitions;
+using FF16Framework.ImGui.Hooks.DirectX12.Definitions;
 
 using Reloaded.Hooks.Definitions;
 using Reloaded.Hooks.Definitions.Structs;
@@ -19,6 +20,11 @@ namespace FF16Framework.ImGui.Hooks.DirectX12;
 /// </summary>
 public static class DX12Hook
 {
+    /// <summary>
+    /// Contains the DX12 DXGI Factory VTable.
+    /// </summary>
+    public static IVirtualFunctionTable FactoryVTable { get; private set; }
+
     /// <summary>
     /// Contains the DX12 DXGI Swapchain VTable.
     /// </summary>
@@ -52,10 +58,10 @@ public static class DX12Hook
             IsWindowed = true
         };
 
-        
-        using (var factory = new Factory4())
+        using (var factory = new Factory2())
         using (var swapChain = new SwapChain(factory, commandQueue, swapChainDesc))
         {
+            FactoryVTable = SDK.Hooks.VirtualFunctionTableFromObject(factory.NativePointer, Enum.GetNames(typeof(IDXGIFactory)).Length);
             SwapchainVTable = SDK.Hooks.VirtualFunctionTableFromObject(swapChain.NativePointer, Enum.GetNames(typeof(IDXGISwapChainVTable)).Length);
             ComamndQueueVTable = SDK.Hooks.VirtualFunctionTableFromObject(commandQueue.NativePointer, Enum.GetNames(typeof(ID3D12CommandQueueVTable)).Length);
 
@@ -86,7 +92,11 @@ public static class DX12Hook
 
     [Function(Reloaded.Hooks.Definitions.X64.CallingConventions.Microsoft)]
     [Reloaded.Hooks.Definitions.X86.Function(CallingConventions.Stdcall)]
-    public struct ResizeBuffers { public FuncPtr<nint, uint, uint, uint, Format, uint, nint> Value; }
+    public struct ResizeBuffers { public FuncPtr<nint, uint, uint, uint, Format, SwapChainFlags, nint> Value; }
+
+    [Function(Reloaded.Hooks.Definitions.X64.CallingConventions.Microsoft)]
+    [Reloaded.Hooks.Definitions.X86.Function(CallingConventions.Stdcall)]
+    public struct CreateSwapChainForHwnd { public FuncPtr<nint, nint, nint, nint, nint, nint, nint, nint> Value; }
 
     [Function(Reloaded.Hooks.Definitions.X64.CallingConventions.Microsoft)]
     [Reloaded.Hooks.Definitions.X86.Function(CallingConventions.Stdcall)]

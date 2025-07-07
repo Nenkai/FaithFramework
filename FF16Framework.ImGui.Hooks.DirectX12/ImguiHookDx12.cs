@@ -1,7 +1,8 @@
-﻿using FF16Framework.ImGui.Hooks.Definitions;
+﻿using FF16Framework.ImGui.Hooks;
 using FF16Framework.ImGui.Hooks.DirectX;
-using FF16Framework.ImGui.Hooks;
+using FF16Framework.ImGui.Hooks.DirectX12.Definitions;
 using FF16Framework.Interfaces.ImGui;
+using FF16Framework.Native.ImGui;
 
 using Reloaded.Hooks.Definitions;
 
@@ -9,14 +10,15 @@ using SharpDX.Direct3D12;
 using SharpDX.DXGI;
 
 using System;
+using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 using Windows.Win32;
 
+using static System.Net.Mime.MediaTypeNames;
+
 using Device = SharpDX.Direct3D12.Device;
-using System.Collections.Concurrent;
-using FF16Framework.Native.ImGui;
 
 namespace FF16Framework.ImGui.Hooks.DirectX12;
 
@@ -26,6 +28,8 @@ public unsafe class ImguiHookDx12 : IImguiHook
 
     private IHook<DX12Hook.Present> _presentHook;
     private IHook<DX12Hook.ResizeBuffers> _resizeBuffersHook;
+    private IHook<DX12Hook.CreateSwapChainForHwnd> _createSwapChainForHwndHook;
+
     private bool _initialized = false;
     private Device _device;
     private DescriptorHeap _shaderResourceViewDescHeap;
@@ -50,6 +54,7 @@ public unsafe class ImguiHookDx12 : IImguiHook
      */
     private bool _presentRecursionLock = false;
     private bool _resizeRecursionLock = false;
+    private bool _createSwapChainRecursionLock = false;
 
     public ImguiHookDx12() { }
 
@@ -73,10 +78,12 @@ public unsafe class ImguiHookDx12 : IImguiHook
     {
         var presentPtr = (long)DX12Hook.SwapchainVTable[(int)IDXGISwapChainVTable.Present].FunctionPointer;
         var resizeBuffersPtr = (long)DX12Hook.SwapchainVTable[(int)IDXGISwapChainVTable.ResizeBuffers].FunctionPointer;
+        var createSwapChainForHwndPtr = (long)DX12Hook.FactoryVTable[(int)IDXGIFactory.CreateSwapChainForHwnd].FunctionPointer;
         //var executeCommandListsPtr = (long)DX12Hook.ComamndQueueVTable[(int)ID3D12CommandQueueVTable.ExecuteCommandLists].FunctionPointer;
         Instance = this;
         _presentHook = SDK.Hooks.CreateHook<DX12Hook.Present>(typeof(ImguiHookDx12), nameof(PresentImplStatic), presentPtr).Activate();
         _resizeBuffersHook = SDK.Hooks.CreateHook<DX12Hook.ResizeBuffers>(typeof(ImguiHookDx12), nameof(ResizeBuffersImplStatic), resizeBuffersPtr).Activate();
+        _createSwapChainForHwndHook = SDK.Hooks.CreateHook<DX12Hook.CreateSwapChainForHwnd>(typeof(ImguiHookDx12), nameof(CreateSwapChainForHwndImplStatic), createSwapChainForHwndPtr).Activate();
         //_execCmdListHook = SDK.Hooks.CreateHook<DX12Hook.ExecuteCommandLists>(typeof(ImguiHookDx12), nameof(ExecCmdListsImplStatic), executeCommandListsPtr).Activate();
     }
 
@@ -103,7 +110,30 @@ public unsafe class ImguiHookDx12 : IImguiHook
         }
     }
 
-    private nint ResizeBuffersImpl(nint swapchainPtr, uint bufferCount, uint width, uint height, Format newFormat, uint swapchainFlags)
+    private nint CreateSwapChainForHwndImpl(nint this_, nint pDevice, nint hWnd, nint pDesc, nint pFullscreenDesc, nint pRestrictToOutput, nint ppSwapChain)
+    {
+        /* We hook this as the game requires it, when swapping from borderless -> fullscreen -> borderless, otherwise, this happens:
+         * [22012] DXGI ERROR: IDXGIFactory::CreateSwapChain: Only one flip model swap chain can be associate with an HWND, 
+         * IWindow, or composition surface at a time. ClearState() and Flush() may need to be called on the D3D11 device context 
+         * to trigger deferred destruction of old swapchains. [ MISCELLANEOUS ERROR #297: ]
+         *
+         * Fun fact: FF16's response to that DXGI/D3D12 error is to simply bring up a messagebox and translate the error code from GetDeviceRemovedReason
+         * ...When that happens, the error code is 0, so all you get is a "The operation completed successfully". Very useful
+         * 
+         * The recursion lock exists as ImGui can call CreateSwapChainForHwnd within ImGui_ImplDX12_CreateWindow
+         */
+
+        if (!_createSwapChainRecursionLock && renderTargetViewDescHeap is not null)
+            PreResizeBuffers();
+
+        var res =  _createSwapChainForHwndHook.OriginalFunction.Value.Invoke(this_, pDevice, hWnd, pDesc, pFullscreenDesc, pRestrictToOutput, ppSwapChain);
+        if (!_createSwapChainRecursionLock && renderTargetViewDescHeap is not null)
+            PostResizeBuffers(*(nint*)ppSwapChain);
+
+        return res;
+    }
+
+    private nint ResizeBuffersImpl(nint swapchainPtr, uint bufferCount, uint width, uint height, Format newFormat, SwapChainFlags swapchainFlags)
     {
         if (_resizeRecursionLock)
         {
@@ -140,6 +170,7 @@ public unsafe class ImguiHookDx12 : IImguiHook
         // ResizeBuffer requires swapchain resources to be freed.
         foreach (var frameCtx in _frameContexts)
             frameCtx.MainRenderTargetResource?.Dispose();
+
         ImGuiMethods.cImGui_ImplDX12_InvalidateDeviceObjects();
     }
 
@@ -275,7 +306,21 @@ public unsafe class ImguiHookDx12 : IImguiHook
             }
 
             ImGuiMethods.cImGui_ImplDX12_NewFrame();
+
+            // ImGui >=1.92 note
+            // When resizing windows outside the game window (viewports), the game wants to
+            // Resize windows for some reason using PlatformIO_SetWindowSize
+            // ImGui's DX12 implementation for that will call ResizeBuffers which we hook
+
+            // In turn, InvalidateDeviceObjects will be called, and all textures will be destroyed as of 1.92
+
+            // On the next frame for some reason the textures aren't recreated (font mainly?)
+            // We may need to also set ImGui->PlatformIO->SetWindowSize to null maybe? Not sure.
+
+            // this may  call CreateSwapChainForHwnd when creating windows, which we hook. we use a lock to make sure we aren't freeing objects again.
+            _createSwapChainRecursionLock = true;
             ImguiHook.NewFrame();
+            _createSwapChainRecursionLock = false;
 
             var FrameBufferCountsfgn = swapChain.Description.BufferCount;
             var currentFrameContext = _frameContexts[swapChain.CurrentBackBufferIndex];
@@ -324,7 +369,7 @@ public unsafe class ImguiHookDx12 : IImguiHook
     /// <param name="imageHeight"></param>
     /// <returns></returns>
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Interoperability", "CA1416:Validate platform compatibility", Justification = "Windows-specific code")]
-    public ulong LoadImage(Span<byte> bytes, uint imageWidth, uint imageHeight)
+    public ulong LoadTexture(Span<byte> bytes, uint imageWidth, uint imageHeight)
     {
         var heapProperties = new HeapProperties(HeapType.Default);
         var imageDesc = new ResourceDescription(ResourceDimension.Texture2D, 0, imageWidth, (int)imageHeight, 1, 1, Format.R8G8B8A8_UNorm, 1, 0, TextureLayout.Unknown, ResourceFlags.None);
@@ -417,7 +462,12 @@ public unsafe class ImguiHookDx12 : IImguiHook
         return (ulong)gpuHandle.Ptr;
     }
 
-    public void FreeImage(ulong texId)
+    public bool IsTextureLoaded(ulong texId)
+    {
+        return _textureIds.ContainsKey(texId);
+    }
+
+    public void FreeTexture(ulong texId)
     {
         if (!_textureIds.TryGetValue(texId, out TextureResource? textureHandle))
             throw new KeyNotFoundException("Texture was not found.");
@@ -454,7 +504,10 @@ public unsafe class ImguiHookDx12 : IImguiHook
 
     #region Hook Functions
     [UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvStdcall) })]
-    private static nint ResizeBuffersImplStatic(nint swapchainPtr, uint bufferCount, uint width, uint height, Format newFormat, uint swapchainFlags) => Instance.ResizeBuffersImpl(swapchainPtr, bufferCount, width, height, newFormat, swapchainFlags);
+    private static nint ResizeBuffersImplStatic(nint swapchainPtr, uint bufferCount, uint width, uint height, Format newFormat, SwapChainFlags swapchainFlags) => Instance.ResizeBuffersImpl(swapchainPtr, bufferCount, width, height, newFormat, swapchainFlags);
+
+    [UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvStdcall) })]
+    private static nint CreateSwapChainForHwndImplStatic(nint this_, nint pDevice, nint hWnd, nint pDesc, nint pFullscreenDesc, nint pRestrictToOutput, nint ppSwapChain) => Instance.CreateSwapChainForHwndImpl(this_, pDevice, hWnd, pDesc, pFullscreenDesc, pRestrictToOutput, ppSwapChain);
 
     [UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvStdcall) })]
     private static nint PresentImplStatic(nint swapChainPtr, int syncInterval, PresentFlags flags) => Instance.PresentImpl(swapChainPtr, syncInterval, flags);

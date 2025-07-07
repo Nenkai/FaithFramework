@@ -11,4 +11,9 @@ public struct ImTextureRef
 {
     public nint TexData;
     public ulong TexID;
+
+    public ImTextureRef(ulong texId)
+    {
+        TexID = texId;
+    }
 }

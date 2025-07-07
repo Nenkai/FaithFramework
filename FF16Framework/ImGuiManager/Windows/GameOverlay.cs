@@ -7,10 +7,11 @@ using System.Threading.Tasks;
 
 using FF16Framework.ImGuiManager;
 using FF16Framework.Interfaces.ImGui;
+using FF16Framework.Interfaces.ImGuiManager;
 
 namespace FF16Framework.ImGuiManager.Windows;
 
-public unsafe class GameOverlay : IImguiWindow
+public unsafe class GameOverlay : IImGuiComponent
 {
     public bool IsOverlay => true;
 
@@ -20,21 +21,20 @@ public unsafe class GameOverlay : IImguiWindow
     {
     }
 
-    public void BeginMenuComponent(IImGui imgui)
+    public void RenderMenu(IImGui imgui)
     {
         imgui.MenuItemBoolPtr("Enable Overlay", "", ref _open, true);
     }
 
-    public void Render(IImguiSupport imguiSupport, IImGui imgui)
+    public void Render(IImGuiSupport imguiSupport, IImGui imgui)
     {
-        if (imguiSupport.CanRender || !_open)
+        if (!_open)
             return;
 
         float barHeight = 0;
         if (imguiSupport.IsMainMenuBarOpen)
             barHeight += imgui.GetFrameHeight();
 
-        var viewport = imgui.GetMainViewport();
         imgui.SetNextWindowBgAlpha(0.35f);
         if (imgui.Begin("overlay", ref _open, ImGuiWindowFlags.ImGuiWindowFlags_NoDecoration |
             ImGuiWindowFlags.ImGuiWindowFlags_NoDocking |
@@ -48,8 +48,8 @@ public unsafe class GameOverlay : IImguiWindow
                 X = imgui.GetIO().DisplaySize.X - imgui.GetWindowWidth() - 10,
                 Y = barHeight + 5 /* padding */
             }, ImGuiCond.ImGuiCond_Always);
-
-            imgui.End();
         }
+
+        imgui.End();
     }
 }

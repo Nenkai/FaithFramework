@@ -1,15 +1,13 @@
 ﻿using System;
 using System.Buffers;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 
 using FF16Framework.ImGui.Hooks;
-using FF16Framework.ImGui.Hooks.DirectX12;
-using FF16Framework.ImGuiManager.Windows;
 using FF16Framework.Interfaces.ImGui;
 using FF16Framework.Interfaces.ImGuiManager;
 using FF16Framework.Native.ImGui;
@@ -19,41 +17,43 @@ using Reloaded.Mod.Interfaces;
 
 using SharedScans.Interfaces;
 
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Formats;
-using SixLabors.ImageSharp.PixelFormats;
-
 using Windows.Win32;
 
 namespace FF16Framework.ImGuiManager;
 
-public unsafe class ImguiSupport : IImguiSupport
+public class ImGuiSupport : IImGuiSupport
 {
     private readonly IReloadedHooks _hooks;
     private readonly ISharedScans _scans;
     private readonly IModConfig _modConfig;
+    private readonly ILogger _logger;
     private readonly IImGui _imgui;
+    private readonly IImguiHook _imguiHook;
     private InputManager _inputManager;
 
     private bool _menuVisible = false;
 
-    private List<IImguiWindow> _windows = [];
-    private readonly Dictionary<string, List<IImguiMenuComponent>> _menuCategoryToComponentList = [];
+    private List<IImGuiComponent> _components = [];
+    private readonly Dictionary<string, SortedDictionary<string, IImGuiComponent>> _menuCategoryToComponentList = [];
 
     public delegate bool DestroyWindow(nint hwnd);
     private IHook<DestroyWindow>? _destroyWindowHook;
 
-    private ImguiHookDx12 _imguiHookDx12 = new();
+    public bool IsOverlayLoaded { get; set; } = false;
 
     public bool MouseActiveWhileMenuOpen = false;
     public bool IsMainMenuBarOpen => _menuVisible;
     public void ToggleMenuState() => _menuVisible = !_menuVisible;
 
-    public ImguiSupport(IReloadedHooks hooks, ISharedScans scans, IModConfig modConfig, IImGui imgui)
+
+    public ImGuiSupport(IReloadedHooks hooks, ISharedScans scans, IModConfig modConfig, ILogger logger,
+        IImguiHook imguiHook, IImGui imgui)
     {
         _hooks = hooks;
         _scans = scans;
         _modConfig = modConfig;
+        _logger = logger;
+        _imguiHook = imguiHook; 
         _imgui = imgui;
         _inputManager = new InputManager(this, hooks, scans, modConfig);
     }
@@ -72,56 +72,16 @@ public unsafe class ImguiSupport : IImguiSupport
         {
             EnableViewports = true,
             IgnoreWindowUnactivate = true,
-            Implementations = [_imguiHookDx12]
+            Implementations = [_imguiHook]
         });
 
         ConfigureImgui(modFolder);
 
-        AddWindow(OverlayLogger.Instance);
-        AddWindow(new DemoWindow(), "Other");
-        AddWindow(new AboutWindow(_modConfig), "Other");
-    }
+        _menuCategoryToComponentList.Add("File", []);
+        _menuCategoryToComponentList.Add("Tools", []);
+        _menuCategoryToComponentList.Add("Other", []);
 
-    public bool CanRender { get; set; } = false;
-
-    public ImGuiImage LoadImage(string filePath)
-    {
-        Image<Rgba32>? image = null;
-        byte[]? data = null;
-        try
-        {
-            image = Image.Load<Rgba32>(filePath);
-
-            int size = image.Width * image.Height * 4;
-            data = ArrayPool<byte>.Shared.Rent(size);
-            image.CopyPixelDataTo(data);
-            ulong texId = _imguiHookDx12.LoadImage(data.AsSpan(0, size), (uint)image.Width, (uint)image.Height);
-            return new ImGuiImage(texId, (uint)image.Width, (uint)image.Height);
-        }
-        catch (Exception)
-        {
-            throw;
-        }
-        finally
-        {
-            image?.Dispose();
-            if (data is not null)
-                ArrayPool<byte>.Shared.Return(data);
-        }
-    }
-
-    public ImGuiImage LoadImage(Span<byte> rgba32Bytes, uint width, uint height)
-    {
-        if (rgba32Bytes.Length != width * height * 4)
-            throw new ArgumentException("The provided bytes does not match the specified dimensions.");
-
-        ulong texId = _imguiHookDx12.LoadImage(rgba32Bytes, width, height);
-        return new ImGuiImage(texId, width, height);
-    }
-
-    public void FreeImage(ImGuiImage image)
-    {
-        _imguiHookDx12.FreeImage(image.TexId);
+        AddComponent(OverlayLogger.Instance);
     }
 
     // Only allow rendering once the splash screen is gone.
@@ -131,7 +91,7 @@ public unsafe class ImguiSupport : IImguiSupport
         PInvoke.GetClassName(new global::Windows.Win32.Foundation.HWND(hwnd), name);
         string trimmed = name.ToString().TrimEnd('\0');
         if (trimmed == "SplashClass")
-            CanRender = true;
+            IsOverlayLoaded = true;
 
         return _destroyWindowHook!.OriginalFunction(hwnd);
     }
@@ -187,32 +147,27 @@ public unsafe class ImguiSupport : IImguiSupport
         return conf;
     }
 
-    public void AddMenuSeparator(string category)
+    public void AddComponent(IImGuiComponent component, string? category = null, string? name = null)
     {
-        AddComponent(category, new ImguiSeparator());
-    }
+        if (!string.IsNullOrEmpty(category) && !string.IsNullOrEmpty(name))
+        {
+            if (!_menuCategoryToComponentList.TryGetValue(category, out SortedDictionary<string, IImGuiComponent>? imguiMenuComponents))
+            {
+                imguiMenuComponents = new SortedDictionary<string, IImGuiComponent>();
+                _menuCategoryToComponentList.TryAdd(category, imguiMenuComponents);
+            }
 
-    public void AddWindow(IImguiWindow window, string? mainMenuCategory = null)
-    {
-        _windows.Add(window);
+            imguiMenuComponents.Add(name, component);
+        }
 
-        if (!string.IsNullOrEmpty(mainMenuCategory))
-            AddComponent(mainMenuCategory, window);
-    }
-
-    public void AddComponent(string category, IImguiMenuComponent component)
-    {
-        if (!_menuCategoryToComponentList.TryGetValue(category, out List<IImguiMenuComponent>? imguiMenuComponents))
-            _menuCategoryToComponentList.TryAdd(category, [component]);
-        else
-            imguiMenuComponents.Add(component);
+        _components.Add(component);
     }
 
     private ImGuiImage _image;
     private bool _noticeShown = false;
-    private void Render()
+    private async void Render()
     {
-        if (!CanRender)
+        if (!IsOverlayLoaded)
             return;
 
         // Test zone
@@ -221,17 +176,17 @@ public unsafe class ImguiSupport : IImguiSupport
         if (!_noticeShown)
         {
             string ver = _imgui.GetVersion();
-            OverlayLogger.Instance.AddMessage($"FF16Framework {_modConfig.ModVersion} loaded.");
-            OverlayLogger.Instance.AddMessage($"ImGui {ver} loaded.");
-            OverlayLogger.Instance.AddMessage("https://nenkai.github.io/ffxvi-modding/");
-            OverlayLogger.Instance.AddMessage("Press the INSERT key to show the main menu.");
+            LogWriteLine("FF16Framework", $"FF16Framework {_modConfig.ModVersion} loaded.", includeInOverlayLogger: true);
+            LogWriteLine("FF16Framework", $"ImGui {ver} loaded.", includeInOverlayLogger: true);
+            LogWriteLine("FF16Framework", "https://nenkai.github.io/ffxvi-modding/", includeInOverlayLogger: true);
+            LogWriteLine("FF16Framework", "Press the INSERT key to show the main menu.", includeInOverlayLogger: true);
             _noticeShown = true;
         }
 
-        foreach (IImguiWindow window in _windows)
+        foreach (IImGuiComponent component in _components)
         {
-            if (window.IsOverlay)
-                window.Render(this, _imgui);
+            if (component.IsOverlay)
+                component.Render(this, _imgui);
         }
 
         if (!_menuVisible)
@@ -243,9 +198,9 @@ public unsafe class ImguiSupport : IImguiSupport
             {
                 if (_imgui.BeginMenu(mainMenuCategory.Key))
                 {
-                    foreach (IImguiMenuComponent component in mainMenuCategory.Value)
+                    foreach (KeyValuePair<string, IImGuiComponent> component in mainMenuCategory.Value)
                     {
-                        component.BeginMenuComponent(_imgui);
+                        component.Value.RenderMenu(_imgui);
                     }
 
                     _imgui.EndMenu();
@@ -256,11 +211,23 @@ public unsafe class ImguiSupport : IImguiSupport
             _imgui.EndMainMenuBar();
         }
 
-        foreach (var window in _windows)
+        foreach (var component in _components)
         {
-            if (!window.IsOverlay)
-                window.Render(this, _imgui);
+            if (!component.IsOverlay)
+                component.Render(this, _imgui);
         }
+    }
+
+    public void LogWriteLine(string source, string message, Color? color = null, bool includeInOverlayLogger = false)
+    {
+        if (color is not null)
+            _logger.WriteLine($"[{source}] {message}", color.Value);
+        else
+            _logger.WriteLine($"[{source}] {message}");
+
+        if (includeInOverlayLogger)
+            OverlayLogger.Instance.AddMessage(source, message, color);
+
     }
 
     private void RenderAnimatedTitle()
@@ -296,7 +263,7 @@ public unsafe class ImguiSupport : IImguiSupport
         return length - MathF.Abs(t - length);
     }
 
-    private void TestImGui()
+    private unsafe void TestImGui()
     {
         IImGuiIO io = _imgui.GetIO();
         IImFontAtlas atlas = io.Fonts;

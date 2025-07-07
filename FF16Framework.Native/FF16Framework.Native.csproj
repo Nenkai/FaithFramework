@@ -28,10 +28,10 @@
     <None Update="ImGui\Binaries\brotlidec.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="ImGui\Binaries\bz2d.dll">
+    <None Update="ImGui\Binaries\bz2.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="ImGui\Binaries\freetyped.dll">
+    <None Update="ImGui\Binaries\freetype.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="ImGui\Binaries\ImGuiLib.dll">
@@ -40,7 +40,7 @@
     <None Update="ImGui\Binaries\ImGuiLib.pdb">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="ImGui\Binaries\libpng16d.dll">
+    <None Update="ImGui\Binaries\libpng16.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="ImGui\Binaries\plutosvg.dll">
@@ -49,7 +49,7 @@
     <None Update="ImGui\Binaries\plutovg.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="ImGui\Binaries\zlibd1.dll">
+    <None Update="ImGui\Binaries\zlib1.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>

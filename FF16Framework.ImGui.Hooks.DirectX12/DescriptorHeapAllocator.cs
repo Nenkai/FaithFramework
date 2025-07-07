@@ -21,6 +21,9 @@ public class DescriptorHeapAllocator
 
     public void Create(Device device, DescriptorHeap heap)
     {
+        ArgumentNullException.ThrowIfNull(device, nameof(device));
+        ArgumentNullException.ThrowIfNull(heap, nameof(heap));
+
         Heap = heap;
         DescriptorHeapDescription desc = heap.Description;
         HeapType = desc.Type;

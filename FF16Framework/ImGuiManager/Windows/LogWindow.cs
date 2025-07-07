@@ -13,7 +13,7 @@ using FF16Framework.Interfaces.ImGuiManager;
 
 namespace FF16Framework.ImGuiManager.Windows;
 
-public unsafe class LogWindow : IImguiWindow, IImguiMenuComponent
+public unsafe class LogWindow : IImGuiComponent
 {
     public bool IsOverlay => false;
 
@@ -22,22 +22,29 @@ public unsafe class LogWindow : IImguiWindow, IImguiMenuComponent
 
     private ILogger _logger;
 
-    private StreamWriter _sw = new StreamWriter("modtools_log.txt");
+    private StreamWriter _sw;
 
-    public List<LogMessage> LastLines = new(2000);
+    private const int MAX_LINES = 5000;
+    public List<LogMessage> LastLines = new(MAX_LINES);
     private static object _lock = new object();
 
-    public LogWindow(ILogger logger)
+    public LogWindow(ILogger logger, string logPath)
     {
         _logger = logger;
         _logger.OnWriteLine += _logger_OnWriteLine;
+        _sw = new StreamWriter(logPath);
+    }
+
+    ~LogWindow()
+    {
+        _sw.Flush();
     }
 
     private void _logger_OnWriteLine(object sender, (string text, System.Drawing.Color color) e)
     {
         lock (_lock)
         {
-            if (LastLines.Count >= 2000)
+            if (LastLines.Count >= MAX_LINES)
                 LastLines.Remove(LastLines[0]);
 
             var logMsg = new LogMessage(DateTime.UtcNow, sender.ToString(), e.text);
@@ -46,33 +53,31 @@ public unsafe class LogWindow : IImguiWindow, IImguiMenuComponent
         }
     }
 
-    public void BeginMenuComponent(IImGui imgui)
+    public void RenderMenu(IImGui imgui)
     {
-        if (imgui.MenuItemEx("Logs", "", false, true))
+        if (imgui.MenuItemEx("Log Window", "", false, true))
         {
             IsOpen = true;
         }
     }
 
-    public void Render(IImguiSupport imguiSupport, IImGui imgui)
+    public void Render(IImGuiSupport imguiSupport, IImGui imgui)
     {
         if (!IsOpen)
             return;
 
         if (imgui.Begin("Log Window", ref IsOpen, 0))
         {
-            if (imgui.SmallButton("Clear"))
-                LastLines.Clear();
-
-            imgui.SameLineEx(0, 2);
             if (imgui.SmallButton("Copy"))
                 imgui.SetClipboardText(string.Join("\n", LastLines.Select(e => e.Message)));
+            imgui.SameLineEx(0, 2);
 
+            if (imgui.SmallButton("Clear"))
+                LastLines.Clear();
             imgui.SameLineEx(0, 2);
             imgui.Checkbox("Auto-scroll", ref _autoScroll);
 
-            imgui.Checkbox("Enable File Logging", ref ImGuiConfig.LogFiles);
-            imgui.BeginChild("##log", new Vector2(), 0, ImGuiWindowFlags.ImGuiWindowFlags_AlwaysVerticalScrollbar | ImGuiWindowFlags.ImGuiWindowFlags_AlwaysHorizontalScrollbar);
+            imgui.BeginChild("##log_window_container", new Vector2(), 0, ImGuiWindowFlags.ImGuiWindowFlags_AlwaysVerticalScrollbar | ImGuiWindowFlags.ImGuiWindowFlags_AlwaysHorizontalScrollbar);
 
             var greyColor = new Vector4(0.4f, 0.4f, 0.4f, 0.4f);
             var whiteColor = new Vector4(1.0f, 1.0f, 1.0f, 1.0f);
@@ -86,14 +91,13 @@ public unsafe class LogWindow : IImguiWindow, IImguiMenuComponent
                 }
             }
 
-
             if (_autoScroll && imgui.GetScrollY() >= imgui.GetScrollMaxY())
                 imgui.SetScrollHereY(1.0f);
 
             imgui.EndChild();
-
-            imgui.End();
         }
+
+        imgui.End();
     }
 }
 

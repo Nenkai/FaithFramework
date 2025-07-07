@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace FF16Framework.Structures;
+namespace FF16Framework.Interfaces;
 
 public unsafe struct StdVector
 {

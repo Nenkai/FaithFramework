@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace FF16Framework.ImGui.Hooks.Definitions;
+namespace FF16Framework.ImGui.Hooks.DirectX12.Definitions;
 
 public enum IDXGISwapChainVTable
 {

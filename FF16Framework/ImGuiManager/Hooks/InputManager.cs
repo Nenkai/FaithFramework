@@ -24,6 +24,7 @@ public unsafe class InputManager
     {
         [nameof(KeyboardManager_HandleWindowKeyboardKeyPressed)] = "48 83 EC ?? 44 0F B6 DA 41 B8",
         //[nameof(MouseDevice_WindowMessageIntercepter)] = "48 89 5C 24 ?? 48 89 6C 24 ?? 48 89 74 24 ?? 57 48 83 EC ?? B8 ?? ?? ?? ?? 49 8B E9"
+        [nameof(KeyboardDevice_WindowMessageIntercepter)] = "48 8B C4 48 89 58 ?? 48 89 68 ?? 48 89 70 ?? 48 89 50 ?? 57 41 56 41 57 48 83 EC ?? B8"
     };
 
     private HookContainer<KeyboardManager_HandleWindowKeyboardKeyPressed>? _HOOK_KeyboardManager_HandleWindowKeyboardKeyPressed;
@@ -31,6 +32,9 @@ public unsafe class InputManager
 
     //private HookContainer<MouseDevice_WindowMessageIntercepter>? _HOOK_MouseDevice_WindowMessageIntercepter;
     //public delegate nint MouseDevice_WindowMessageIntercepter(nint hwnd, uint uMsg, nint wParam, nint lParam, nuint uIdSubClass, nint dwRefData);
+
+    private HookContainer<KeyboardDevice_WindowMessageIntercepter>? _HOOK_KeyboardDevice_WindowMessageIntercepter;
+    public delegate void KeyboardDevice_WindowMessageIntercepter(nint this_, uint uMsg, nint uMsg_, nint wParam, nuint lParam);
 
     public delegate nint DirectInput8Create(nint hinst, int dwVersion, nint riidltf, nint ppvOut, nint punkOuter);
     private IHook<DirectInput8Create>? _directInputCreateHook;
@@ -50,12 +54,12 @@ public unsafe class InputManager
     public delegate nint SetCursor(nint a1);
     private IHook<SetCursor>? _setCursorHook;
 
-    private ImguiSupport _imguiSupport;
+    private ImGuiSupport _imguiSupport;
     private IReloadedHooks _hooks;
     private ISharedScans _scans;
     private IModConfig _modConfig;
 
-    public InputManager(ImguiSupport imguiSupport, IReloadedHooks hooks, ISharedScans scans, IModConfig modConfig)
+    public InputManager(ImGuiSupport imguiSupport, IReloadedHooks hooks, ISharedScans scans, IModConfig modConfig)
     {
         _imguiSupport = imguiSupport;
         _hooks = hooks;
@@ -69,6 +73,7 @@ public unsafe class InputManager
             _scans.AddScan(pattern.Key, pattern.Value);
         _HOOK_KeyboardManager_HandleWindowKeyboardKeyPressed = _scans.CreateHook<KeyboardManager_HandleWindowKeyboardKeyPressed>(HandleWindowKeyboardKeyPressedImpl, _modConfig.ModId);
         //_HOOK_MouseDevice_WindowMessageIntercepter = _scans.CreateHook<MouseDevice_WindowMessageIntercepter>(MouseDevice_WindowMessageIntercepterImpl, _modConfig.ModId);
+        _HOOK_KeyboardDevice_WindowMessageIntercepter = _scans.CreateHook<KeyboardDevice_WindowMessageIntercepter>(KeyboardDeviceWindowMessageIntercepterImpl, _modConfig.ModId);
 
         // Chain hook direct input so imgui inputs don't also get passed to the game.
         var handle = PInvoke.GetModuleHandle("dinput8.dll");
@@ -77,7 +82,7 @@ public unsafe class InputManager
 
         var user32 = PInvoke.GetModuleHandle("user32.dll");
         nint getCursorPosPtr = PInvoke.GetProcAddress(user32, "GetCursorPos");
-        _getCursorPosHook = _hooks.CreateHook<GetCursorPos>(GetCursorPosImpl, getCursorPosPtr).Activate();
+        //_getCursorPosHook = _hooks.CreateHook<GetCursorPos>(GetCursorPosImpl, getCursorPosPtr).Activate();
 
         nint setCursorPtr = PInvoke.GetProcAddress(user32, "SetCursor");
         _setCursorHook = _hooks.CreateHook<SetCursor>(SetCursorImpl, setCursorPtr).Activate();
@@ -114,17 +119,34 @@ public unsafe class InputManager
         }
     }
 
-    // This one is normally fired on a specific keyboard key press.
+    // This function handles all keyboard events.
+    public void KeyboardDeviceWindowMessageIntercepterImpl(nint this_, uint uMsg, nint uMsg_, nint wParam, nuint lParam)
+    {
+        VirtualKeyStates keyState = (VirtualKeyStates)(uMsg - 0x100);
+        if (ImGuiMethods.GetIO()->WantCaptureKeyboard)
+            return;
+
+        _HOOK_KeyboardDevice_WindowMessageIntercepter!.Hook!.OriginalFunction(this_, uMsg, uMsg_, wParam, lParam);
+    }
+
+
+    // This is fired when the game is attempting to register a key as actually pressed.
     private void HandleWindowKeyboardKeyPressedImpl(nint dwRefData, nint key)
     {
         VirtualKeyStates keyState = (VirtualKeyStates)(key - 0x100);
         if (keyState == VirtualKeyStates.VK_INSERT)
+        {
             _imguiSupport.ToggleMenuState();
-        else
-            _HOOK_KeyboardManager_HandleWindowKeyboardKeyPressed!.Hook!.OriginalFunction(dwRefData, key);
+            return;
+        }
+
+        if (ImGuiMethods.GetIO()->WantCaptureKeyboard)
+            return;
+
+        _HOOK_KeyboardManager_HandleWindowKeyboardKeyPressed!.Hook!.OriginalFunction(dwRefData, key);
     }
 
-    // This one handles mouse button presses.
+    // This one handles mouse button presses. (we don't need it)
     /*
     private nint MouseDevice_WindowMessageIntercepterImpl(nint hwnd, uint uMsg, nint wParam, nint lParam, nuint uIdSubClass, nint dwRefData)
     {

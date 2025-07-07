@@ -45,17 +45,18 @@ public static class XmlComments
                 SF.XmlText(value)
             ));
     }
-    public static TMember AddSummary<TMember>(this TMember member, IEnumerable<string> lines, int numTabs) where TMember : MemberDeclarationSyntax
+    public static TMember AddSummary<TMember>(this TMember member, IList<string> lines, int numTabs = 0) where TMember : MemberDeclarationSyntax
     {
         var list = new List<XmlNodeSyntax>();
         list.Add(SF.XmlText("\n"));
-        foreach (var line in lines)
+        for (int i = 0; i < lines.Count; i++)
         {
-            list.Add(SF.XmlText(new string('\t', numTabs) + "///" + line.Replace("//", string.Empty)));
+            string? line = lines[i];
+            list.Add(SF.XmlText(new string(' ', numTabs * 4) + "///" + line.Replace("//", string.Empty)));
             list.Add(SF.XmlEmptyElement("br"));
             list.Add(SF.XmlText("\n"));
         }
-        list.Add(SF.XmlText(new string('\t', numTabs) + "///"));
+        list.Add(SF.XmlText(new string(' ', numTabs * 4) + "///"));
 
         return member.AddSimple(
             SF.XmlSummaryElement(

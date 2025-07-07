@@ -23,4 +23,22 @@ public interface IImguiHook : IDisposable
     /// Re-enables the hooks used by this implementation.
     /// </summary>
     void Enable();
+
+    /// <summary>
+    /// Loads an image.
+    /// </summary>
+    /// <param name="textureData"></param>
+    /// <param name="width"></param>
+    /// <param name="height"></param>
+    ulong LoadTexture(Span<byte> textureData, uint width, uint height);
+
+    /// <summary>
+    /// Returns whether a texture is loaded.
+    /// </summary>
+    bool IsTextureLoaded(ulong texId);
+
+    /// <summary>
+    /// Frees an image.
+    /// </summary>
+    void FreeTexture(ulong texId);
 }
