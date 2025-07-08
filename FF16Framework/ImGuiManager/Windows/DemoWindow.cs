@@ -22,7 +22,7 @@ public unsafe class DemoWindow : IImGuiComponent
         
     }
 
-    public void RenderMenu(IImGui imgui)
+    public void RenderMenu(IImGuiSupport imguiSupport, IImGui imgui)
     {
         if (imgui.MenuItemEx("ImGui Demo Window", "", false, true))
         {

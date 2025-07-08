@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Buffers;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Drawing;
 using System.Numerics;
 using System.Runtime.CompilerServices;
@@ -24,17 +25,20 @@ namespace FF16Framework.ImGuiManager;
 public class ImGuiSupport : IImGuiSupport
 {
     private readonly IReloadedHooks _hooks;
-    private readonly ISharedScans _scans;
     private readonly IModConfig _modConfig;
     private readonly ILogger _logger;
     private readonly IImGui _imgui;
     private readonly IImguiHook _imguiHook;
-    private InputManager _inputManager;
+    private ImGuiInputHookManager _inputManager;
+    private ImGuiConfig _imGuiConfig;
 
     private bool _menuVisible = false;
 
     private List<IImGuiComponent> _components = [];
-    private readonly Dictionary<string, SortedDictionary<string, IImGuiComponent>> _menuCategoryToComponentList = [];
+    
+    // Categories
+    //  name (for sorting) -> list of components to render
+    private readonly Dictionary<string, SortedDictionary<string, List<IImGuiComponent>>> _menuCategoryToComponentList = [];
 
     public delegate bool DestroyWindow(nint hwnd);
     private IHook<DestroyWindow>? _destroyWindowHook;
@@ -43,19 +47,25 @@ public class ImGuiSupport : IImGuiSupport
 
     public bool MouseActiveWhileMenuOpen = false;
     public bool IsMainMenuBarOpen => _menuVisible;
+
     public void ToggleMenuState() => _menuVisible = !_menuVisible;
 
+    public string FileMenuName => "File";
+    public string ToolsMenuName => "Tools";
+    public string OtherMenuName => "Other";
+
+    private OverlayLogger _overlayLogger;
 
     public ImGuiSupport(IReloadedHooks hooks, ISharedScans scans, IModConfig modConfig, ILogger logger,
-        IImguiHook imguiHook, IImGui imgui)
+        IImguiHook imguiHook, IImGui imgui, ImGuiConfig imGuiConfig)
     {
         _hooks = hooks;
-        _scans = scans;
         _modConfig = modConfig;
         _logger = logger;
         _imguiHook = imguiHook; 
         _imgui = imgui;
-        _inputManager = new InputManager(this, hooks, scans, modConfig);
+        _imGuiConfig = imGuiConfig;
+        _inputManager = new ImGuiInputHookManager(this, hooks, scans, modConfig);
     }
 
     public void SetupImgui(string modFolder)
@@ -70,18 +80,27 @@ public class ImGuiSupport : IImGuiSupport
 
         ImguiHook.Create(Render, new ImguiHookOptions()
         {
-            EnableViewports = true,
+            // We disable viewports. Why?
+            // Because I can't for the life of me figure out DX12 hooks properly.
+            
+            // When starting the game windowed/on another monitor, ImGui renders to a black square on the main monitor.
+            // Or, when switching from borderless/fullscreen to windowed, the same happens.
+
+            // My head hurts figuring this out and I'm clearly not smart enough to figure it out.
+            // I give up.
+            EnableViewports = false,
             IgnoreWindowUnactivate = true,
             Implementations = [_imguiHook]
         });
 
         ConfigureImgui(modFolder);
 
-        _menuCategoryToComponentList.Add("File", []);
-        _menuCategoryToComponentList.Add("Tools", []);
-        _menuCategoryToComponentList.Add("Other", []);
+        _menuCategoryToComponentList.Add(FileMenuName, []);
+        _menuCategoryToComponentList.Add(ToolsMenuName, []);
+        _menuCategoryToComponentList.Add(OtherMenuName, []);
 
-        AddComponent(OverlayLogger.Instance);
+        _overlayLogger = new OverlayLogger(_imGuiConfig);
+        AddComponent(_overlayLogger);
     }
 
     // Only allow rendering once the splash screen is gone.
@@ -151,21 +170,37 @@ public class ImGuiSupport : IImGuiSupport
     {
         if (!string.IsNullOrEmpty(category) && !string.IsNullOrEmpty(name))
         {
-            if (!_menuCategoryToComponentList.TryGetValue(category, out SortedDictionary<string, IImGuiComponent>? imguiMenuComponents))
+            if (!_menuCategoryToComponentList.TryGetValue(category, out SortedDictionary<string, List<IImGuiComponent>>? imguiMenuComponents))
             {
-                imguiMenuComponents = new SortedDictionary<string, IImGuiComponent>();
+                imguiMenuComponents = [];
                 _menuCategoryToComponentList.TryAdd(category, imguiMenuComponents);
             }
 
-            imguiMenuComponents.Add(name, component);
+            if (!imguiMenuComponents.TryGetValue(name, out List<IImGuiComponent>? sortedGroup))
+            {
+                sortedGroup = [];
+                imguiMenuComponents.Add(name, sortedGroup);
+            }
+
+            sortedGroup.Add(component);
         }
 
         _components.Add(component);
     }
 
+
+    public void AddMenuSeparator(string category, string modId, string? displayName)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(category, nameof(category));
+        ArgumentException.ThrowIfNullOrEmpty(modId, nameof(modId));
+
+        AddComponent(new ImGuiSeparator(displayName), category, modId);
+
+    }
+
     private ImGuiImage _image;
     private bool _noticeShown = false;
-    private async void Render()
+    private void Render()
     {
         if (!IsOverlayLoaded)
             return;
@@ -176,10 +211,10 @@ public class ImGuiSupport : IImGuiSupport
         if (!_noticeShown)
         {
             string ver = _imgui.GetVersion();
-            LogWriteLine("FF16Framework", $"FF16Framework {_modConfig.ModVersion} loaded.", includeInOverlayLogger: true);
-            LogWriteLine("FF16Framework", $"ImGui {ver} loaded.", includeInOverlayLogger: true);
-            LogWriteLine("FF16Framework", "https://nenkai.github.io/ffxvi-modding/", includeInOverlayLogger: true);
-            LogWriteLine("FF16Framework", "Press the INSERT key to show the main menu.", includeInOverlayLogger: true);
+            LogWriteLine(nameof(FF16Framework), $"FF16Framework {_modConfig.ModVersion} loaded.", loggerTargetFlags: LoggerOutputTargetFlags.All);
+            LogWriteLine(nameof(FF16Framework), $"ImGui {ver} loaded.", loggerTargetFlags: LoggerOutputTargetFlags.All);
+            LogWriteLine(nameof(FF16Framework), "https://nenkai.github.io/ffxvi-modding/", loggerTargetFlags: LoggerOutputTargetFlags.All);
+            LogWriteLine(nameof(FF16Framework), "Press the INSERT key to show the main menu.", loggerTargetFlags: LoggerOutputTargetFlags.All);
             _noticeShown = true;
         }
 
@@ -198,9 +233,12 @@ public class ImGuiSupport : IImGuiSupport
             {
                 if (_imgui.BeginMenu(mainMenuCategory.Key))
                 {
-                    foreach (KeyValuePair<string, IImGuiComponent> component in mainMenuCategory.Value)
+                    foreach (KeyValuePair<string, List<IImGuiComponent>> sortedGroup in mainMenuCategory.Value)
                     {
-                        component.Value.RenderMenu(_imgui);
+                        foreach (IImGuiComponent component in sortedGroup.Value)
+                        {
+                            component.RenderMenu(this, _imgui);
+                        }
                     }
 
                     _imgui.EndMenu();
@@ -218,15 +256,18 @@ public class ImGuiSupport : IImGuiSupport
         }
     }
 
-    public void LogWriteLine(string source, string message, Color? color = null, bool includeInOverlayLogger = false)
+    public void LogWriteLine(string source, string message, Color? color = null, LoggerOutputTargetFlags loggerTargetFlags = LoggerOutputTargetFlags.AllButOverlayLogger)
     {
-        if (color is not null)
-            _logger.WriteLine($"[{source}] {message}", color.Value);
-        else
-            _logger.WriteLine($"[{source}] {message}");
+        if (loggerTargetFlags.HasFlag(LoggerOutputTargetFlags.ReloadedLog))
+        {
+            if (color is not null)
+                _logger.WriteLine($"[{source}] {message}", color.Value);
+            else
+                _logger.WriteLine($"[{source}] {message}");
+        }
 
-        if (includeInOverlayLogger)
-            OverlayLogger.Instance.AddMessage(source, message, color);
+        if (loggerTargetFlags.HasFlag(LoggerOutputTargetFlags.OverlayLogger))
+            _overlayLogger.AddMessage(source, message, color);
 
     }
 

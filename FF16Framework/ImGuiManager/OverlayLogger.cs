@@ -16,11 +16,9 @@ namespace FF16Framework.ImGuiManager;
 public unsafe class OverlayLogger : IImGuiComponent
 {
     // Inspired by xenomods
-    #region Properties
-    public TimeSpan LINE_LIFETIME = TimeSpan.FromSeconds(8.0f);
+    public TimeSpan LINE_LIFETIME => TimeSpan.FromSeconds(_config.OverlayLogger.FadeTimeSeconds);
     public TimeSpan TOAST_LIFETIME = TimeSpan.FromSeconds(2.0f);
     public TimeSpan FADEOUT_START = TimeSpan.FromSeconds(0.5f);
-    public const int MAX_LINES = 20;
 
     private readonly List<LoggerMessage> lines = [];
 
@@ -28,13 +26,16 @@ public unsafe class OverlayLogger : IImGuiComponent
 
     private bool _open = true;
 
-    private static OverlayLogger _instance = new OverlayLogger();
-    public static OverlayLogger Instance => _instance;
-    #endregion
+    private ImGuiConfig _config;
+
+    public OverlayLogger(ImGuiConfig config)
+    {
+        _config = config;
+    }
 
     public void AddMessage(string source, string message, Color? messageColor = null)
     {
-        if (lines.Count >= MAX_LINES)
+        if (lines.Count >= _config.OverlayLogger.MaxLinesField)
             lines.Remove(lines[0]);
 
         var now = DateTimeOffset.UtcNow;
@@ -49,13 +50,16 @@ public unsafe class OverlayLogger : IImGuiComponent
         });
     }
 
-    public void RenderMenu(IImGui imgui)
+    public void RenderMenu(IImGuiSupport imguiSupport, IImGui imgui)
     {
 
     }
 
     public void Render(IImGuiSupport imguiSupport, IImGui imgui)
     {
+        if (!_config.OverlayLogger.Enabled)
+            return;
+
         float barHeight = 0;
         if (imguiSupport.IsMainMenuBarOpen)
             barHeight += imgui.GetFrameHeight();

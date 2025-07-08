@@ -27,7 +27,7 @@ public class AboutWindow : IImGuiComponent
         _textureManager = textureManager;
     }
 
-    public void RenderMenu(IImGui imgui)
+    public void RenderMenu(IImGuiSupport imguiSupport, IImGui imgui)
     {
         if (imgui.MenuItemEx("About Window", "", false, true))
         {

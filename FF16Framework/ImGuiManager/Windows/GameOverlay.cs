@@ -21,7 +21,7 @@ public unsafe class GameOverlay : IImGuiComponent
     {
     }
 
-    public void RenderMenu(IImGui imgui)
+    public void RenderMenu(IImGuiSupport imguiSupport, IImGui imgui)
     {
         imgui.MenuItemBoolPtr("Enable Overlay", "", ref _open, true);
     }

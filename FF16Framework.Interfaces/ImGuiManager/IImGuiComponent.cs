@@ -22,13 +22,14 @@ public interface IImGuiComponent
     /// <summary>
     /// Fired on menu component render. Here you should render your menu items as needed.
     /// </summary>
-    /// <param name="imgui"></param>
-    void RenderMenu(IImGui imgui);
+    /// <param name="imGuiSupport">ImGui Support instance.</param>
+    /// <param name="imGui">ImGui instance.</param>
+    void RenderMenu(IImGuiSupport imGuiSupport, IImGui imGui);
 
     /// <summary>
     /// Fired on render.
     /// </summary>
-    /// <param name="imguiSupport">ImGui Support instance.</param>
-    /// <param name="imgui">ImGui instance.</param>
-    void Render(IImGuiSupport imguiSupport, IImGui imgui);
+    /// <param name="imGuiSupport">ImGui Support instance.</param>
+    /// <param name="imGui">ImGui instance.</param>
+    void Render(IImGuiSupport imGuiSupport, IImGui imGui);
 }

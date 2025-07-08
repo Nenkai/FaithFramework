@@ -18,7 +18,7 @@ using Windows.Win32;
 
 namespace FF16Framework.ImGui.Hooks;
 
-public unsafe class InputManager
+public unsafe class ImGuiInputHookManager
 {
     public Dictionary<string, string> Patterns = new()
     {
@@ -59,7 +59,7 @@ public unsafe class InputManager
     private ISharedScans _scans;
     private IModConfig _modConfig;
 
-    public InputManager(ImGuiSupport imguiSupport, IReloadedHooks hooks, ISharedScans scans, IModConfig modConfig)
+    public ImGuiInputHookManager(ImGuiSupport imguiSupport, IReloadedHooks hooks, ISharedScans scans, IModConfig modConfig)
     {
         _imguiSupport = imguiSupport;
         _hooks = hooks;

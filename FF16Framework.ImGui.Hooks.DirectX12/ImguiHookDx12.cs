@@ -112,7 +112,7 @@ public unsafe class ImguiHookDx12 : IImguiHook
 
     private nint CreateSwapChainForHwndImpl(nint this_, nint pDevice, nint hWnd, nint pDesc, nint pFullscreenDesc, nint pRestrictToOutput, nint ppSwapChain)
     {
-        /* We hook this as the game requires it, when swapping from borderless -> fullscreen -> borderless, otherwise, this happens:
+        /* We hook as it seems we have to; when swapping from borderless -> fullscreen -> borderless, otherwise, this happens:
          * [22012] DXGI ERROR: IDXGIFactory::CreateSwapChain: Only one flip model swap chain can be associate with an HWND, 
          * IWindow, or composition surface at a time. ClearState() and Flush() may need to be called on the D3D11 device context 
          * to trigger deferred destruction of old swapchains. [ MISCELLANEOUS ERROR #297: ]
@@ -120,13 +120,16 @@ public unsafe class ImguiHookDx12 : IImguiHook
          * Fun fact: FF16's response to that DXGI/D3D12 error is to simply bring up a messagebox and translate the error code from GetDeviceRemovedReason
          * ...When that happens, the error code is 0, so all you get is a "The operation completed successfully". Very useful
          * 
-         * The recursion lock exists as ImGui can call CreateSwapChainForHwnd within ImGui_ImplDX12_CreateWindow
+         * The recursion lock exists as ImGui can also call CreateSwapChainForHwnd within ImGui_ImplDX12_CreateWindow
          */
 
         if (!_createSwapChainRecursionLock && renderTargetViewDescHeap is not null)
             PreResizeBuffers();
 
-        var res =  _createSwapChainForHwndHook.OriginalFunction.Value.Invoke(this_, pDevice, hWnd, pDesc, pFullscreenDesc, pRestrictToOutput, ppSwapChain);
+        var res = _createSwapChainForHwndHook.OriginalFunction.Value.Invoke(this_, pDevice, hWnd, pDesc, pFullscreenDesc, pRestrictToOutput, ppSwapChain);
+
+        // I have no idea if this is correct. Resizing buffers of any swapchain sounds wrong, but resizing our own swapchain doesn't work
+        // I don't get it. I'm no renderer engineer, I have no idea.
         if (!_createSwapChainRecursionLock && renderTargetViewDescHeap is not null)
             PostResizeBuffers(*(nint*)ppSwapChain);
 

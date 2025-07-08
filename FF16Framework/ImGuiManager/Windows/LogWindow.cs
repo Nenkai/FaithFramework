@@ -53,7 +53,7 @@ public unsafe class LogWindow : IImGuiComponent
         }
     }
 
-    public void RenderMenu(IImGui imgui)
+    public void RenderMenu(IImGuiSupport imguiSupport, IImGui imgui)
     {
         if (imgui.MenuItemEx("Log Window", "", false, true))
         {

@@ -12,7 +12,7 @@ namespace FF16Framework.Interfaces.ImGuiManager;
 public interface IImGuiSupport
 {
     /// <summary>
-    /// Returns whether the overlay is loaded into the game. <br/>
+    /// Returns whether the overlay is loaded into the game.<br/>
     /// This may be false if the user disabled injecting the ImGui overlay from the configuration panel.
     /// </summary>
     bool IsOverlayLoaded { get; }
@@ -23,6 +23,21 @@ public interface IImGuiSupport
     bool IsMainMenuBarOpen { get; }
 
     /// <summary>
+    /// Name of the 'File' menu within the main menu bar.
+    /// </summary>
+    string FileMenuName { get; }
+
+    /// <summary>
+    /// Name of the 'Tools' menu within the main menu bar.
+    /// </summary>
+    string ToolsMenuName { get; }
+
+    /// <summary>
+    /// Name of the 'Other' menu within the main menu bar.
+    /// </summary>
+    string OtherMenuName { get; }
+
+    /// <summary>
     /// Adds a new renderable component.
     /// </summary>
     /// <param name="component">ImGui component to add.</param>
@@ -30,16 +45,56 @@ public interface IImGuiSupport
     /// If any other name is specified, it will be appended as a new category on the top menu bar. <br/>
     /// <br/>
     /// If empty, no menu can be rendered for this component.</param>
-    /// <param name="name">Name, which should be your mod name (or anything else). <br/>
-    /// This is only used for sorting and grouping menu entries on the framework side per mod.</param>
-    void AddComponent(IImGuiComponent component, string? category = null, string? name = null);
+    /// <param name="modIdOrName">Mod Id or Name, which should be your mod name (or anything else). <br/>
+    /// <b>This is only used for sorting and grouping menu entries on the framework side per mod.</b></param>
+    void AddComponent(IImGuiComponent component, string? category = null, string? modIdOrName = null);
+
+    /// <summary>
+    /// Adds a menu separator.
+    /// </summary>
+    /// <param name="category">Top main menu category, by default, 'File', 'Tools' and 'Other' are available. <br/>
+    /// If any other name is specified, it will be appended as a new category on the top menu bar. <br/></param>
+    /// <param name="modIdOrName">Mod Id or Name, which should be your mod name (or anything else). <br/>
+    /// <b>This is only used for sorting and grouping menu entries on the framework side per mod.</b></param>
+    /// <param name="displayName">Display name for the separator.<br/>
+    /// <br/>
+    /// If not null/empty, a separator with a header will be used (<see cref="IImGui.SeparatorText(string)"/>) <br/>
+    /// Otherwise, a blank separator is used (<see cref="IImGui.Separator"/>).</param>
+    void AddMenuSeparator(string category, string modIdOrName, string? displayName);
 
     /// <summary>
     /// Logs a line to the Reloaded console, ImGui logs window, and optionally, the overlay logger.
     /// </summary>
-    /// <param name="source"></param>
-    /// <param name="message"></param>
-    /// <param name="color"></param>
-    /// <param name="includeInOverlayLogger"></param>
-    void LogWriteLine(string source, string message, Color? color = null, bool includeInOverlayLogger = false);
+    /// <param name="source">Source, which should be a mod id or mod name. Will be shown in square brackets.</param>
+    /// <param name="message">Message to display.</param>
+    /// <param name="color">Color of the message.</param>
+    /// <param name="outputTargetFlags">Where to output this message. By default, the message is output everywhere but the overlay logger.</param>
+    void LogWriteLine(string source, string message, Color? color = null, LoggerOutputTargetFlags outputTargetFlags = LoggerOutputTargetFlags.AllButOverlayLogger);
+}
+
+/// <summary>
+/// Logging output targets.
+/// </summary>
+[Flags]
+public enum LoggerOutputTargetFlags : ulong
+{
+    /// <summary>
+    /// Text is output to the Reloaded logger.
+    /// </summary>
+    ReloadedLog = 1 << 0,
+
+    /// <summary>
+    /// Text is output to the overlay logger.
+    /// </summary>
+    OverlayLogger = 1 << 1,
+
+    /// <summary>
+    /// Text is output to all output targets, but the overlay logger.
+    /// </summary>
+    AllButOverlayLogger = ReloadedLog,
+
+    /// <summary>
+    /// Text is output to all output targets.
+    /// </summary>
+    All = AllButOverlayLogger | OverlayLogger,
 }

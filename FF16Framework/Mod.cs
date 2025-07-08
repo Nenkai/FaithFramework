@@ -15,6 +15,9 @@ using Reloaded.Mod.Interfaces;
 using SharedScans.Interfaces;
 
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
+
+using Tomlyn;
 
 using IReloadedHooks = Reloaded.Hooks.ReloadedII.Interfaces.IReloadedHooks;
 
@@ -75,6 +78,7 @@ public class Mod : ModBase, IExports // <= Do not Remove.
 
     private ImGuiSupport _imGuiSupport;
     private ImGuiTextureManager _imGuiTextureManager;
+    private ImGuiConfig _imGuiConfig;
 
     public Mod(ModContext context)
     {
@@ -106,7 +110,7 @@ public class Mod : ModBase, IExports // <= Do not Remove.
             _logger.WriteLine($"[{_modConfig.ModId}] Unable to get ISharedScans. Framework will not load!");
             return;
         }
-
+ 
         InitSaveHooks(scans);
         InitNex(scans);
         InitImGui(scans);
@@ -120,17 +124,43 @@ public class Mod : ModBase, IExports // <= Do not Remove.
         var imguiHookDx12 = new ImguiHookDx12();
         _imGuiTextureManager = new ImGuiTextureManager(_logger, imguiHookDx12);
 
+        string configPath = Path.Combine(_modLoader.GetDirectoryForModId(_modConfig.ModId), "framework_config.toml");
+        if (File.Exists(configPath))
+        {
+            try
+            {
+                _imGuiConfig = Toml.ToModel<ImGuiConfig>(File.ReadAllText(configPath));
+                _imGuiConfig.SetPath(configPath);
+            }
+            catch (Exception ex)
+            {
+                _logger.WriteLine($"[{_modConfig.ModId}] Failed to load ImGui config from '{configPath}' - {ex.Message}");
+                _logger.WriteLine("Creating default config...");
+                _imGuiConfig = new ImGuiConfig(configPath);
+                _imGuiConfig.Save();
+            }
+        }
+        else
+        {
+            _imGuiConfig = new ImGuiConfig(configPath);
+            _imGuiConfig.Save();
+        }
+
         ImguiHook.imgui = imgui;
-        _imGuiSupport = new ImGuiSupport(_hooks!, scans, _modConfig, _logger, imguiHookDx12, imgui);
+        _imGuiSupport = new ImGuiSupport(_hooks!, scans, _modConfig, _logger, imguiHookDx12, imgui, _imGuiConfig);
 
         if (_configuration.LoadImGuiHook)
         {
             _imGuiSupport.SetupImgui(_modLoader.GetDirectoryForModId(_modConfig.ModId));
 
             string logPath = Path.Combine(_modLoader.GetDirectoryForModId(_modConfig.ModId), "framework_log.txt");
-            _imGuiSupport.AddComponent(new LogWindow(_logger, logPath), "File", "Log Window");
-            _imGuiSupport.AddComponent(new DemoWindow(), "Other", "Demo Window");
-            _imGuiSupport.AddComponent(new AboutWindow(_modConfig, _modLoader, _imGuiTextureManager), "Other", "About Window");
+            _imGuiSupport.AddComponent(new LogWindow(_logger, logPath), _imGuiSupport.FileMenuName, nameof(FF16Framework));
+
+            _imGuiSupport.AddMenuSeparator(_imGuiSupport.ToolsMenuName, nameof(FF16Framework), nameof(FF16Framework));
+            _imGuiSupport.AddComponent(new SettingsComponent(_imGuiConfig), _imGuiSupport.ToolsMenuName, nameof(FF16Framework));
+
+            _imGuiSupport.AddComponent(new DemoWindow(), _imGuiSupport.OtherMenuName, nameof(FF16Framework));
+            _imGuiSupport.AddComponent(new AboutWindow(_modConfig, _modLoader, _imGuiTextureManager), _imGuiSupport.OtherMenuName, nameof(FF16Framework));
         }
         else
         {
