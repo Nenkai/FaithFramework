@@ -1,38 +1,28 @@
 ﻿namespace FF16Framework.Interfaces.Nex;
 
 /// <summary>
-/// Managed interface for accessing nex data.
+/// Managed interface for accessing nex data. This time with methods to get tables by raw id.
 /// </summary>
-public interface INextExcelDBApiManaged
+public interface INextExcelDBApiManagedV2 : INextExcelDBApiManaged
 {
-    /// <summary>
-    /// Whether the API is initialized and ready for use.
-    /// </summary>
-    bool Initialized { get; }
-
-    /// <summary>
-    /// Event fired when the game has initialized the nex tables.
-    /// </summary>
-    event NexLoadedEvent OnNexLoaded;
-
     /// <summary>
     /// Gets the physical number of rows for a table.
     /// </summary>
-    /// <param name="table">Table id.</param>
+    /// <param name="tableId">Table id.</param>
     /// <returns></returns>
-    uint GetMainRowCount(NexTableIds table);
+    uint GetMainRowCount(uint tableId);
 
     /// <summary>
     /// Gets a table.
     /// </summary>
     /// <param name="tableId">Table id.</param>
     /// <returns>Table instance. Returns null if not found.</returns>
-    INexTable? GetTable(NexTableIds tableId);
+    INexTable? GetTable(uint tableId);
 
     /// <summary>
     /// Returns whether the provided table is loaded.
     /// </summary>
     /// <param name="tableId">Table id.</param>
     /// <returns></returns>
-    bool IsTableLoaded(NexTableIds tableId);
+    bool IsTableLoaded(uint tableId);
 }

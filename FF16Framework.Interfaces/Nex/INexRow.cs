@@ -79,6 +79,8 @@ public interface INexRow
     /// Gets a <see cref="string"/> from the specified column offset.
     /// </summary>
     /// <param name="columnOffset"></param>
+    /// <param name="relative"></param>
+    /// <param name="relativeOffset"></param>
     /// <returns></returns>
     string GetString(uint columnOffset, bool relative = false, int relativeOffset = 0);
 
@@ -86,13 +88,15 @@ public interface INexRow
     /// Gets a <see cref="string"/> array from the specified column offset.
     /// </summary>
     /// <param name="columnOffset"></param>
+    /// <param name="relative"></param>
+    /// <param name="relativeOffset"></param>
     /// <returns></returns>
     string[] GetStringArray(uint columnOffset, bool relative = false, int relativeOffset = 0);
 
     /// <summary>
     /// Gets a memory view of a row for direct manipulation.
     /// </summary>
-    /// <param name="columnOffset"></param>
+    /// <param name="rowLength"></param>
     /// <returns></returns>
     Span<byte> GetRowDataView(uint rowLength);
 
@@ -128,8 +132,7 @@ public interface INexRow
     /// Gets a copy of the row data based on specified row length. <br/>
     /// NOTE: Not suitable for fetching arrays or strings.
     /// </summary>
-    /// <param name="columnOffset"></param>
-    /// <param name="value"></param>
+    /// <param name="rowLength"></param>
     byte[] GetRowDataCopy(uint rowLength);
 
     /// <summary>

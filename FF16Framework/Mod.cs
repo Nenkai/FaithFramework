@@ -23,7 +23,8 @@ public class Mod : ModBase, IExports // <= Do not Remove.
     public Type[] GetTypes() =>
     [
         typeof(INextExcelDBApi),
-        typeof(INextExcelDBApiManaged)
+        typeof(INextExcelDBApiManaged),
+        typeof(INextExcelDBApiManagedV2)
     ];
 
     /// <summary>
@@ -85,16 +86,17 @@ public class Mod : ModBase, IExports // <= Do not Remove.
         }
 
         var sharedScansController = _modLoader.GetController<ISharedScans>();
-        if (sharedScansController == null || !sharedScansController.TryGetTarget(out ISharedScans scans))
+        if (sharedScansController == null || !sharedScansController.TryGetTarget(out ISharedScans? scans))
         {
-            _logger.WriteLine($"[{_modConfig.ModId}] Unable to get ISharedScans. Framework will not load!");
+            _logger.WriteLine($"[{_modConfig.ModId}] Unable to get ISharedScans. Faith Framework will not load!");
             return;
         }
 
-        _nexHooks = new NexHooks(_configuration, _modConfig, scans, _logger);
+        // TODO: Use DI.
+        _nexHooks = new NexHooks(_configuration, _modConfig, _modLoader, scans, _logger);
         _nexHooks.Setup();
 
-        _saveHooks = new SaveHooks(_configuration, _modConfig, scans, _logger);
+        _saveHooks = new SaveHooks(_configuration, _modConfig, _modLoader, scans, _logger);
         _saveHooks.Setup();
 
         _nexApi = new NextExcelDBApi(_nexHooks);
@@ -102,8 +104,9 @@ public class Mod : ModBase, IExports // <= Do not Remove.
 
         _nexApiManaged = new NextExcelDBApiManaged(_nexHooks);
         _modLoader.AddOrReplaceController<INextExcelDBApiManaged>(_owner, _nexApiManaged);
+        _modLoader.AddOrReplaceController<INextExcelDBApiManagedV2>(_owner, _nexApiManaged);
 
-        _logger.WriteLine($"[{_modConfig.ModId}] Framework {_modConfig.ModVersion} initted.", _logger.ColorGreen);
+        _logger.WriteLine($"[{_modConfig.ModId}] Faith Framework {_modConfig.ModVersion} initted.", _logger.ColorGreen);
     }
 
     #region Standard Overrides

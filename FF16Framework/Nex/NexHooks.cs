@@ -60,10 +60,6 @@ public unsafe class NexHooks : HookGroupBase
         [nameof(NexGetRow2KByIndex)] = "48 89 5C 24 ?? 57 48 83 EC ?? 48 8B 41 ?? 49 8B D8 48 8B F9",
         [nameof(NexGetRowData2K)] = "48 89 5C 24 ?? 48 89 74 24 ?? 57 48 83 EC ?? 8B F2 41 8B F8 8B D1",
         [nameof(NexSearchRow1K)] = "48 8B 41 ?? 48 85 C0 74 ?? 48 83 E8 ?? 74 ?? 48 83 F8 ?? 74 ?? 45 33 C9 45 33 C0",
-        [nameof(NexSearchRow2K)] = "48 8B 41 ?? 48 85 C0 74 ?? 48 83 E8 ?? 74 ?? 48 83 F8 ?? 74 ?? 45 33 C9 E9", 
-        [nameof(NexSearchRow3K)] = "48 89 5C 24 ?? 48 89 74 24 ?? 57 48 83 EC 30 48 83 79 ?? ?? 49 8B F1" ,
-        [nameof(NexGetK2SetCountForType2)] = "48 89 5C 24 ?? 48 89 74 24 ?? 57 48 83 EC ?? 48 83 79 ?? ?? 48 8B DA", // Only double keyed
-        [nameof(NexGetK3SetCountForType3)] = "48 89 5C 24 ?? 48 89 74 24 ?? 57 48 83 EC ?? 48 83 79 ?? ?? 41 8B F1",
         [nameof(NexGetK2SetCount)] = "40 53 48 83 EC ?? 48 8B 41 ?? 33 DB 48 85 C0 74 ?? 48 83 E8", // Works with double or triple
         [nameof(NexGetRowData)] = "48 8B 01 48 BA",
         [nameof(NexGetRowKeys)] = "48 8B 01 4C 8B D2",
@@ -75,8 +71,8 @@ public unsafe class NexHooks : HookGroupBase
 
     };
 
-    public NexHooks(Config config, IModConfig modConfig, ISharedScans scans, ILogger logger)
-        : base(config, modConfig, scans, logger)
+    public NexHooks(Config config, IModConfig modConfig, IModLoader loader, ISharedScans scans, ILogger logger)
+        : base(config, modConfig, loader, scans, logger)
     {
 
     }
@@ -85,6 +81,22 @@ public unsafe class NexHooks : HookGroupBase
     {
         foreach (var pattern in Patterns)
             _scans.AddScan(pattern.Key, pattern.Value);
+
+        string appExePath = _modLoader.GetAppConfig().AppLocation;
+        if (appExePath.Contains("ffxvi"))
+        {
+            _scans.AddScan(nameof(NexSearchRow2K), "48 8B 41 ?? 48 85 C0 74 ?? 48 83 E8 ?? 74 ?? 48 83 F8 ?? 74 ?? 45 33 C9 E9"); 
+            _scans.AddScan(nameof(NexSearchRow3K), "48 89 5C 24 ?? 48 89 74 24 ?? 57 48 83 EC 30 48 83 79 ?? ?? 49 8B F1");
+            _scans.AddScan(nameof(NexGetK2SetCountForType2), "48 89 5C 24 ?? 48 89 74 24 ?? 57 48 83 EC ?? 48 83 79 ?? ?? 48 8B DA"); // Only double keyed
+            _scans.AddScan(nameof(NexGetK3SetCountForType3), "48 89 5C 24 ?? 48 89 74 24 ?? 57 48 83 EC ?? 48 83 79 ?? ?? 41 8B F1");
+        }
+        else
+        {
+            _scans.AddScan(nameof(NexSearchRow2K), "48 83 EC ?? 48 8B 41 ?? 48 85 C0 74 ?? 48 83 E8");
+            _scans.AddScan(nameof(NexSearchRow3K), "48 83 EC ?? 48 83 79 ?? ?? 73");
+            _scans.AddScan(nameof(NexGetK2SetCountForType2), "48 89 5C 24 ?? 48 89 74 24 ?? 57 48 83 EC ?? B8 ?? ?? ?? ?? 33 05 ?? ?? ?? ?? 48 39 41"); // Only double keyed
+            //_scans.AddScan(nameof(NexGetK3SetCountForType3), "48 89 5C 24 ?? 48 89 74 24 ?? 57 48 83 EC ?? 48 83 79 ?? ?? 41 8B F1");
+        }
 
         NexInitializeHook = _scans.CreateHook<NexInitialize>(OnNxlLoadDetour, _modConfig.ModId);
         NexGetTableFunction = _scans.CreateWrapper<NexGetTable>(_modConfig.ModId);
@@ -107,7 +119,7 @@ public unsafe class NexHooks : HookGroupBase
 
     public uint OnNxlLoadDetour(NexManagerInstance* @this, void* a2)
     {
-        uint errorCode = NexInitializeHook.Hook.OriginalFunction(@this, a2);
+        uint errorCode = NexInitializeHook.Hook!.OriginalFunction(@this, a2);
         if (errorCode == 0)
         {
             // The nxl/nxds were loaded and parsed/initialized. Now we Wait for a bit.

@@ -28,10 +28,10 @@ public unsafe class NextExcelDBApi : INextExcelDBApi
     }
 
     public NexTableInstance* GetTable(NexTableIds tableId)
-        => _nexHooks.NexGetTableFunction.Wrapper(_nexHooks.Instance, tableId);
+        => _nexHooks.NexGetTableFunction.Wrapper(_nexHooks.Instance, (uint)tableId);
 
     public int GetSetCount(NexTableIds table)
-        => (int)_nexHooks.NexGetSetCountFunction.Wrapper(table);
+        => (int)_nexHooks.NexGetSetCountFunction.Wrapper((uint)table);
 
     public byte* GetRowData(NexRowInstance* row)
         => _nexHooks.NexGetRowDataFunction.Wrapper(row);

@@ -38,14 +38,18 @@ public unsafe class SaveHooks : HookGroupBase
         [nameof(CreateXmlSerializer)] = "4C 8B DC 49 89 5B ?? 49 89 73 ?? 57 48 83 EC ?? 48 83 79",
     };
 
-    public SaveHooks(Config config, IModConfig modConfig, ISharedScans scans, ILogger logger)
-        : base(config, modConfig, scans, logger)
+    public SaveHooks(Config config, IModConfig modConfig, IModLoader loader, ISharedScans scans, ILogger logger)
+        : base(config, modConfig, loader, scans, logger)
     {
 
     }
 
     public override void Setup()
     {
+        string appExePath = _modLoader.GetAppConfig().AppLocation;
+        if (!appExePath.Contains("ffxvi")) // Check for FFXVI. Most of the functionality was removed in FFT
+            return;
+
         foreach (var pattern in Patterns)
             _scans.AddScan(pattern.Key, pattern.Value);
 

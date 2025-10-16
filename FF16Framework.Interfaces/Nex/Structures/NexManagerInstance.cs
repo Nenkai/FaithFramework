@@ -8,6 +8,7 @@ using FF16Framework.Structures;
 
 namespace FF16Framework.Interfaces.Nex.Structures;
 
+#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 // Size: 0x80
 public struct NexManagerInstance
 {
@@ -20,4 +21,4 @@ public struct NexManagerInstance
     ulong NumTablesLoaded;
     StdUnorderedMap Tables;
 };
-
+#pragma warning restore CS1591 // Missing XML comment for publicly visible type or member

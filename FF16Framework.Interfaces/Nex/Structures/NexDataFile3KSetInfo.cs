@@ -7,6 +7,9 @@ using System.Threading.Tasks;
 
 namespace FF16Framework.Interfaces.Nex.Structures;
 
+/// <summary>
+/// Info for a triple-keyed row set.
+/// </summary>
 public struct NexDataFile3KSetInfo
 {
     public uint Key1;

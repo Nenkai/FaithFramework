@@ -8,6 +8,7 @@ namespace FF16Framework
 {
     public class Config : Configurable<Config>
     {
+        [Category("FFXVI")]
         [DisplayName("Serialize Saves as XML")]
         [Description("""
             Advanced Users/Save Editors only.

@@ -13,14 +13,15 @@ using System.Threading.Tasks;
 
 namespace FF16Framework.Nex;
 
-public class NexTable : INexTable
+public class NexTable : INexTableV2
 {
     private readonly unsafe NexTableInstance* _tableInstance;
     private readonly unsafe NexHooks _hooks;
 
+    public unsafe uint TableIdRaw => _tableInstance->TableId;
     public NexTableIds TableId
     {
-        get { unsafe { return (NexTableIds)_tableInstance->TableId; } }
+        get { unsafe { return (NexTableIds)TableIdRaw; } }
     }
 
     public NexTableType Type
@@ -42,7 +43,7 @@ public class NexTable : INexTable
     private uint? _cachedMainRowCount;
     public uint GetNumRows()
     { 
-        _cachedMainRowCount ??= _hooks.NexGetSetCountFunction.Wrapper(TableId);
+        _cachedMainRowCount ??= _hooks.NexGetSetCountFunction.Wrapper((uint)TableId);
         return _cachedMainRowCount.Value;
     }
 
@@ -223,6 +224,9 @@ public class NexTable : INexTable
         NexSetResult setResult = new NexSetResult();
         unsafe
         {
+            if (_hooks.NexGetK3SetCountForType3Function is null)
+                throw new NotSupportedException("GetTripleKeyedSubSetRowInfoByIndex is not supported as no hook for NexGetK3SetCountForType3Function was found.");
+
             _hooks.NexGetK3SetCountForType3Function.Wrapper(_tableInstance, &setResult, key1, key2);
             if (index > setResult.Count - 1)
                 throw new IndexOutOfRangeException($"GetTripleKeyedSubSetRowInfo: index out of range. num rows: {setResult.Count}, index: {index}");
@@ -241,6 +245,9 @@ public class NexTable : INexTable
         NexSetResult setResult = new NexSetResult();
         unsafe
         {
+            if (_hooks.NexGetK3SetCountForType3Function is null)
+                throw new NotSupportedException("GetTripleKeyedSubSetRowInfos is not supported as no hook for NexGetK3SetCountForType3Function was found.");
+
             _hooks.NexGetK3SetCountForType3Function.Wrapper(_tableInstance, &setResult, key1, key2);
             for (int i = 0; i < setResult.Count; i++)
             {
@@ -339,6 +346,9 @@ public class NexTable : INexTable
 
         unsafe
         {
+            if (_hooks.NexGetK3SetCountForType3Function is null)
+                throw new NotSupportedException("GetRowByIndex(uint key1, uint key2, uint index) is not supported as no hook for NexGetK3SetCountForType3Function was found.");
+
             NexSetResult setResult = new NexSetResult();
             _hooks.NexGetK3SetCountForType3Function.Wrapper(_tableInstance, &setResult, key1, key2);
 
