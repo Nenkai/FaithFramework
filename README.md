@@ -8,7 +8,9 @@ Currently only Nex interfaces.
 
 You should grab the [FF16Tools.Files](https://github.com/Nenkai/FF16Tools/) NuGet Package to be able to read rows.
 
-First, grab a `INextExcelDBApiManagedV2`:
+Then, add the `FF16Framework.Interfaces` NuGet package to your project. 
+
+Once you have it installed, grab a `INextExcelDBApiManagedV2` controller from the Mod Loader:
 ```csharp
 _nexApi = _modLoader.GetController<INextExcelDBApiManagedV2>();
 if (!_nexApi.TryGetTarget(out INextExcelDBApiManagedV2 nextExcelDBApi))
