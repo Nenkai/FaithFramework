@@ -9,11 +9,15 @@ using FF16Framework.Nex;
 using FF16Framework.Save;
 using FF16Framework.Template;
 
+using Reloaded.Hooks.Definitions.Structs;
 using Reloaded.Memory.SigScan.ReloadedII.Interfaces;
 using Reloaded.Mod.Interfaces;
 
 using SharedScans.Interfaces;
 
+using SharpDX.Direct3D12;
+
+using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
@@ -80,6 +84,8 @@ public class Mod : ModBase, IExports // <= Do not Remove.
     private ImGuiTextureManager _imGuiTextureManager;
     private ImGuiConfig _imGuiConfig;
 
+    private ISharedScans _scans;
+
     public Mod(ModContext context)
     {
         _modLoader = context.ModLoader;
@@ -92,6 +98,12 @@ public class Mod : ModBase, IExports // <= Do not Remove.
 #if DEBUG
         Debugger.Launch();
 #endif
+        // Uncomment this if you need debug logs with DebugView (ensure to also enable debug in DirectX control panel)
+        // NOTE: Enabling this will severely impact framerate!
+        // NOTE 2: Must be enabled early, before the game itself has initialized D3D12.
+        //         It should not be moved to ImGui handlers.
+        // DebugInterface.Get().EnableDebugLayer();
+
         if (_hooks is null)
         {
             _logger.WriteLine($"[{_modConfig.ModId}] Hooks is null. Framework will not load!");
@@ -105,17 +117,49 @@ public class Mod : ModBase, IExports // <= Do not Remove.
         }
 
         var sharedScansController = _modLoader.GetController<ISharedScans>();
-        if (sharedScansController == null || !sharedScansController.TryGetTarget(out ISharedScans? scans))
+        if (sharedScansController == null || !sharedScansController.TryGetTarget(out _scans))
         {
             _logger.WriteLine($"[{_modConfig.ModId}] Unable to get ISharedScans. Framework will not load!");
             return;
         }
  
-        InitSaveHooks(scans);
-        InitNex(scans);
-        InitImGui(scans);
+        InitSaveHooks(_scans);
+        InitNex(_scans);
+        InitImGui(_scans);
 
         _logger.WriteLine($"[{_modConfig.ModId}] Framework {_modConfig.ModVersion} initted.", _logger.ColorGreen);
+    }
+
+    private delegate void RenderExecCommandListsAndPresentDelegate(nint a1);
+
+    private bool imguiRenderable = false;
+    private static HookContainer<RenderExecCommandListsAndPresentDelegate>? RenderExecCommandListsAndPresentHook;
+    private unsafe void RenderExecCommandListsAndPresentImpl(nint a1)
+    {
+        RenderExecCommandListsAndPresentHook!.Hook!.OriginalFunction(a1);
+
+        if (!imguiRenderable)
+        {
+            if (_configuration.LoadImGuiHook)
+            {
+                _imGuiSupport.Start().GetAwaiter().GetResult();
+
+                string logPath = Path.Combine(_modLoader.GetDirectoryForModId(_modConfig.ModId), "framework_log.txt");
+                _imGuiSupport.AddComponent(new LogWindow(_logger, logPath), _imGuiSupport.FileMenuName, nameof(FF16Framework));
+
+                _imGuiSupport.AddMenuSeparator(_imGuiSupport.ToolsMenuName, nameof(FF16Framework), nameof(FF16Framework));
+                _imGuiSupport.AddComponent(new SettingsComponent(_imGuiConfig), _imGuiSupport.ToolsMenuName, nameof(FF16Framework));
+
+                _imGuiSupport.AddComponent(new DemoWindow(), _imGuiSupport.OtherMenuName, nameof(FF16Framework));
+                _imGuiSupport.AddComponent(new AboutWindow(_modConfig, _modLoader, _imGuiTextureManager), _imGuiSupport.OtherMenuName, nameof(FF16Framework));
+            }
+            else
+            {
+                _logger.WriteLine($"[{_modConfig.ModId}] ImGui overlay/hook is currently disabled. You can enable it in the framework's configuration options.", _logger.ColorYellow);
+            }
+
+            imguiRenderable = true;
+        }
     }
 
     private void InitImGui(ISharedScans scans)
@@ -147,27 +191,15 @@ public class Mod : ModBase, IExports // <= Do not Remove.
         }
 
         ImguiHook.imgui = imgui;
-        _imGuiSupport = new ImGuiSupport(_hooks!, scans, _modConfig, _logger, imguiHookDx12, imgui, _imGuiConfig);
+        _imGuiSupport = new ImGuiSupport(_hooks!, _scans, _modConfig, _logger, imguiHookDx12, imgui, _imGuiConfig);
+        _imGuiSupport.SetupHooks(_modLoader.GetDirectoryForModId(_modConfig.ModId));
 
-        if (_configuration.LoadImGuiHook)
-        {
-            _imGuiSupport.SetupImgui(_modLoader.GetDirectoryForModId(_modConfig.ModId));
+        // We hook the call that performs present (not present itself)
+        // We setup our DX12 hooks after the game made the first call.
+        scans.AddScan(nameof(RenderExecCommandListsAndPresentDelegate), "48 8B C4 48 89 58 ?? 48 89 70 ?? 48 89 78 ?? 55 41 54 41 55 41 56 41 57 48 8D 68 ?? 48 81 EC ?? ?? ?? ?? 48 8B 05 ?? ?? ?? ?? 48 33 C4 48 89 45 ?? 45 33 E4 48 8B F1 80 B9");
+        RenderExecCommandListsAndPresentHook = scans.CreateHook<RenderExecCommandListsAndPresentDelegate>(RenderExecCommandListsAndPresentImpl, _modConfig.ModId);
 
-            string logPath = Path.Combine(_modLoader.GetDirectoryForModId(_modConfig.ModId), "framework_log.txt");
-            _imGuiSupport.AddComponent(new LogWindow(_logger, logPath), _imGuiSupport.FileMenuName, nameof(FF16Framework));
-
-            _imGuiSupport.AddMenuSeparator(_imGuiSupport.ToolsMenuName, nameof(FF16Framework), nameof(FF16Framework));
-            _imGuiSupport.AddComponent(new SettingsComponent(_imGuiConfig), _imGuiSupport.ToolsMenuName, nameof(FF16Framework));
-
-            _imGuiSupport.AddComponent(new DemoWindow(), _imGuiSupport.OtherMenuName, nameof(FF16Framework));
-            _imGuiSupport.AddComponent(new AboutWindow(_modConfig, _modLoader, _imGuiTextureManager), _imGuiSupport.OtherMenuName, nameof(FF16Framework));
-        }
-        else
-        {
-            _logger.WriteLine($"[{_modConfig.ModId}] ImGui overlay/hook is currently disabled. You can enable it in the framework's configuration options.", _logger.ColorYellow);
-        }
-
-        _modLoader.AddOrReplaceController<IImGui>(_owner, imgui);
+        _modLoader.AddOrReplaceController<IImGui>(_owner, ImguiHook.imgui);
         _modLoader.AddOrReplaceController<IImGuiSupport>(_owner, _imGuiSupport);
         _modLoader.AddOrReplaceController<IImGuiTextureManager>(_owner, _imGuiTextureManager);
     }

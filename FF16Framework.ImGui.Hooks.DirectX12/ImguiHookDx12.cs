@@ -1,62 +1,99 @@
 ﻿using FF16Framework.ImGui.Hooks;
+using FF16Framework.ImGui.Hooks.Definitions;
 using FF16Framework.ImGui.Hooks.DirectX;
 using FF16Framework.ImGui.Hooks.DirectX12.Definitions;
 using FF16Framework.Interfaces.ImGui;
 using FF16Framework.Native.ImGui;
 
 using Reloaded.Hooks.Definitions;
+using Reloaded.Memory.Interfaces;
 
+using SharpDX.Direct3D;
 using SharpDX.Direct3D12;
 using SharpDX.DXGI;
 
 using System;
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 using Windows.Win32;
+using Windows.Win32.Foundation;
+using Windows.Win32.UI.WindowsAndMessaging;
 
-using static System.Net.Mime.MediaTypeNames;
-
+using static FF16Framework.ImGui.Hooks.DirectX12.Extensions.Factory2Extensions;
 using Device = SharpDX.Direct3D12.Device;
 
 namespace FF16Framework.ImGui.Hooks.DirectX12;
 
 public unsafe class ImguiHookDx12 : IImguiHook
 {
-    public static ImguiHookDx12 Instance { get; private set; }
-
-    private IHook<DX12Hook.Present> _presentHook;
-    private IHook<DX12Hook.ResizeBuffers> _resizeBuffersHook;
-    private IHook<DX12Hook.CreateSwapChainForHwnd> _createSwapChainForHwndHook;
-
-    private bool _initialized = false;
-    private Device _device;
-    private DescriptorHeap _shaderResourceViewDescHeap;
-    private DescriptorHeap renderTargetViewDescHeap;
-    private List<FrameContext> _frameContexts = [];
-    private GraphicsCommandList _commandList;
-    private CommandQueue _commandQueue;
-
-    private static DescriptorHeapAllocator _textureHeapAllocator;
-    private ConcurrentDictionary<ulong, TextureResource> _textureIds = [];
+    private bool _initializedD3D12 = false;
 
     private static readonly string[] _supportedDlls =
     [
         "d3d12.dll",
     ];
 
-    /*
-     * In some cases (E.g. under DX9 + Viewports enabled), Dear ImGui might call
-     * DirectX functions from within its internal logic.
-     *
-     * We put a lock on the current thread in order to prevent stack overflow.
-     */
-    private bool _presentRecursionLock = false;
-    private bool _resizeRecursionLock = false;
+    private static DescriptorHeapAllocator _textureHeapAllocator;
+    private ConcurrentDictionary<ulong, TextureResource> _textureIds = [];
+
+    private IHook<PresentDelegate> _presentHook;
+    private IHook<ResizeBuffersDelegate> _resizeBuffersHook;
+    private IHook<ResizeTargetDelegate> _resizeTargetHook;
+    private IHook<CreateSwapChainForHwnd> _createSwapChainForHwndHook;
+
+    delegate nint PresentDelegate(nint swapChainPtr, int syncInterval, PresentFlags flags);
+    delegate nint ResizeBuffersDelegate(nint swapchainPtr, uint bufferCount, uint width, uint height, Format newFormat, SwapChainFlags swapchainFlags);
+    delegate nint ResizeTargetDelegate(nint swapchainPtr, nint pNewTargetParameters);
+    delegate nint CreateSwapChainForHwnd(nint this_, nint pDevice, nint hWnd, nint pDesc, nint pFullscreenDesc, nint pRestrictToOutput, nint ppSwapChain);
+
+    private bool _convertHooksToVtableHooksPhase = false;
+    private int _presentDepth = 0;
+    private int _resizeBufferDepth = 0;
+    private int _resizeTargetDepth = 0;
     private bool _createSwapChainRecursionLock = false;
 
-    public ImguiHookDx12() { }
+    public Device Device { get; private set; }
+    private SwapChain3 _swapChain;
+    private CommandQueue _commandQueue;
+    private List<CommandContext> _commandContexts = [];
+    private DescriptorHeap _shaderResourceViewDescHeap;
+    private DescriptorHeap _renderTargetViewDescHeap;
+    private List<FrameContext> _frameContexts = [];
+    public int _commandContextIndex;
+
+    public void* _imGuiBackEndData;
+
+    /// <summary>
+    /// Contains the DX12 DXGI Factory VTable.
+    /// </summary>
+    public static IVirtualFunctionTable FactoryVTable { get; private set; }
+
+    /// <summary>
+    /// Contains the DX12 DXGI Swapchain VTable.
+    /// </summary>
+    public static IVirtualFunctionTable SwapchainVTable { get; private set; }
+
+    /// <summary>
+    /// Contains the DX12 DXGI Command Queue VTable.
+    /// </summary>
+    public static IVirtualFunctionTable ComamndQueueVTable { get; private set; }
+
+    /*
+    * In some cases (E.g. under DX9 + Viewports enabled), Dear ImGui might call
+    * DirectX functions from within its internal logic.
+    *
+    * We put a lock on the current thread in order to prevent stack overflow.
+    */
+
+    public static int? CommandQueueOffset = null;
+
+    public ImguiHookDx12() 
+    {
+        ImguiHookDx12Wrapper.Instance = this;
+    }
 
     public bool IsApiSupported()
     {
@@ -74,296 +111,560 @@ public unsafe class ImguiHookDx12 : IImguiHook
         return false;
     }
 
-    public void Initialize()
+    /// <summary>
+    /// Creates a dummy device/swapchain used to locate vtables and offsets used by D3D12.
+    /// </summary>
+    /// <exception cref="NotImplementedException"></exception>
+    /// <exception cref="Exception"></exception>
+    private void CreateDummySwapchainAndFindVTables()
     {
-        var presentPtr = (long)DX12Hook.SwapchainVTable[(int)IDXGISwapChainVTable.Present].FunctionPointer;
-        var resizeBuffersPtr = (long)DX12Hook.SwapchainVTable[(int)IDXGISwapChainVTable.ResizeBuffers].FunctionPointer;
-        var createSwapChainForHwndPtr = (long)DX12Hook.FactoryVTable[(int)IDXGIFactory.CreateSwapChainForHwnd].FunctionPointer;
-        //var executeCommandListsPtr = (long)DX12Hook.ComamndQueueVTable[(int)ID3D12CommandQueueVTable.ExecuteCommandLists].FunctionPointer;
-        Instance = this;
-        _presentHook = SDK.Hooks.CreateHook<DX12Hook.Present>(typeof(ImguiHookDx12), nameof(PresentImplStatic), presentPtr).Activate();
-        _resizeBuffersHook = SDK.Hooks.CreateHook<DX12Hook.ResizeBuffers>(typeof(ImguiHookDx12), nameof(ResizeBuffersImplStatic), resizeBuffersPtr).Activate();
-        _createSwapChainForHwndHook = SDK.Hooks.CreateHook<DX12Hook.CreateSwapChainForHwnd>(typeof(ImguiHookDx12), nameof(CreateSwapChainForHwndImplStatic), createSwapChainForHwndPtr).Activate();
-        //_execCmdListHook = SDK.Hooks.CreateHook<DX12Hook.ExecuteCommandLists>(typeof(ImguiHookDx12), nameof(ExecCmdListsImplStatic), executeCommandListsPtr).Activate();
+        SharpDX.Direct3D12.Device device;
+        var createDevice = PInvoke.GetProcAddress(PInvoke.GetModuleHandle("d3d12.dll"), "D3D12CreateDevice");
+
+        // D3D12CreateDevice may have been hooked beforehand (Reshade, etc), so unhook it temporarily
+        // we're creating a dummy device, so we preferably don't want anyone to treat it as something to interact with
+        List<byte>? originalFunctionBytesDiff = HookUtility.GetOriginalBytesIfHooked((nuint)createDevice.Value);
+        if (originalFunctionBytesDiff is not null)
+        {
+            Span<byte> previouslyHookedBytes = new byte[originalFunctionBytesDiff.Count];
+            Reloaded.Memory.Memory.Instance.SafeRead((nuint)createDevice.Value, previouslyHookedBytes); // Read hooked bytes
+            Reloaded.Memory.Memory.Instance.SafeWrite((nuint)createDevice.Value, CollectionsMarshal.AsSpan(originalFunctionBytesDiff)); // Restore original
+
+            device = new SharpDX.Direct3D12.Device(null, FeatureLevel.Level_12_0); // Call original
+
+            Reloaded.Memory.Memory.Instance.SafeWrite((nuint)createDevice.Value, previouslyHookedBytes); // Restore hooked bytes
+        }
+        else
+        {
+            try
+            {
+                device = new SharpDX.Direct3D12.Device(null, FeatureLevel.Level_11_0);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Failed to create D3D12 Device for vtable detection.", ex);
+            }
+        }
+
+
+        CommandQueue commandQueue = device.CreateCommandQueue(new CommandQueueDescription(CommandListType.Direct));
+        var swapChainDesc = new SwapChainDescription1()
+        {
+            Format = Format.R8G8B8A8_UNorm,
+            Usage = Usage.RenderTargetOutput,
+            SwapEffect = SwapEffect.FlipDiscard,
+            BufferCount = 2,
+            SampleDescription = new SampleDescription(1, 0),
+            AlphaMode = AlphaMode.Premultiplied,
+            Width = 1, Height = 1,
+        };
+
+        var createFactory = PInvoke.GetProcAddress(PInvoke.GetModuleHandle("dxgi.dll"), "CreateDXGIFactory2");
+        List<byte>? originalFunctionBytesDifff = HookUtility.GetOriginalBytesIfHooked((nuint)createFactory.Value);
+
+        SwapChain1 swapChain = null;
+        using (var factory = new Factory6()) // Will call CreateDXGIFactory2
+        {
+            // We ideally don't want to create a swapchain through CreateSwapChainForHwnd, because it may have been hooked
+            // Try multiple ways
+            if (!factory.CreateSwapChainForComposition(commandQueue, ref swapChainDesc, null!, out swapChain).Success)
+            {
+                if (!CreateHandleWithDummyWindow(factory, commandQueue, out swapChainDesc, out swapChain)) // TODO: Verify if this one even works
+                {
+                    throw new Exception("Could not create dummy swapchain");
+                }
+            }
+
+            // TODO: use this to figure if it's a DLSS or FSR object? could never get that working
+            var typeInfo = RTTIUtility.GetLocator((void*)swapChain.NativePointer);
+
+            FactoryVTable = SDK.Hooks.VirtualFunctionTableFromObject(factory.NativePointer, Enum.GetNames(typeof(IDXGIFactory)).Length);
+            SwapchainVTable = SDK.Hooks.VirtualFunctionTableFromObject(swapChain.NativePointer, Enum.GetNames(typeof(IDXGISwapChainVTable)).Length);
+            ComamndQueueVTable = SDK.Hooks.VirtualFunctionTableFromObject(commandQueue.NativePointer, Enum.GetNames(typeof(ID3D12CommandQueueVTable)).Length);
+
+            // We need to try and find the command queue from the swapchain
+            // We are not allowed to simply use it from hooked calls (D3D12 may forbid this)
+            // So search for the pointer in the dummy swapchain
+            unsafe
+            {
+                nint* ptr = (nint*)swapChain.NativePointer;
+                for (int i = 0; i < 1000; i++)
+                {
+                    if (ptr[i] == commandQueue.NativePointer)
+                    {
+                        CommandQueueOffset = i * 8;
+                        break;
+                    }
+                }
+            }
+
+
+            if (CommandQueueOffset is null)
+                throw new Exception("Could not determine command queue offset from DX12 Swapchain pointer.");
+
+            swapChain?.Dispose();
+        }
+
+        // Cleanup
+        device.Dispose();
+    }
+
+    private static bool CreateHandleWithDummyWindow(Factory2 factory, CommandQueue commandQueue, out SwapChainDescription1 swapChainDesc, out SwapChain1 swapChain)
+    {
+        var handle = PInvoke.GetModuleHandle(null);
+
+        const string className = "ff16FrameworkDummyClassName";
+        fixed (char* pClassName = className)
+        {
+            var wc = new WNDCLASSEXW()
+            {
+                cbSize = 0x50,
+                style = WNDCLASS_STYLES.CS_HREDRAW | WNDCLASS_STYLES.CS_VREDRAW,
+                lpfnWndProc = PInvoke.DefWindowProc,
+                cbClsExtra = 0,
+                cbWndExtra = 0,
+                hInstance = new HINSTANCE(handle.DangerousGetHandle()),
+                hIcon = HICON.Null,
+                hCursor = HCURSOR.Null,
+                hbrBackground = Windows.Win32.Graphics.Gdi.HBRUSH.Null,
+                lpszClassName = pClassName
+            };
+
+            PInvoke.RegisterClassEx(wc);
+
+            var hwnd = PInvoke.CreateWindowEx(0, className, "FF16Framework DX Dummy Window", WINDOW_STYLE.WS_OVERLAPPEDWINDOW, 0, 0, 100, 100, HWND.Null, null, handle, null);
+
+            swapChainDesc.BufferCount = 3;
+            swapChainDesc.Width = 0;
+            swapChainDesc.Height = 0;
+            swapChainDesc.Format = Format.R8G8B8A8_UNorm;
+            swapChainDesc.Flags = SwapChainFlags.FrameLatencyWaitAbleObject;
+            swapChainDesc.Usage = Usage.RenderTargetOutput;
+            swapChainDesc.SampleDescription.Count = 1;
+            swapChainDesc.SampleDescription.Quality = 0;
+            swapChainDesc.SwapEffect = SwapEffect.FlipDiscard;
+            swapChainDesc.AlphaMode = AlphaMode.Unspecified;
+            swapChainDesc.Scaling = Scaling.Stretch;
+            swapChainDesc.Stereo = false;
+
+            return factory.CreateSwapChainForHwnd(commandQueue, hwnd, ref swapChainDesc, null, null, out swapChain).Success;
+        }
+    }
+
+    /// <summary>
+    /// Finds and hooks D3D12 functions.
+    /// </summary>
+    public void Hook()
+    {
+        if (CommandQueueOffset == 0 || SwapchainVTable is null && ComamndQueueVTable is null)
+            CreateDummySwapchainAndFindVTables();
+
+        // Got our pointers, start hooking functions.
+        HookBaseD3D12Functions();
+    }
+
+    /// <summary>
+    /// Hooks D3D12 functions after their vtables have been located.
+    /// </summary>
+    private void HookBaseD3D12Functions()
+    {
+        // TODO: Hook streamline 
+
+        DisableHooks();
+
+        _convertHooksToVtableHooksPhase = true;
+
+        var presentPtr = (long)SwapchainVTable[(int)IDXGISwapChainVTable.Present].FunctionPointer;
+        var createSwapChainForHwndPtr = (long)FactoryVTable[(int)IDXGIFactory.CreateSwapChainForHwnd].FunctionPointer;
+
+        List<byte>? originalFunctionBytesDiff = HookUtility.GetOriginalBytesIfHooked((nuint)createSwapChainForHwndPtr);
+
+        // Hook vtable entries, least intrusive
+        _presentHook = new FunctionPointerHook<PresentDelegate>((nuint)SwapchainVTable[(int)IDXGISwapChainVTable.Present].EntryAddress, PresentImpl).Activate();
+        _createSwapChainForHwndHook ??= new FunctionPointerHook<CreateSwapChainForHwnd>((nuint)FactoryVTable[(int)IDXGIFactory.CreateSwapChainForHwnd].EntryAddress, CreateSwapChainForHwndImpl).Activate();
     }
 
     ~ImguiHookDx12()
     {
-        ReleaseUnmanagedResources();
+        Dispose();
     }
 
     public void Dispose()
     {
-        ReleaseUnmanagedResources();
+        ShutdownD3D12();
+        DisableHooks();
+
+        _textureHeapAllocator?.Destroy();
+
         GC.SuppressFinalize(this);
     }
 
-    private void ReleaseUnmanagedResources()
+    public nint CreateSwapChainForHwndImpl(nint this_, nint pDevice, nint hWnd, nint pDesc, nint pFullscreenDesc, nint pRestrictToOutput, nint ppSwapChain)
     {
-        if (_initialized)
-        {
-            Debug.WriteLine($"[DX12 Dispose] Shutdown");
-            ImGuiMethods.cImGui_ImplDX12_Shutdown();
+        // FIXME/CRASH: Uncommenting these proper crashes when calling the original when enabling FSR3
+        // ShutdownD3D12();
+        // DisableHooks();
 
-            foreach (var resource in _textureIds.Values)
-                resource.Dispose();
-        }
-    }
-
-    private nint CreateSwapChainForHwndImpl(nint this_, nint pDevice, nint hWnd, nint pDesc, nint pFullscreenDesc, nint pRestrictToOutput, nint ppSwapChain)
-    {
-        /* We hook as it seems we have to; when swapping from borderless -> fullscreen -> borderless, otherwise, this happens:
-         * [22012] DXGI ERROR: IDXGIFactory::CreateSwapChain: Only one flip model swap chain can be associate with an HWND, 
-         * IWindow, or composition surface at a time. ClearState() and Flush() may need to be called on the D3D11 device context 
-         * to trigger deferred destruction of old swapchains. [ MISCELLANEOUS ERROR #297: ]
-         *
-         * Fun fact: FF16's response to that DXGI/D3D12 error is to simply bring up a messagebox and translate the error code from GetDeviceRemovedReason
-         * ...When that happens, the error code is 0, so all you get is a "The operation completed successfully". Very useful
-         * 
-         * The recursion lock exists as ImGui can also call CreateSwapChainForHwnd within ImGui_ImplDX12_CreateWindow
-         */
-
-        if (!_createSwapChainRecursionLock && renderTargetViewDescHeap is not null)
-            PreResizeBuffers();
-
-        var res = _createSwapChainForHwndHook.OriginalFunction.Value.Invoke(this_, pDevice, hWnd, pDesc, pFullscreenDesc, pRestrictToOutput, ppSwapChain);
-
-        // I have no idea if this is correct. Resizing buffers of any swapchain sounds wrong, but resizing our own swapchain doesn't work
-        // I don't get it. I'm no renderer engineer, I have no idea.
-        if (!_createSwapChainRecursionLock && renderTargetViewDescHeap is not null)
-            PostResizeBuffers(*(nint*)ppSwapChain);
+        // FIXME/CRASH: Enabling FSR3 causes this to error (0x80007005). Why?
+        var res = _createSwapChainForHwndHook.OriginalFunction.Invoke(this_, pDevice, hWnd, pDesc, pFullscreenDesc, pRestrictToOutput, ppSwapChain);
 
         return res;
     }
 
-    private nint ResizeBuffersImpl(nint swapchainPtr, uint bufferCount, uint width, uint height, Format newFormat, SwapChainFlags swapchainFlags)
+    /// <summary>
+    /// Initializes D3D12 for ImGui rendering.
+    /// </summary>
+    /// <returns></returns>
+    private bool InitD3D12()
     {
-        if (_resizeRecursionLock)
+        ShutdownD3D12();
+
+        for (int i = 0; i < 3; i++)
         {
-            Debug.WriteLine($"[DX12 ResizeBuffers] Discarding via Recursion Lock");
-            return _resizeBuffersHook.OriginalFunction.Value.Invoke(swapchainPtr, bufferCount, width, height, newFormat, swapchainFlags);
+            var commandContext = new CommandContext();
+            commandContext.Setup(this);
+            _commandContexts.Add(commandContext);
         }
 
-        if (!_initialized || renderTargetViewDescHeap is null) // Our device was probably not yet created, fine to just reroute to original
-            return _resizeBuffersHook.OriginalFunction.Value.Invoke(swapchainPtr, bufferCount, width, height, newFormat, swapchainFlags);
-
-        _resizeRecursionLock = true;
-        try
+        var descriptorImGuiRender = new DescriptorHeapDescription
         {
-            // Dispose all frame context resources
-            PreResizeBuffers();
-            var result = _resizeBuffersHook.OriginalFunction.Value.Invoke(swapchainPtr, bufferCount, width, height, newFormat, swapchainFlags);
-            if (result != nint.Zero)
+            Type = DescriptorHeapType.ConstantBufferViewShaderResourceViewUnorderedAccessView,
+            DescriptorCount = 11,
+            Flags = DescriptorHeapFlags.ShaderVisible
+        };
+
+        _shaderResourceViewDescHeap = Device.CreateDescriptorHeap(descriptorImGuiRender);
+        if (_shaderResourceViewDescHeap == null)
+        {
+            Debug.WriteLine($"[DX12 Present] Failed to create shader resource view descriptor heap.");
+            return false;
+        }
+
+        var renderTargetDesc = new DescriptorHeapDescription
+        {
+            Type = DescriptorHeapType.RenderTargetView,
+            DescriptorCount = 11,
+            Flags = DescriptorHeapFlags.None,
+            NodeMask = 1
+        };
+        _renderTargetViewDescHeap = Device.CreateDescriptorHeap(renderTargetDesc);
+        if (_renderTargetViewDescHeap is null)
+            return false;
+
+        var rtvDescriptorSize = Device.GetDescriptorHandleIncrementSize(DescriptorHeapType.RenderTargetView);
+        var rtvHandle = _renderTargetViewDescHeap.CPUDescriptorHandleForHeapStart;
+
+        SwapChain swapChain = _swapChain;
+
+        for (var i = 0; i < swapChain.Description.BufferCount; i++)
+        {
+            _frameContexts.Add(new FrameContext
             {
-                Debug.DebugWriteLine($"[DX12 ResizeBuffers] ResizeBuffers original failed with {result:X}");
-                return result;
-            }
-
-            PostResizeBuffers(swapchainPtr);
-            return result;
-        }
-        finally
-        {
-            _resizeRecursionLock = false;
-        }
-    }
-
-    private void PreResizeBuffers()
-    {
-        // ResizeBuffer requires swapchain resources to be freed.
-        foreach (var frameCtx in _frameContexts)
-            frameCtx.MainRenderTargetResource?.Dispose();
-
-        ImGuiMethods.cImGui_ImplDX12_InvalidateDeviceObjects();
-    }
-
-    private Device PostResizeBuffers(nint swapchainPtr)
-    {
-        var swapChain = new SwapChain(swapchainPtr);
-        using var device = swapChain.GetDevice<Device>();
-
-        var windowHandle = swapChain.Description.OutputHandle;
-        Debug.DebugWriteLine($"[DX12 ResizeBuffers] Window Handle {windowHandle:X}");
-
-        var rtvDescriptorSize = device.GetDescriptorHandleIncrementSize(DescriptorHeapType.RenderTargetView);
-        var rtvHandle = renderTargetViewDescHeap.CPUDescriptorHandleForHeapStart;
-
-        for (var i = 0; i < _frameContexts.Count; i++)
-        {
-            _frameContexts[i].main_render_target_descriptor = rtvHandle;
-            var resource = swapChain.GetBackBuffer<SharpDX.Direct3D12.Resource>(i);
-            device.CreateRenderTargetView(resource, null, rtvHandle);
-            _frameContexts[i].MainRenderTargetResource = resource;
+                MainRenderTargetDescriptor = rtvHandle,
+                MainRenderTargetResource = swapChain.GetBackBuffer<SharpDX.Direct3D12.Resource>(i),
+            });
+            Device.CreateRenderTargetView(_frameContexts[i].MainRenderTargetResource, null, rtvHandle);
             rtvHandle.Ptr += rtvDescriptorSize;
         }
 
-        ImGuiMethods.cImGui_ImplDX12_CreateDeviceObjects();
-        return device;
+        // Create our texture heap allocator/pool, for ImGui textures
+        // TODO: Do NOT recreate this, because textures may be lost between resets
+        _textureHeapAllocator = new DescriptorHeapAllocator();
+        _textureHeapAllocator.Create(Device, Device.CreateDescriptorHeap(new DescriptorHeapDescription()
+        {
+            DescriptorCount = 10000,
+            Type = DescriptorHeapType.ConstantBufferViewShaderResourceViewUnorderedAccessView,
+            Flags = DescriptorHeapFlags.ShaderVisible,
+        }));
+        
+
+        var initInfo = new ImGui_ImplDX12_InitInfo_t
+        {
+            Device = Device.NativePointer,
+            CommandQueue = _commandQueue.NativePointer,
+            NumFramesInFlight = swapChain.Description.BufferCount,
+            RTVFormat = 28, // DXGI_FORMAT_R8G8B8A8_UNORM
+            SrvDescriptorHeap = _shaderResourceViewDescHeap.NativePointer,
+            SrvDescriptorAllocFn = &ImguiHookDx12Wrapper.SrvDescriptorAllocCallback,
+            SrvDescriptorFreeFn = &ImguiHookDx12Wrapper.SrvDescriptorFreeCallback,
+        };
+
+        ImGuiMethods.cImGui_ImplDX12_Init((nint)(&initInfo));
+        _imGuiBackEndData = ImGuiMethods.GetIO()->BackendRendererUserData;
+
+        _initializedD3D12 = true;
+        return true;
     }
 
-    private unsafe nint PresentImpl(nint swapChainPtr, int syncInterval, PresentFlags flags)
+    /// <summary>
+    /// Shuts down D3D12 for ImGui rendering.
+    /// </summary>
+    private void ShutdownD3D12()
     {
-        if (_presentRecursionLock)
+        foreach (var commandContext in _commandContexts)
+            commandContext.Reset();
+        _commandContexts.Clear();
+
+        if (_imGuiBackEndData is not null)
+        {
+            ImGuiMethods.cImGui_ImplDX12_Shutdown();
+        }
+
+        // ResizeBuffer requires swapchain resources to be freed.
+        foreach (var ctx in _frameContexts)
+        {
+            ctx.MainRenderTargetResource?.Dispose();
+            ctx.MainRenderTargetResource = null!;
+        }
+        _frameContexts.Clear();
+
+        _renderTargetViewDescHeap?.Dispose();
+        _shaderResourceViewDescHeap?.Dispose();
+
+        _imGuiBackEndData = null;
+        _initializedD3D12 = false;
+    }
+
+
+    /// <summary>
+    /// Disables D3D12 hooks, no D3D12 function will be intercepted.
+    /// </summary>
+    public void DisableHooks()
+    {
+        _presentHook?.Disable();
+        _resizeBuffersHook?.Disable();
+        _resizeTargetHook?.Disable();
+    }
+
+    /// <summary>
+    /// Enables D3D12 hooks and starts intercepting D3D12 functions.
+    /// </summary>
+    public void EnableHooks()
+    {
+        _presentHook?.Enable();
+        _resizeBuffersHook?.Enable();
+        _resizeTargetHook?.Enable();
+    }
+
+    #region Present Hook
+    /// <summary>
+    /// Hooked IDXGISwapChain::Present function.
+    /// </summary>
+    /// <param name="swapChainPtr"></param>
+    /// <param name="syncInterval"></param>
+    /// <param name="flags"></param>
+    /// <returns></returns>
+    public nint PresentImpl(nint swapChainPtr, int syncInterval, PresentFlags flags)
+    {
+        PresentDelegate originalFunc = _presentHook.OriginalFunction;
+
+        // For safety reasons, we switch from vtable pointer hooks to whole vtable hook
+        if (_convertHooksToVtableHooksPhase)
+        {
+            _presentHook.Disable();
+
+            // NOTE: Must ensure that IDXGISwapChainVTable has all the members defined for IDXGISwapChain (including inherited ones), since we are copying the whole vtable.
+            // It should have all members up to IDXGISwapChain4.
+            IVirtualFunctionTable hookedVTable = SDK.Hooks.HookedVirtualFunctionTableFromObject(swapChainPtr, Enum.GetNames(typeof(IDXGISwapChainVTable)).Length);
+            _presentHook = hookedVTable.CreateFunctionHook<PresentDelegate>((int)IDXGISwapChainVTable.Present, PresentImpl).Activate();
+            _resizeBuffersHook = hookedVTable.CreateFunctionHook<ResizeBuffersDelegate>((int)IDXGISwapChainVTable.ResizeBuffers, ResizeBuffersImpl).Activate();
+            _resizeTargetHook = hookedVTable.CreateFunctionHook<ResizeTargetDelegate>((int)IDXGISwapChainVTable.ResizeTarget, ResizeTargetImpl).Activate();
+
+            _convertHooksToVtableHooksPhase = false;
+            originalFunc = _presentHook.OriginalFunction;
+        }
+
+        _swapChain = new SwapChain3(swapChainPtr);
+        Device = _swapChain.GetDevice<Device>();
+
+        // TODO proton swapchain
+        _commandQueue = new CommandQueue(*(nint*)(swapChainPtr + CommandQueueOffset!.Value));
+
+        if (_presentDepth > 0)
         {
             Debug.WriteLine($"[DX12 Present] Discarding via Recursion Lock");
-            return _presentHook.OriginalFunction.Value.Invoke(swapChainPtr, syncInterval, flags);
+
+            _presentDepth++;
+            var res_ = originalFunc.Invoke(swapChainPtr, syncInterval, flags);
+            _presentDepth--;
+            return res_;
         }
 
-        _presentRecursionLock = true;
-        try
+        var swapChain = new SwapChain3(swapChainPtr);
+        var windowHandle = swapChain.Description.OutputHandle;
+
+        // Ignore windows which don't belong to us.
+        if (!ImguiHook.CheckWindowHandle(windowHandle))
         {
-            var swapChain = new SwapChain3(swapChainPtr);
-            var windowHandle = swapChain.Description.OutputHandle;
-
-            // Ignore windows which don't belong to us.
-            if (!ImguiHook.CheckWindowHandle(windowHandle))
-            {
-                Debug.WriteLine($"[DX12 Present] Discarding Window Handle {windowHandle:X} due to Mismatch");
-                return _presentHook.OriginalFunction.Value.Invoke(swapChainPtr, syncInterval, flags);
-            }
-
-            _device = swapChain.GetDevice<Device>();
-            if (_device is null)
-                return _presentHook.OriginalFunction.Value.Invoke(swapChainPtr, syncInterval, flags);
-
-            _commandQueue = new CommandQueue(*(nint*)(swapChain.NativePointer + DX12Hook.CommandQueueOffset!.Value));
-            var frameBufferCount = swapChain.Description.BufferCount;
-            if (!_initialized)
-            {
-                var descriptorImGuiRender = new DescriptorHeapDescription
-                {
-                    Type = DescriptorHeapType.ConstantBufferViewShaderResourceViewUnorderedAccessView,
-                    DescriptorCount = frameBufferCount,
-                    Flags = DescriptorHeapFlags.ShaderVisible
-                };
-                _shaderResourceViewDescHeap = _device.CreateDescriptorHeap(descriptorImGuiRender);
-                if (_shaderResourceViewDescHeap == null)
-                {
-                    Debug.WriteLine($"[DX12 Present] Failed to create shader resource view descriptor heap.");
-                    return _presentHook.OriginalFunction.Value.Invoke(swapChainPtr, syncInterval, flags);
-                }
-
-                Debug.WriteLine($"[DX12 Present] Init DX12, Window Handle: {windowHandle:X}");
-
-                var renderTargetDesc = new DescriptorHeapDescription
-                {
-                    Type = DescriptorHeapType.RenderTargetView,
-                    DescriptorCount = frameBufferCount,
-                    Flags = DescriptorHeapFlags.None,
-                    NodeMask = 1
-                };
-                renderTargetViewDescHeap = _device.CreateDescriptorHeap(renderTargetDesc);
-                if (renderTargetViewDescHeap == null)
-                    return _presentHook.OriginalFunction.Value.Invoke(swapChainPtr, syncInterval, flags);
-                
-                // Create our texture heap allocator/pool
-                _textureHeapAllocator = new DescriptorHeapAllocator();
-                _textureHeapAllocator.Create(_device, _device.CreateDescriptorHeap(new DescriptorHeapDescription()
-                {
-                    DescriptorCount = 10000,
-                    Type = DescriptorHeapType.ConstantBufferViewShaderResourceViewUnorderedAccessView,
-                    Flags = DescriptorHeapFlags.ShaderVisible,
-                }));
-
-                var rtvDescriptorSize = _device.GetDescriptorHandleIncrementSize(DescriptorHeapType.RenderTargetView);
-                var rtvHandle = renderTargetViewDescHeap.CPUDescriptorHandleForHeapStart;
-
-                for (var i = 0; i < frameBufferCount; i++)
-                {
-                    _frameContexts.Add(new FrameContext
-                    {
-                        main_render_target_descriptor = rtvHandle,
-                        MainRenderTargetResource = swapChain.GetBackBuffer<SharpDX.Direct3D12.Resource>(i),
-                    });
-                    _device.CreateRenderTargetView(_frameContexts[i].MainRenderTargetResource, null, rtvHandle);
-                    rtvHandle.Ptr += rtvDescriptorSize;
-                }
-                
-                // Create command list
-                for (var i = 0; i < frameBufferCount; i++)
-                {
-                    _frameContexts[i].CommandAllocator = _device.CreateCommandAllocator(CommandListType.Direct);
-                    if (_frameContexts[i].CommandAllocator == null)
-                        return _presentHook.OriginalFunction.Value.Invoke(swapChainPtr, syncInterval, flags);
-                }
-
-                _commandList = _device.CreateCommandList(0, CommandListType.Direct, _frameContexts[0].CommandAllocator, null);
-                if (_commandList == null)
-                    return _presentHook.OriginalFunction.Value.Invoke(swapChainPtr, syncInterval, flags);
-                _commandList.Close();
-
-                ImguiHook.InitializeWithHandle(windowHandle);
-                var initInfo = new ImGui_ImplDX12_InitInfo_t
-                {
-                    Device = _device.NativePointer,
-                    CommandQueue = _commandQueue.NativePointer,
-                    NumFramesInFlight = frameBufferCount,
-                    RTVFormat = 28, // DXGI_FORMAT_R8G8B8A8_UNORM
-                    SrvDescriptorHeap = _shaderResourceViewDescHeap.NativePointer,
-                    SrvDescriptorAllocFn = &SrvDescriptorAllocCallback,
-                    SrvDescriptorFreeFn = &SrvDescriptorFreeCallback,
-                };
-
-                ImGuiMethods.cImGui_ImplDX12_Init((nint)(&initInfo));
-                _initialized = true;
-            }
-
-            ImGuiMethods.cImGui_ImplDX12_NewFrame();
-
-            // ImGui >=1.92 note
-            // When resizing windows outside the game window (viewports), the game wants to
-            // Resize windows for some reason using PlatformIO_SetWindowSize
-            // ImGui's DX12 implementation for that will call ResizeBuffers which we hook
-
-            // In turn, InvalidateDeviceObjects will be called, and all textures will be destroyed as of 1.92
-
-            // On the next frame for some reason the textures aren't recreated (font mainly?)
-            // We may need to also set ImGui->PlatformIO->SetWindowSize to null maybe? Not sure.
-
-            // this may  call CreateSwapChainForHwnd when creating windows, which we hook. we use a lock to make sure we aren't freeing objects again.
-            _createSwapChainRecursionLock = true;
-            ImguiHook.NewFrame();
-            _createSwapChainRecursionLock = false;
-
-            var FrameBufferCountsfgn = swapChain.Description.BufferCount;
-            var currentFrameContext = _frameContexts[swapChain.CurrentBackBufferIndex];
-            currentFrameContext.CommandAllocator.Reset();
-
-            var barrier = new ResourceBarrier
-            {
-                Type = ResourceBarrierType.Transition,
-                Flags = ResourceBarrierFlags.None,
-                Transition = new ResourceTransitionBarrier(currentFrameContext.MainRenderTargetResource, -1, ResourceStates.Present, ResourceStates.RenderTarget)
-            };
-            _commandList.Reset(currentFrameContext.CommandAllocator, null);
-            _commandList.ResourceBarrier(barrier);
-            _commandList.SetRenderTargets(currentFrameContext.main_render_target_descriptor, null);
-            _commandList.SetDescriptorHeaps(_shaderResourceViewDescHeap);
-
-            ImGuiMethods.cImGui_ImplDX12_RenderDrawData((nint)ImGuiMethods.GetDrawData(), _commandList.NativePointer);
-
-            barrier.Transition = new ResourceTransitionBarrier(currentFrameContext.MainRenderTargetResource, -1, ResourceStates.RenderTarget, ResourceStates.Present);
-            _commandList.ResourceBarrier(barrier);
-            _commandList.Close();
-
-            // Normally we would hook ExecuteCommandList to grab the command queue, but it causes the following issue in certain games (S.T.A.L.K.E.R Enhanced Edition):
-            // "D3D12 ERROR: ID3D12CommandQueue::ExecuteCommandLists:
-            // A command list, which writes to a swap chain back buffer, may only be executed on the command queue associated with that buffer.
-            // [ STATE_SETTING ERROR #907: EXECUTECOMMANDLISTS_WRONGSWAPCHAINBUFFERREFERENCE]"
-
-            // Grabbing the queue pointer from the swapchain (offset is scanned in DX12Hook.cs) seems to be OK.
-            // https://stackoverflow.com/questions/36286425/how-do-i-get-the-directx-12-command-queue-from-a-swap-chain
-            if (_commandQueue.NativePointer != 0)
-                _commandQueue.ExecuteCommandList(_commandList);
-
-            return _presentHook.OriginalFunction.Value.Invoke(swapChainPtr, syncInterval, flags);
+            Debug.WriteLine($"[DX12 Present] Discarding Window Handle {windowHandle:X} due to Mismatch");
+            return originalFunc(swapChainPtr, syncInterval, flags);
         }
-        finally
-        {
-            _presentRecursionLock = false;
-        }
+
+        OnPresent();
+
+        _presentDepth++;
+        var result = originalFunc(swapChainPtr, syncInterval, flags);
+        _presentDepth--;
+
+        return result;
     }
 
+    private bool _hasHookedWinProc = false;
+    /// <summary>
+    /// Our own function for handling present calls.
+    /// </summary>
+    private void OnPresent()
+    {
+        if (!_initializedD3D12)
+        {
+            Debug.WriteLine($"[DX12 Present] Init DX12, Window Handle: {_swapChain.Description.OutputHandle:X}");
+            if (!_hasHookedWinProc)
+            {
+                ImguiHook.InitializeWithHandle(_swapChain.Description.OutputHandle);
+                _hasHookedWinProc = true;
+            }
+
+            InitD3D12();
+
+        }
+
+        ImGuiMethods.cImGui_ImplDX12_NewFrame();
+
+        // Triple buffer
+        CommandContext commandContext = _commandContexts[_commandContextIndex++ % _commandContexts.Count];
+
+        // ImGui >=1.92 note
+        // When resizing windows outside the game window (viewports), the game wants to
+        // Resize windows for some reason using PlatformIO_SetWindowSize
+        // ImGui's DX12 implementation for that will call ResizeBuffers which we hook
+
+        // In turn, InvalidateDeviceObjects will be called, and all textures will be destroyed as of 1.92
+
+        // On the next frame for some reason the textures aren't recreated (font mainly?)
+        // We may need to also set ImGui->PlatformIO->SetWindowSize to null maybe? Not sure.
+
+        // this may  call CreateSwapChainForHwnd when creating windows, which we hook. we use a lock to make sure we aren't freeing objects again.
+        _createSwapChainRecursionLock = true;
+        ImguiHook.NewFrame();
+        _createSwapChainRecursionLock = false;
+
+        commandContext.Wait(TimeSpan.FromSeconds(-1)); // INFINITE
+
+        FrameContext currentFrameContext = _frameContexts[_swapChain.CurrentBackBufferIndex];
+
+        var barrier = new ResourceBarrier
+        {
+            Type = ResourceBarrierType.Transition,
+            Flags = ResourceBarrierFlags.None,
+            Transition = new ResourceTransitionBarrier(currentFrameContext.MainRenderTargetResource, -1, ResourceStates.Present, ResourceStates.RenderTarget)
+        };
+        commandContext.CommandList.ResourceBarrier(barrier);
+        commandContext.CommandList.SetRenderTargets(currentFrameContext.MainRenderTargetDescriptor, null);
+        commandContext.CommandList.SetDescriptorHeaps(_shaderResourceViewDescHeap);
+
+        ImGuiMethods.cImGui_ImplDX12_RenderDrawData((nint)ImGuiMethods.GetDrawData(), commandContext.CommandList.NativePointer);
+
+        barrier.Transition = new ResourceTransitionBarrier(currentFrameContext.MainRenderTargetResource, -1, ResourceStates.RenderTarget, ResourceStates.Present);
+        commandContext.CommandList.ResourceBarrier(barrier);
+        commandContext.CommandList.Close();
+
+        commandContext.Execute(_commandQueue);
+    }
+    #endregion
+
+    #region ResizeBuffers Hook
+    /// <summary>
+    /// Hook for IDXGISwapChain::ResizeBuffers, for handling window resizes.
+    /// </summary>
+    /// <param name="swapchainPtr"></param>
+    /// <param name="bufferCount"></param>
+    /// <param name="width"></param>
+    /// <param name="height"></param>
+    /// <param name="newFormat"></param>
+    /// <param name="swapchainFlags"></param>
+    /// <returns></returns>
+    public nint ResizeBuffersImpl(nint swapchainPtr, uint bufferCount, uint width, uint height, Format newFormat, SwapChainFlags swapchainFlags)
+    {
+        if (_resizeBufferDepth > 0)
+        {
+            Debug.WriteLine($"[DX12 ResizeBuffers] Discarding via Recursion Lock");
+
+            _resizeBufferDepth++;
+            var res = _resizeBuffersHook.OriginalFunction(swapchainPtr, bufferCount, width, height, newFormat, swapchainFlags);
+            _resizeBufferDepth--;
+            return res;
+        }
+
+        // Dispose all frame context resources
+        OnBuffersResized();
+
+        _resizeBufferDepth++;
+        var result = _resizeBuffersHook.OriginalFunction(swapchainPtr, bufferCount, width, height, newFormat, swapchainFlags);
+        _resizeBufferDepth--;
+
+        if (result != nint.Zero)
+            DebugLog.DebugWriteLine($"[DX12 ResizeBuffers] ResizeBuffers original failed with {result:X}");
+
+        return result;
+    }
+
+    private void OnBuffersResized()
+    {
+        // Deinit everything.
+        ShutdownD3D12();
+    }
+    #endregion
+
+    #region ResizeTarget Hook
+    /// <summary>
+    /// Hook for IDXGISwapChain::ResizeTarget, for handling windowed/fullscreen switches.
+    /// </summary>
+    /// <param name="swapchainPtr"></param>
+    /// <param name="pNewTargetParameters"></param>
+    /// <returns></returns>
+    public nint ResizeTargetImpl(nint swapchainPtr, nint pNewTargetParameters)
+    {
+        if (_resizeTargetDepth > 0)
+        {
+            Debug.WriteLine($"[DX12 ResizeTarget] Discarding via Recursion Lock");
+
+            _resizeTargetDepth++;
+            var res = _resizeTargetHook.OriginalFunction(swapchainPtr, pNewTargetParameters);
+            _resizeTargetDepth--;
+            return res;
+        }
+
+        // Dispose all frame context resources
+        OnTargetResized();
+
+        _resizeTargetDepth++;
+        var result = _resizeTargetHook.OriginalFunction(swapchainPtr, pNewTargetParameters);
+        _resizeTargetDepth--;
+
+        if (result != nint.Zero)
+            DebugLog.DebugWriteLine($"[DX12 ResizeTarget] ResizeTarget original failed with {result:X}");
+
+        return result;
+    }
+
+    private void OnTargetResized()
+    {
+        // Deinit everything.
+        ShutdownD3D12();
+    }
+    #endregion
+
+    public void SrvDescriptorAllocCallback(ImGui_ImplDX12_InitInfo_t* initInfo, CpuDescriptorHandle* cpuHandle, GpuDescriptorHandle* gpuHandle)
+    {
+        _textureHeapAllocator.Alloc(ref *cpuHandle, ref *gpuHandle);
+    }
+
+    public void SrvDescriptorFreeCallback(ImGui_ImplDX12_InitInfo_t* a, CpuDescriptorHandle cpuHandle, GpuDescriptorHandle gpuHandle)
+    {
+        _textureHeapAllocator.Free(cpuHandle, gpuHandle);
+    }
+
+    #region Texture Work
     /// <summary>
     /// Loads an image and returns the ImTextureID for it.
     /// </summary>
@@ -376,7 +677,7 @@ public unsafe class ImguiHookDx12 : IImguiHook
     {
         var heapProperties = new HeapProperties(HeapType.Default);
         var imageDesc = new ResourceDescription(ResourceDimension.Texture2D, 0, imageWidth, (int)imageHeight, 1, 1, Format.R8G8B8A8_UNorm, 1, 0, TextureLayout.Unknown, ResourceFlags.None);
-        SharpDX.Direct3D12.Resource pTexture = _device.CreateCommittedResource(heapProperties, HeapFlags.None, imageDesc, ResourceStates.CopyDestination);
+        SharpDX.Direct3D12.Resource pTexture = Device.CreateCommittedResource(heapProperties, HeapFlags.None, imageDesc, ResourceStates.CopyDestination);
 
         const int D3D12_TEXTURE_DATA_PITCH_ALIGNMENT = 256;
         var uploadBufferHeapDesc = new HeapProperties(HeapType.Upload);
@@ -384,7 +685,7 @@ public unsafe class ImguiHookDx12 : IImguiHook
         uint uploadSize = imageHeight * uploadPitch;
 
         var tempDesc = new ResourceDescription(ResourceDimension.Buffer, 0, uploadSize, 1, 1, 1, Format.Unknown, 1, 0, TextureLayout.RowMajor, ResourceFlags.None);
-        SharpDX.Direct3D12.Resource uploadBuffer = _device.CreateCommittedResource(uploadBufferHeapDesc, HeapFlags.None, tempDesc, ResourceStates.GenericRead);
+        SharpDX.Direct3D12.Resource uploadBuffer = Device.CreateCommittedResource(uploadBufferHeapDesc, HeapFlags.None, tempDesc, ResourceStates.GenericRead);
 
         var range = new SharpDX.Direct3D12.Range()
         {
@@ -414,11 +715,11 @@ public unsafe class ImguiHookDx12 : IImguiHook
         });
         var dstLocation = new TextureCopyLocation(pTexture, 0);
 
-        Fence fence = _device.CreateFence(0, FenceFlags.None);
+        Fence fence = Device.CreateFence(0, FenceFlags.None);
         var @event = PInvoke.CreateEvent(null, false, false, (string)null);
-        var queue = _device.CreateCommandQueue(CommandListType.Direct, 1);
-        var cmdAllocator = _device.CreateCommandAllocator(CommandListType.Direct);
-        var cmdList = _device.CreateCommandList(0, CommandListType.Direct, cmdAllocator, null);
+        var queue = Device.CreateCommandQueue(CommandListType.Direct, 1);
+        var cmdAllocator = Device.CreateCommandAllocator(CommandListType.Direct);
+        var cmdList = Device.CreateCommandList(0, CommandListType.Direct, cmdAllocator, null);
 
         cmdList.CopyTextureRegion(dstLocation, 0, 0, 0, srcLocation, null);
         cmdList.ResourceBarrier(new ResourceBarrier(new ResourceTransitionBarrier(pTexture, ResourceStates.CopyDestination, ResourceStates.PixelShaderResource)));
@@ -433,7 +734,7 @@ public unsafe class ImguiHookDx12 : IImguiHook
         cmdList.Dispose();
         cmdAllocator.Dispose();
         queue.Dispose();
-        // @event.Dispose(); Dispose not needed, will be taken care of automatically
+        @event.Dispose();
         fence.Dispose();
         uploadBuffer.Dispose();
 
@@ -443,10 +744,10 @@ public unsafe class ImguiHookDx12 : IImguiHook
 
         // https://learn.microsoft.com/en-us/windows/win32/api/d3d12/ne-d3d12-d3d12_shader_component_mapping
         const int D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING = 0 & 0x7 | (1 & 0x7) << 3 | (2 & 0x7) << 3 * 2 | (3 & 0x7) << 3 * 3 | 1 << 3 * 4;
-        _device.CreateShaderResourceView(pTexture, new ShaderResourceViewDescription()
+        Device.CreateShaderResourceView(pTexture, new ShaderResourceViewDescription()
         {
             Format = Format.R8G8B8A8_UNorm,
-            Dimension = ShaderResourceViewDimension.Texture2D,
+            Dimension = SharpDX.Direct3D12.ShaderResourceViewDimension.Texture2D,
             Texture2D = new ShaderResourceViewDescription.Texture2DResource()
             {
                 MipLevels = 1,
@@ -478,50 +779,41 @@ public unsafe class ImguiHookDx12 : IImguiHook
         textureHandle.Dispose();
         _textureIds.TryRemove(texId, out _);
     }
+    #endregion
 
-    public void Disable()
-    {
-        _presentHook?.Disable();
-        _resizeBuffersHook?.Disable();
-        //_execCmdListHook?.Disable();
-    }
+}
 
-    public void Enable()
-    {
-        _presentHook?.Enable();
-        _resizeBuffersHook?.Enable();
-        //_execCmdListHook?.Enable();
-    }
+public unsafe class ImguiHookDx12Wrapper
+{
+    public static ImguiHookDx12 Instance { get; set; }
 
     [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
-    private static void SrvDescriptorAllocCallback(ImGui_ImplDX12_InitInfo_t* initInfo, CpuDescriptorHandle* cpuHandle, GpuDescriptorHandle* gpuHandle)
-    {
-        _textureHeapAllocator.Alloc(ref *cpuHandle, ref *gpuHandle);
-    }
+    public static void SrvDescriptorAllocCallback(ImGui_ImplDX12_InitInfo_t* initInfo, CpuDescriptorHandle* cpuHandle, GpuDescriptorHandle* gpuHandle) => Instance.SrvDescriptorAllocCallback(initInfo, cpuHandle, gpuHandle);
 
     [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
-    private static void SrvDescriptorFreeCallback(ImGui_ImplDX12_InitInfo_t* a, CpuDescriptorHandle cpuHandle, GpuDescriptorHandle gpuHandle)
-    {
-        _textureHeapAllocator.Free(cpuHandle, gpuHandle);
-    }
+    public static void SrvDescriptorFreeCallback(ImGui_ImplDX12_InitInfo_t* initInfo, CpuDescriptorHandle cpuHandle, GpuDescriptorHandle gpuHandle) => Instance.SrvDescriptorFreeCallback(initInfo, cpuHandle, gpuHandle);
 
     #region Hook Functions
     [UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvStdcall) })]
-    private static nint ResizeBuffersImplStatic(nint swapchainPtr, uint bufferCount, uint width, uint height, Format newFormat, SwapChainFlags swapchainFlags) => Instance.ResizeBuffersImpl(swapchainPtr, bufferCount, width, height, newFormat, swapchainFlags);
+    public static nint ResizeBuffersImplStatic(nint swapchainPtr, uint bufferCount, uint width, uint height, Format newFormat, SwapChainFlags swapchainFlags) => Instance.ResizeBuffersImpl(swapchainPtr, bufferCount, width, height, newFormat, swapchainFlags);
 
     [UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvStdcall) })]
-    private static nint CreateSwapChainForHwndImplStatic(nint this_, nint pDevice, nint hWnd, nint pDesc, nint pFullscreenDesc, nint pRestrictToOutput, nint ppSwapChain) => Instance.CreateSwapChainForHwndImpl(this_, pDevice, hWnd, pDesc, pFullscreenDesc, pRestrictToOutput, ppSwapChain);
+    public static nint CreateSwapChainForHwndImplStatic(nint this_, nint pDevice, nint hWnd, nint pDesc, nint pFullscreenDesc, nint pRestrictToOutput, nint ppSwapChain) => Instance.CreateSwapChainForHwndImpl(this_, pDevice, hWnd, pDesc, pFullscreenDesc, pRestrictToOutput, ppSwapChain);
 
     [UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvStdcall) })]
-    private static nint PresentImplStatic(nint swapChainPtr, int syncInterval, PresentFlags flags) => Instance.PresentImpl(swapChainPtr, syncInterval, flags);
+    public static nint PresentImplStatic(nint swapChainPtr, int syncInterval, PresentFlags flags) => Instance.PresentImpl(swapChainPtr, syncInterval, flags);
     #endregion
 }
 
 class FrameContext
 {
-    public CommandAllocator CommandAllocator;
     public SharpDX.Direct3D12.Resource MainRenderTargetResource;
-    public CpuDescriptorHandle main_render_target_descriptor;
+    public CpuDescriptorHandle MainRenderTargetDescriptor;
+
+    public void Reset()
+    {
+        MainRenderTargetResource?.Dispose();
+    }
 };
 
 // For ImGui

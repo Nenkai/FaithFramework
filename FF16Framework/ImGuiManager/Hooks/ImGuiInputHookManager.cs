@@ -16,7 +16,7 @@ using SharedScans.Interfaces;
 
 using Windows.Win32;
 
-namespace FF16Framework.ImGui.Hooks;
+namespace FF16Framework.ImGuiManager.Hooks;
 
 public unsafe class ImGuiInputHookManager
 {
@@ -108,7 +108,7 @@ public unsafe class ImGuiInputHookManager
     // GetCursorPos is used for UI cursor tracking.
     private void GetCursorPosImpl(POINT* a1)
     {
-        if (ImGuiMethods.GetIO()->WantCaptureMouse || _imguiSupport.IsMainMenuBarOpen && !_imguiSupport.MouseActiveWhileMenuOpen)
+        if (_imguiSupport.ContextCreated && (ImGuiMethods.GetIO()->WantCaptureMouse || _imguiSupport.IsMainMenuBarOpen && !_imguiSupport.MouseActiveWhileMenuOpen))
         {
             a1->X = 0;
             a1->Y = 0;
@@ -123,7 +123,7 @@ public unsafe class ImGuiInputHookManager
     public void KeyboardDeviceWindowMessageIntercepterImpl(nint this_, uint uMsg, nint uMsg_, nint wParam, nuint lParam)
     {
         VirtualKeyStates keyState = (VirtualKeyStates)(uMsg - 0x100);
-        if (ImGuiMethods.GetIO()->WantCaptureKeyboard)
+        if (_imguiSupport.ContextCreated && ImGuiMethods.GetIO()->WantCaptureKeyboard)
             return;
 
         _HOOK_KeyboardDevice_WindowMessageIntercepter!.Hook!.OriginalFunction(this_, uMsg, uMsg_, wParam, lParam);
@@ -140,7 +140,7 @@ public unsafe class ImGuiInputHookManager
             return;
         }
 
-        if (ImGuiMethods.GetIO()->WantCaptureKeyboard)
+        if (_imguiSupport.ContextCreated && ImGuiMethods.GetIO()->WantCaptureKeyboard)
             return;
 
         _HOOK_KeyboardManager_HandleWindowKeyboardKeyPressed!.Hook!.OriginalFunction(dwRefData, key);
@@ -204,12 +204,15 @@ public unsafe class ImGuiInputHookManager
     // This is used for mouse movement (but not mouse button presses)
     private nuint GetDeviceDataImpl(nint this_, nint cbObjectData, nint rgdod, nint pdwInOut, int dwFlags)
     {
-        if (this_ == _mouseDevice && ImGuiMethods.GetIO()->WantCaptureMouse) // ImGui wants input? don't forward to game
-            return 0x8007001E; // DIERR_LOSTINPUT
+        if (this_ == _mouseDevice) // ImGui wants input? don't forward to game
+        {
+            if (_imguiSupport.ContextCreated && ImGuiMethods.GetIO()->WantCaptureMouse)
+                return 0x8007001E; // DIERR_LOSTINPUT
+        }
 
         if (this_ == _mouseDevice)
         {
-            if (_imguiSupport.IsMainMenuBarOpen && !_imguiSupport.MouseActiveWhileMenuOpen)
+            if (_imguiSupport.ContextCreated && _imguiSupport.IsMainMenuBarOpen && !_imguiSupport.MouseActiveWhileMenuOpen)
                 return 0x8007001E; // DIERR_LOSTINPUT
         }
 
@@ -219,13 +222,16 @@ public unsafe class ImGuiInputHookManager
     // Used for mouse button presses
     private nuint GetDeviceStateImpl(nint instance, int cbData, byte* lpvData)
     {
-        if (instance == _mouseDevice && ImGuiMethods.GetIO()->WantCaptureMouse) // ImGui wants input? don't forward to game
-            return 0x8007001E; // DIERR_LOSTINPUT
+        if (instance == _mouseDevice) // ImGui wants input? don't forward to game
+        {
+            if (_imguiSupport.ContextCreated && ImGuiMethods.GetIO()->WantCaptureMouse)
+                return 0x8007001E; // DIERR_LOSTINPUT
+        }
 
         var res = _getDeviceStateHook.OriginalFunction(instance, cbData, lpvData);
         if (instance == _mouseDevice)
         {
-            if (_imguiSupport.IsMainMenuBarOpen && !_imguiSupport.MouseActiveWhileMenuOpen)
+            if (_imguiSupport.ContextCreated && _imguiSupport.IsMainMenuBarOpen && !_imguiSupport.MouseActiveWhileMenuOpen)
                 return 0x8007001E; // DIERR_LOSTINPUT
         }
 

@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <PackageReference Include="Reloaded.Hooks.Definitions" Version="1.15.0" />
+    <PackageReference Include="Reloaded.Memory" Version="9.4.3" />
     <PackageReference Include="SharpDX.Direct3D12" Version="4.2.0" />
     <PackageReference Include="SharpDX.DXGI" Version="4.2.0" />
   </ItemGroup>

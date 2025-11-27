@@ -4,7 +4,7 @@ using FF16Framework.ImGui.Hooks.Misc;
 
 namespace FF16Framework.ImGui.Hooks.DirectX;
 
-public class Debug
+public class DebugLog
 {
     [Conditional("DEBUG")]
     public static void DebugWriteLine(string text) => SDK.Debug?.Invoke(text);

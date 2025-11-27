@@ -10,7 +10,7 @@ using FF16Framework.Interfaces.ImGui;
 using FF16Framework.Native;
 using FF16Framework.Native.ImGui;
 
-using Debug = FF16Framework.ImGui.Hooks.DirectX.Debug;
+using DebugLog = FF16Framework.ImGui.Hooks.DirectX.DebugLog;
 
 namespace FF16Framework.ImGui.Hooks
 {
@@ -119,7 +119,7 @@ namespace FF16Framework.ImGui.Hooks
             ImGuiMethods.StyleColorsDark(null);
             Implementations = implementations;
             foreach (var impl in Implementations)
-                impl.Initialize();
+                impl.Hook();
         }
 
         /// <summary>
@@ -139,7 +139,7 @@ namespace FF16Framework.ImGui.Hooks
                 }
             }
 
-            Debug.WriteLine($"[ImguiHook Destroy] Destroy Context");
+            DebugLog.WriteLine($"[ImguiHook Destroy] Destroy Context");
 
             imgui.DestroyContext(Context);
 
@@ -162,7 +162,7 @@ namespace FF16Framework.ImGui.Hooks
                 return;
 
             foreach (var implementation in Implementations)
-                implementation?.Enable();
+                implementation?.EnableHooks();
         }
 
         /// <summary>
@@ -175,7 +175,7 @@ namespace FF16Framework.ImGui.Hooks
                 return;
 
             foreach (var implementation in Implementations)
-                implementation?.Disable();
+                implementation?.DisableHooks();
         }
 
         /// <summary>
@@ -185,7 +185,7 @@ namespace FF16Framework.ImGui.Hooks
         {
             if (Initialized)
             {
-                Debug.WriteLine($"[ImguiHook Shutdown] Win32 Shutdown");
+                DebugLog.WriteLine($"[ImguiHook Shutdown] Win32 Shutdown");
                 ImGuiMethods.cImGui_ImplWin32_Shutdown();
                 Initialized = false;
             }
@@ -244,7 +244,7 @@ namespace FF16Framework.ImGui.Hooks
                 if (WindowHandle == IntPtr.Zero)
                     return;
 
-                Debug.WriteLine($"[ImguiHook] Init with Window Handle {(long)WindowHandle:X}");
+                DebugLog.WriteLine($"[ImguiHook] Init with Window Handle {(long)WindowHandle:X}");
                 ImGuiMethods.cImGui_ImplWin32_Init(WindowHandle);
                 var wndProcHandlerPtr = (IntPtr)SDK.Hooks.Utilities.GetFunctionPointer(typeof(ImguiHook), nameof(WndProcHandler));
                 WndProcHook = WndProcHook.Create(WindowHandle, Unsafe.As<IntPtr, WndProcHook.WndProc>(ref wndProcHandlerPtr));

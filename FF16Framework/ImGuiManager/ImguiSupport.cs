@@ -9,6 +9,7 @@ using System.Text;
 using System.Threading.Tasks;
 
 using FF16Framework.ImGui.Hooks;
+using FF16Framework.ImGuiManager.Hooks;
 using FF16Framework.Interfaces.ImGui;
 using FF16Framework.Interfaces.ImGuiManager;
 using FF16Framework.Native.ImGui;
@@ -31,6 +32,7 @@ public class ImGuiSupport : IImGuiSupport
     private readonly IImguiHook _imguiHook;
     private ImGuiInputHookManager _inputManager;
     private ImGuiConfig _imGuiConfig;
+    private string _modFolder;
 
     private bool _menuVisible = false;
 
@@ -43,7 +45,8 @@ public class ImGuiSupport : IImGuiSupport
     public delegate bool DestroyWindow(nint hwnd);
     private IHook<DestroyWindow>? _destroyWindowHook;
 
-    public bool IsOverlayLoaded { get; set; } = false;
+    public bool ContextCreated { get; private set; } = false;
+    public bool IsOverlayLoaded { get; private set; } = false;
 
     public bool MouseActiveWhileMenuOpen = false;
     public bool IsMainMenuBarOpen => _menuVisible;
@@ -68,21 +71,35 @@ public class ImGuiSupport : IImGuiSupport
         _inputManager = new ImGuiInputHookManager(this, hooks, scans, modConfig);
     }
 
-    public void SetupImgui(string modFolder)
+    /// <summary>
+    /// Sets up all hooks on startup.
+    /// </summary>
+    /// <param name="modFolder"></param>
+    public void SetupHooks(string modFolder)
     {
-        _inputManager.SetupInputHooks();
+        ArgumentException.ThrowIfNullOrWhiteSpace(modFolder, nameof(modFolder));
 
+        _modFolder = modFolder;
+
+        _inputManager.SetupInputHooks();
         SDK.Init(_hooks);
 
         var handle = PInvoke.GetModuleHandle("user32.dll");
         nint destroyWindowPtr = PInvoke.GetProcAddress(handle, "DestroyWindow");
         _destroyWindowHook = _hooks.CreateHook<DestroyWindow>(DestroyWindowImpl, destroyWindowPtr).Activate();
+    }
 
-        ImguiHook.Create(Render, new ImguiHookOptions()
+    /// <summary>
+    /// Creates and starts the ImGui context/rendering.
+    /// </summary>
+    /// <returns></returns>
+    public async Task Start()
+    {
+        await ImguiHook.Create(Render, new ImguiHookOptions()
         {
             // We disable viewports. Why?
             // Because I can't for the life of me figure out DX12 hooks properly.
-            
+
             // When starting the game windowed/on another monitor, ImGui renders to a black square on the main monitor.
             // Or, when switching from borderless/fullscreen to windowed, the same happens.
 
@@ -92,8 +109,9 @@ public class ImGuiSupport : IImGuiSupport
             IgnoreWindowUnactivate = true,
             Implementations = [_imguiHook]
         });
+        ContextCreated = true;
 
-        ConfigureImgui(modFolder);
+        ConfigureImgui(_modFolder);
 
         _menuCategoryToComponentList.Add(FileMenuName, []);
         _menuCategoryToComponentList.Add(ToolsMenuName, []);

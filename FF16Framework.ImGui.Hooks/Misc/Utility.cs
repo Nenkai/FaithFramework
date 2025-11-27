@@ -6,7 +6,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 
-using Debug = FF16Framework.ImGui.Hooks.DirectX.Debug;
+using DebugLog = FF16Framework.ImGui.Hooks.DirectX.DebugLog;
 
 namespace FF16Framework.ImGui.Hooks.Misc;
 
@@ -45,7 +45,7 @@ internal static class Utility
                 foreach (var res in result)
                     impls += $"{res.GetType().Name} |";
 
-                Debug.WriteLine($"| Supported Implementations Detected: {impls}");
+                DebugLog.WriteLine($"| Supported Implementations Detected: {impls}");
                 return result;
             }
 

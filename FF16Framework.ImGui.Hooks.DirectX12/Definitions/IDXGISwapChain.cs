@@ -33,4 +33,35 @@ public enum IDXGISwapChainVTable
     GetContainingOutput = 15,
     GetFrameStatistics = 16,
     GetLastPresentCount = 17,
+
+    // IDXGISwapChain1
+    GetDesc1 = 18,
+    GetFullscreenDesc = 19,
+    GetHwnd = 20,
+    GetCoreWindow = 21,
+    Present1 = 22,
+    IsTemporaryMonoSupported = 23,
+    GetRestrictToOutput = 24,
+    SetBackgroundColor = 25,
+    GetBackgroundColor = 26,
+    SetRotation = 27,
+    GetRotation = 28,
+
+    // IDXGISwapChain2
+    SetSourceSize = 29,
+    GetSourceSize = 30,
+    SetMaximumFrameLatency = 31,
+    GetMaximumFrameLatency = 32,
+    GetFrameLatencyWaitableObject = 33,
+    SetMatrixTransform = 34,
+    GetMatrixTransform = 35,
+
+    // IDXGISwapChain3
+    GetCurrentBackBufferIndex = 36,
+    CheckColorSpaceSupport = 37,
+    SetColorSpace1 = 38,
+    ResizeBuffers1 = 39,
+
+    // IDXGISwapChain4
+    SetHDRMetaData = 40,
 }

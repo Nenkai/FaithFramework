@@ -43,7 +43,7 @@ namespace FF16Framework.ImGui.Hooks
         {
             WindowHandle = hWnd;
             var windowProc = NativeMethods.GetWindowLong(hWnd, Native.GWL.GWL_WNDPROC);
-            Debug.WriteLine($"[WndProcHook] WindowProc: {(long)windowProc:X}");
+            DebugLog.WriteLine($"[WndProcHook] WindowProc: {(long)windowProc:X}");
             SetupHook(wndProcHandler, windowProc);
         }
 

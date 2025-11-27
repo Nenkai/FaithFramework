@@ -18,6 +18,11 @@ public interface IImGuiSupport
     bool IsOverlayLoaded { get; }
 
     /// <summary>
+    /// Returns whether the ImGui context has been created such that ImGui functions can be called (like GetIO()).
+    /// </summary>
+    bool ContextCreated { get; }
+
+    /// <summary>
     /// Whether the main menu bar is open. Can be used to account for any potential positional offset.
     /// </summary>
     bool IsMainMenuBarOpen { get; }
