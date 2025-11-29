@@ -12,7 +12,7 @@ public interface IImguiHook : IDisposable
     /// <summary>
     /// Initializes the hooks specific to this graphics API.
     /// </summary>
-    void Hook();
+    void InitAndEnableHooks();
 
     /// <summary>
     /// Disables the hooks used by this implementation.

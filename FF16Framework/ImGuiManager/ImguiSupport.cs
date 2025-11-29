@@ -34,7 +34,7 @@ public class ImGuiSupport : IImGuiSupport
     private ImGuiConfig _imGuiConfig;
     private string _modFolder;
 
-    private bool _menuVisible = false;
+    private bool _menuVisible = true;
 
     private List<IImGuiComponent> _components = [];
     
@@ -48,7 +48,7 @@ public class ImGuiSupport : IImGuiSupport
     public bool ContextCreated { get; private set; } = false;
     public bool IsOverlayLoaded { get; private set; } = false;
 
-    public bool MouseActiveWhileMenuOpen = false;
+    public bool MouseActiveWhileMenuOpen = true;
     public bool IsMainMenuBarOpen => _menuVisible;
 
     public void ToggleMenuState() => _menuVisible = !_menuVisible;

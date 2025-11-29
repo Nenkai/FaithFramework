@@ -119,7 +119,7 @@ namespace FF16Framework.ImGui.Hooks
             ImGuiMethods.StyleColorsDark(null);
             Implementations = implementations;
             foreach (var impl in Implementations)
-                impl.Hook();
+                impl.InitAndEnableHooks();
         }
 
         /// <summary>

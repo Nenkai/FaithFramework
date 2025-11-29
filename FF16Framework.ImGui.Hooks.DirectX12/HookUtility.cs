@@ -22,7 +22,7 @@ internal class HookUtility
     /// </summary>
     /// <param name="address"></param>
     /// <returns></returns>
-    unsafe static HMODULE? GetModuleWithin(nuint address)
+    public unsafe static HMODULE? GetModuleWithin(nuint address)
     {
         const int GET_MODULE_HANDLE_EX_FLAG_PIN                 = 0x00000001;
         const int GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT  = 0x00000002;
@@ -55,7 +55,7 @@ internal class HookUtility
     /// </summary>
     /// <param name="module"></param>
     /// <returns></returns>
-    static byte[]? ReadModuleFromDisk(HMODULE module)
+    public static byte[]? ReadModuleFromDisk(HMODULE module)
     {
         string? path = GetModulePath(module);
         if (string.IsNullOrEmpty(path))
@@ -69,7 +69,7 @@ internal class HookUtility
     /// </summary>
     /// <param name="module"></param>
     /// <returns></returns>
-    unsafe static string? GetModulePath(HMODULE module)
+    public unsafe static string? GetModulePath(HMODULE module)
     {
         const int MAX_PATH = 260;
         char[] bytes = new char[MAX_PATH];
@@ -90,7 +90,7 @@ internal class HookUtility
     /// <param name="module"></param>
     /// <param name="address"></param>
     /// <returns></returns>
-    static unsafe List<byte>? GetOriginalBytes(HMODULE module, nuint address)
+    public static unsafe List<byte>? GetOriginalBytes(HMODULE module, nuint address)
     {
         byte[]? diskData = ReadModuleFromDisk(module);
 
@@ -185,7 +185,7 @@ internal class HookUtility
     /// </summary>
     /// <param name="dll">Pointer of the dll header.</param>
     /// <returns></returns>
-    unsafe static nuint? GetDllImageBase(nint dll)
+    public unsafe static nuint? GetDllImageBase(nint dll)
     {
         if (dll == 0)
             return null;

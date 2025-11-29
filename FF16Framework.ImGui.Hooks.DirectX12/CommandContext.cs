@@ -18,9 +18,11 @@ internal class CommandContext
     public CommandAllocator CommandAllocator { get; set; }
     public GraphicsCommandList CommandList { get; set; }
     public Fence Fence { get; set; }
-    private SafeFileHandle FenceEvent { get; set; }
+    private SafeFileHandle? FenceEvent { get; set; }
     public int FenceValue { get; set; }
     public bool WaitingForFence { get; set; }
+    public Lock Lock { get; private set; } = new();
+    public bool HasCommands = false;
 
     public bool Setup(ImguiHookDx12 hook)
     {
@@ -80,33 +82,47 @@ internal class CommandContext
 
     public void Wait(TimeSpan time)
     {
-        if (FenceEvent is not null && WaitingForFence)
+        lock (Lock)
         {
-            PInvoke.WaitForSingleObject(FenceEvent, (uint)time.TotalMilliseconds);
-            PInvoke.ResetEvent(FenceEvent);
-            WaitingForFence = false;
-            CommandAllocator.Reset();
-            CommandList.Reset(CommandAllocator, null);
+            if (FenceEvent is not null && WaitingForFence)
+            {
+                PInvoke.WaitForSingleObject(FenceEvent, (uint)time.TotalMilliseconds);
+                PInvoke.ResetEvent(FenceEvent);
+                WaitingForFence = false;
+                CommandAllocator.Reset();
+                CommandList.Reset(CommandAllocator, null);
+                HasCommands = false;
+            }
         }
     }
 
     public void Execute(CommandQueue queue)
     {
-        queue.ExecuteCommandList(CommandList);
-        queue.Signal(Fence, FenceValue++);
-        Fence.SetEventOnCompletion(FenceValue, FenceEvent.DangerousGetHandle());
-        WaitingForFence = true;
+        lock (Lock)
+        {
+            if (HasCommands)
+            {
+                CommandList.Close();
+                queue.ExecuteCommandList(CommandList);
+                queue.Signal(Fence, ++FenceValue);
+                Fence.SetEventOnCompletion(FenceValue, FenceEvent.DangerousGetHandle());
+                WaitingForFence = true;
+                HasCommands = false;
+            }
+        }
     }
 
     public void Reset()
     {
-        Wait(TimeSpan.FromSeconds(2));
-
-        CommandAllocator?.Dispose();
-        CommandList?.Dispose();
-        Fence?.Dispose();
-        FenceValue = 0;
-        FenceEvent?.Dispose();
-        WaitingForFence = false;
+        lock (Lock)
+        {
+            CommandAllocator?.Dispose();
+            CommandList?.Dispose();
+            Fence?.Dispose();
+            FenceValue = 0;
+            FenceEvent?.Dispose();
+            FenceEvent = null;
+            WaitingForFence = false;
+        }
     }
 }
