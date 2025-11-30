@@ -102,7 +102,7 @@ public unsafe class ImguiHookDx12 : IImguiHook
 
     public static int? CommandQueueOffset = null;
 
-    public ImguiHookDx12() 
+    public ImguiHookDx12()
     {
         ImguiHookDx12Wrapper.Instance = this;
     }
@@ -168,7 +168,8 @@ public unsafe class ImguiHookDx12 : IImguiHook
             BufferCount = 2,
             SampleDescription = new SampleDescription(1, 0),
             AlphaMode = AlphaMode.Premultiplied,
-            Width = 1, Height = 1,
+            Width = 1,
+            Height = 1,
         };
 
         SwapChain1? swapChain = null;
@@ -340,96 +341,96 @@ public unsafe class ImguiHookDx12 : IImguiHook
     /// <returns></returns>
     private bool InitD3D12()
     {
-            ShutdownD3D12();
-            ImGuiMethods.cImGui_ImplWin32_Init(SwapChain.Description.OutputHandle);
+        ShutdownD3D12();
+        ImGuiMethods.cImGui_ImplWin32_Init(SwapChain.Description.OutputHandle);
 
-            for (int i = 0; i < 3; i++)
-            {
-                var commandContext = new CommandContext();
-                commandContext.Setup(this);
-                _commandContexts.Add(commandContext);
-            }
-
-            // Create SRV Heap
-            var descriptorImGuiRender = new DescriptorHeapDescription
-            {
-                Type = DescriptorHeapType.ConstantBufferViewShaderResourceViewUnorderedAccessView,
-                DescriptorCount = 11,
-                Flags = DescriptorHeapFlags.ShaderVisible
-            };
-
-            _shaderResourceViewDescHeap = Device.CreateDescriptorHeap(descriptorImGuiRender);
-            if (_shaderResourceViewDescHeap == null)
-            {
-                DebugLog.WriteLine($"[DX12 Present] Failed to create shader resource view descriptor heap.");
-                return false;
-            }
-            _shaderResourceViewDescHeap.Name = "[FaithFramework] ShaderResourceViewDescHeap";
-
-            // Create RTV Heap
-            var renderTargetDesc = new DescriptorHeapDescription
-            {
-                Type = DescriptorHeapType.RenderTargetView,
-                DescriptorCount = 3, // 2 normally, 3 if frame gen
-                Flags = DescriptorHeapFlags.None,
-                NodeMask = 1
-            };
-            _renderTargetViewDescHeap = Device.CreateDescriptorHeap(renderTargetDesc);
-            if (_renderTargetViewDescHeap is null)
-                return false;
-
-            var rtvDescriptorSize = Device.GetDescriptorHandleIncrementSize(DescriptorHeapType.RenderTargetView);
-            var rtvHandle = _renderTargetViewDescHeap.CPUDescriptorHandleForHeapStart;
-            _renderTargetViewDescHeap.Name = "[FaithFramework] RenderTargetViewHeap";
-
-            // Get RTVs
-            SwapChain swapChain = SwapChain;
-            for (var i = 0; i < swapChain.Description.BufferCount; i++)
-            {
-                _frameContexts.Add(new FrameContext
-                {
-                    MainRenderTargetDescriptor = rtvHandle,
-                    MainRenderTargetResource = swapChain.GetBackBuffer<SharpDX.Direct3D12.Resource>(i),
-                });
-                Device.CreateRenderTargetView(_frameContexts[i].MainRenderTargetResource, null, rtvHandle);
-                rtvHandle.Ptr += rtvDescriptorSize;
-            }
-
-            var props = new HeapProperties()
-            {
-                Type = HeapType.Default,
-                CPUPageProperty = CpuPageProperty.Unknown,
-                MemoryPoolPreference = MemoryPool.Unknown
-            };
-
-            // Create our texture heap allocator/pool, for ImGui textures
-            // TODO: Do NOT recreate this, because textures may be lost between resets
-            _textureHeapAllocator = new DescriptorHeapAllocator();
-            _textureHeapAllocator.Create(Device, Device.CreateDescriptorHeap(new DescriptorHeapDescription()
-            {
-                DescriptorCount = 10000,
-                Type = DescriptorHeapType.ConstantBufferViewShaderResourceViewUnorderedAccessView,
-                Flags = DescriptorHeapFlags.ShaderVisible,
-            }));
-
-
-            var initInfo = new ImGui_ImplDX12_InitInfo_t
-            {
-                Device = Device.NativePointer,
-                CommandQueue = CommandQueue.NativePointer,
-                NumFramesInFlight = swapChain.Description.BufferCount,
-                RTVFormat = 28, // DXGI_FORMAT_R8G8B8A8_UNORM
-                SrvDescriptorHeap = _shaderResourceViewDescHeap.NativePointer,
-                SrvDescriptorAllocFn = &ImguiHookDx12Wrapper.SrvDescriptorAllocCallback,
-                SrvDescriptorFreeFn = &ImguiHookDx12Wrapper.SrvDescriptorFreeCallback,
-            };
-
-            ImGuiMethods.cImGui_ImplDX12_Init((nint)(&initInfo));
-            _imGuiBackendRendererData = ImGuiMethods.GetIO()->BackendRendererUserData;
-
-            _initializedD3D12 = true;
-            return true;
+        for (int i = 0; i < 3; i++)
+        {
+            var commandContext = new CommandContext();
+            commandContext.Setup(this);
+            _commandContexts.Add(commandContext);
         }
+
+        // Create SRV Heap
+        var descriptorImGuiRender = new DescriptorHeapDescription
+        {
+            Type = DescriptorHeapType.ConstantBufferViewShaderResourceViewUnorderedAccessView,
+            DescriptorCount = 11,
+            Flags = DescriptorHeapFlags.ShaderVisible
+        };
+
+        _shaderResourceViewDescHeap = Device.CreateDescriptorHeap(descriptorImGuiRender);
+        if (_shaderResourceViewDescHeap == null)
+        {
+            DebugLog.WriteLine($"[DX12 Present] Failed to create shader resource view descriptor heap.");
+            return false;
+        }
+        _shaderResourceViewDescHeap.Name = "[FaithFramework] ShaderResourceViewDescHeap";
+
+        // Create RTV Heap
+        var renderTargetDesc = new DescriptorHeapDescription
+        {
+            Type = DescriptorHeapType.RenderTargetView,
+            DescriptorCount = 3, // 2 normally, 3 if frame gen
+            Flags = DescriptorHeapFlags.None,
+            NodeMask = 1
+        };
+        _renderTargetViewDescHeap = Device.CreateDescriptorHeap(renderTargetDesc);
+        if (_renderTargetViewDescHeap is null)
+            return false;
+
+        var rtvDescriptorSize = Device.GetDescriptorHandleIncrementSize(DescriptorHeapType.RenderTargetView);
+        var rtvHandle = _renderTargetViewDescHeap.CPUDescriptorHandleForHeapStart;
+        _renderTargetViewDescHeap.Name = "[FaithFramework] RenderTargetViewHeap";
+
+        // Get RTVs
+        SwapChain swapChain = SwapChain;
+        for (var i = 0; i < swapChain.Description.BufferCount; i++)
+        {
+            _frameContexts.Add(new FrameContext
+            {
+                MainRenderTargetDescriptor = rtvHandle,
+                MainRenderTargetResource = swapChain.GetBackBuffer<SharpDX.Direct3D12.Resource>(i),
+            });
+            Device.CreateRenderTargetView(_frameContexts[i].MainRenderTargetResource, null, rtvHandle);
+            rtvHandle.Ptr += rtvDescriptorSize;
+        }
+
+        var props = new HeapProperties()
+        {
+            Type = HeapType.Default,
+            CPUPageProperty = CpuPageProperty.Unknown,
+            MemoryPoolPreference = MemoryPool.Unknown
+        };
+
+        // Create our texture heap allocator/pool, for ImGui textures
+        // TODO: Do NOT recreate this, because textures may be lost between resets
+        _textureHeapAllocator = new DescriptorHeapAllocator();
+        _textureHeapAllocator.Create(Device, Device.CreateDescriptorHeap(new DescriptorHeapDescription()
+        {
+            DescriptorCount = 10000,
+            Type = DescriptorHeapType.ConstantBufferViewShaderResourceViewUnorderedAccessView,
+            Flags = DescriptorHeapFlags.ShaderVisible,
+        }));
+
+
+        var initInfo = new ImGui_ImplDX12_InitInfo_t
+        {
+            Device = Device.NativePointer,
+            CommandQueue = CommandQueue.NativePointer,
+            NumFramesInFlight = swapChain.Description.BufferCount,
+            RTVFormat = 28, // DXGI_FORMAT_R8G8B8A8_UNORM
+            SrvDescriptorHeap = _shaderResourceViewDescHeap.NativePointer,
+            SrvDescriptorAllocFn = &ImguiHookDx12Wrapper.SrvDescriptorAllocCallback,
+            SrvDescriptorFreeFn = &ImguiHookDx12Wrapper.SrvDescriptorFreeCallback,
+        };
+
+        ImGuiMethods.cImGui_ImplDX12_Init((nint)(&initInfo));
+        _imGuiBackendRendererData = ImGuiMethods.GetIO()->BackendRendererUserData;
+
+        _initializedD3D12 = true;
+        return true;
+    }
 
     /// <summary>
     /// Shuts down D3D12 for ImGui rendering. This will clean up all known resources and call ImGui_ImplDX12_Shutdown.
@@ -553,7 +554,7 @@ public unsafe class ImguiHookDx12 : IImguiHook
         }
 
         OnPresent();
-        
+
         _presentDepth++;
         var result = originalFunc(swapChainPtr, syncInterval, flags);
         _presentDepth--;
