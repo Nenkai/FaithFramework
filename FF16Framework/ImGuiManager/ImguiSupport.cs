@@ -17,8 +17,6 @@ using FF16Framework.Native.ImGui;
 using Reloaded.Hooks.Definitions;
 using Reloaded.Mod.Interfaces;
 
-using SharedScans.Interfaces;
-
 using Windows.Win32;
 
 namespace FF16Framework.ImGuiManager;

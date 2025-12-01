@@ -7,7 +7,6 @@ using System.Threading.Tasks;
 using Reloaded.Memory.SigScan.ReloadedII.Interfaces;
 using Reloaded.Hooks.Definitions;
 using Reloaded.Mod.Interfaces;
-using SharedScans.Interfaces;
 
 namespace FF16Framework;
 

@@ -54,7 +54,9 @@
   "OptionalDependencies": [],
   "SupportedAppId": [
     "ffxvi.exe",
-    "ffxvi_demo.exe"
+    "ffxvi_demo.exe",
+    "fft_enhanced.exe",
+    "fft_classic.exe"
   ],
   "ProjectUrl": ""
 }
