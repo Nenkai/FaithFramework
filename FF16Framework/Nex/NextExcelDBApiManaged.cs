@@ -34,7 +34,7 @@ public class NextExcelDBApiManaged : INextExcelDBApiManaged
     {
         unsafe
         {
-            NexTableInstance* tableInstance = _nexHooks.NexGetTableFunction.Wrapper(_nexHooks.Instance, tableId);
+            NexTableInstance* tableInstance = _nexHooks.NexGetTableFunction(_nexHooks.Instance, tableId);
             if (tableInstance is null)
                 return null;
 
@@ -43,17 +43,17 @@ public class NextExcelDBApiManaged : INextExcelDBApiManaged
     }
 
     public uint GetMainRowCount(NexTableIds table)
-        => _nexHooks.NexGetSetCountFunction.Wrapper(table);
+        => _nexHooks.NexGetSetCountFunction(table);
 
     public bool IsTableLoaded(NexTableIds tableId)
     {
         unsafe
         {
-            NexTableInstance* tableInstance = _nexHooks.NexGetTableFunction.Wrapper(_nexHooks.Instance, tableId);
+            NexTableInstance* tableInstance = _nexHooks.NexGetTableFunction(_nexHooks.Instance, tableId);
             if (tableInstance is null)
                 return false;
 
-            return _nexHooks.NexIsTableLoadedFunction.Wrapper(tableInstance);
+            return _nexHooks.NexIsTableLoadedFunction(tableInstance);
         }
     }
 }

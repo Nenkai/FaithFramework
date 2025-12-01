@@ -15,14 +15,12 @@ public abstract class HookGroupBase
 {
     protected Config _configuration;
     protected IModConfig _modConfig;
-    protected ISharedScans _scans;
     protected ILogger _logger;
 
-    public HookGroupBase(Config config, IModConfig modConfig, ISharedScans scans, ILogger logger)
+    public HookGroupBase(Config config, IModConfig modConfig, ILogger logger)
     {
         _configuration = config;
         _modConfig = modConfig;
-        _scans = scans;
         _logger = logger;
     }
 

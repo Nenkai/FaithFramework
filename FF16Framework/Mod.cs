@@ -9,12 +9,14 @@ using FF16Framework.Nex;
 using FF16Framework.Save;
 using FF16Framework.Template;
 
+using Reloaded.Hooks.Definitions;
 using Reloaded.Hooks.Definitions.Structs;
 using Reloaded.Memory.SigScan.ReloadedII.Interfaces;
 using Reloaded.Mod.Interfaces;
 
-using SharedScans.Interfaces;
+using RyoTune.Reloaded;
 
+using SharpDX;
 using SharpDX.Direct3D12;
 
 using System;
@@ -84,8 +86,6 @@ public class Mod : ModBase, IExports // <= Do not Remove.
     private ImGuiTextureManager _imGuiTextureManager;
     private ImGuiConfig _imGuiConfig;
 
-    private ISharedScans _scans;
-
     public Mod(ModContext context)
     {
         _modLoader = context.ModLoader;
@@ -104,6 +104,8 @@ public class Mod : ModBase, IExports // <= Do not Remove.
         //         It should not be moved to ImGui handlers.
         // DebugInterface.Get().EnableDebugLayer();
 
+        Project.Initialize(_modConfig, _modLoader, _logger);
+
         if (_hooks is null)
         {
             _logger.WriteLine($"[{_modConfig.ModId}] Hooks is null. Framework will not load!");
@@ -116,27 +118,20 @@ public class Mod : ModBase, IExports // <= Do not Remove.
             return;
         }
 
-        var sharedScansController = _modLoader.GetController<ISharedScans>();
-        if (sharedScansController == null || !sharedScansController.TryGetTarget(out _scans))
-        {
-            _logger.WriteLine($"[{_modConfig.ModId}] Unable to get ISharedScans. Framework will not load!");
-            return;
-        }
- 
-        InitSaveHooks(_scans);
-        InitNex(_scans);
-        InitImGui(_scans);
+        InitSaveHooks();
+        InitNex();
+        InitImGui();
 
         _logger.WriteLine($"[{_modConfig.ModId}] Framework {_modConfig.ModVersion} initted.", _logger.ColorGreen);
     }
 
-    private delegate void RenderExecCommandListsAndPresentDelegate(nint a1);
+    private delegate void RenderExecCommandListsAndPresent(nint a1);
 
     private bool imguiRenderable = false;
-    private static HookContainer<RenderExecCommandListsAndPresentDelegate>? RenderExecCommandListsAndPresentHook;
+    private static IHook<RenderExecCommandListsAndPresent>? RenderExecCommandListsAndPresentHook;
     private unsafe void RenderExecCommandListsAndPresentImpl(nint a1)
     {
-        RenderExecCommandListsAndPresentHook!.Hook!.OriginalFunction(a1);
+        RenderExecCommandListsAndPresentHook!.OriginalFunction(a1);
 
         if (!imguiRenderable)
         {
@@ -162,7 +157,7 @@ public class Mod : ModBase, IExports // <= Do not Remove.
         }
     }
 
-    private void InitImGui(ISharedScans scans)
+    private void InitImGui()
     {
         var imgui = new ImGuiManager.ImGui();
         var imguiHookDx12 = new ImguiHookDx12();
@@ -191,22 +186,22 @@ public class Mod : ModBase, IExports // <= Do not Remove.
         }
 
         ImguiHook.imgui = imgui;
-        _imGuiSupport = new ImGuiSupport(_hooks!, _scans, _modConfig, _logger, imguiHookDx12, imgui, _imGuiConfig);
+        _imGuiSupport = new ImGuiSupport(_hooks!, _modConfig, _logger, imguiHookDx12, imgui, _imGuiConfig);
         _imGuiSupport.SetupHooks(_modLoader.GetDirectoryForModId(_modConfig.ModId));
 
         // We hook the call that performs present (not present itself)
         // We setup our DX12 hooks after the game made the first call.
-        scans.AddScan(nameof(RenderExecCommandListsAndPresentDelegate), "48 8B C4 48 89 58 ?? 48 89 70 ?? 48 89 78 ?? 55 41 54 41 55 41 56 41 57 48 8D 68 ?? 48 81 EC ?? ?? ?? ?? 48 8B 05 ?? ?? ?? ?? 48 33 C4 48 89 45 ?? 45 33 E4 48 8B F1 80 B9");
-        RenderExecCommandListsAndPresentHook = scans.CreateHook<RenderExecCommandListsAndPresentDelegate>(RenderExecCommandListsAndPresentImpl, _modConfig.ModId);
+        Project.Scans.AddScanHook(nameof(RenderExecCommandListsAndPresent),
+            (result, hooks) => RenderExecCommandListsAndPresentHook = _hooks.CreateHook<RenderExecCommandListsAndPresent>(RenderExecCommandListsAndPresentImpl, result).Activate());
 
         _modLoader.AddOrReplaceController<IImGui>(_owner, ImguiHook.imgui);
         _modLoader.AddOrReplaceController<IImGuiSupport>(_owner, _imGuiSupport);
         _modLoader.AddOrReplaceController<IImGuiTextureManager>(_owner, _imGuiTextureManager);
     }
 
-    private void InitNex(ISharedScans scans)
+    private void InitNex()
     {
-        _nexHooks = new NexHooks(_configuration, _modConfig, scans, _logger);
+        _nexHooks = new NexHooks(_configuration, _modConfig, _logger);
         _nexHooks.Setup();
 
         _nexApi = new NextExcelDBApi(_nexHooks);
@@ -215,9 +210,9 @@ public class Mod : ModBase, IExports // <= Do not Remove.
         _modLoader.AddOrReplaceController<INextExcelDBApiManaged>(_owner, _nexApiManaged);
     }
 
-    private void InitSaveHooks(ISharedScans scans)
+    private void InitSaveHooks()
     {
-        _saveHooks = new SaveHooks(_configuration, _modConfig, scans, _logger);
+        _saveHooks = new SaveHooks(_configuration, _modConfig, _logger);
         _saveHooks.Setup();
     }
 

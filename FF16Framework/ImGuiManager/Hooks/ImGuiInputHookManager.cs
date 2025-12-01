@@ -12,7 +12,7 @@ using FF16Framework.Native.ImGui;
 using Reloaded.Hooks.Definitions;
 using Reloaded.Mod.Interfaces;
 
-using SharedScans.Interfaces;
+using RyoTune.Reloaded;
 
 using Windows.Win32;
 
@@ -20,20 +20,13 @@ namespace FF16Framework.ImGuiManager.Hooks;
 
 public unsafe class ImGuiInputHookManager
 {
-    public Dictionary<string, string> Patterns = new()
-    {
-        [nameof(KeyboardManager_HandleWindowKeyboardKeyPressed)] = "48 83 EC ?? 44 0F B6 DA 41 B8",
-        //[nameof(MouseDevice_WindowMessageIntercepter)] = "48 89 5C 24 ?? 48 89 6C 24 ?? 48 89 74 24 ?? 57 48 83 EC ?? B8 ?? ?? ?? ?? 49 8B E9"
-        [nameof(KeyboardDevice_WindowMessageIntercepter)] = "48 8B C4 48 89 58 ?? 48 89 68 ?? 48 89 70 ?? 48 89 50 ?? 57 41 56 41 57 48 83 EC ?? B8"
-    };
-
-    private HookContainer<KeyboardManager_HandleWindowKeyboardKeyPressed>? _HOOK_KeyboardManager_HandleWindowKeyboardKeyPressed;
+    private IHook<KeyboardManager_HandleWindowKeyboardKeyPressed>? _HOOK_KeyboardManager_HandleWindowKeyboardKeyPressed;
     public delegate void KeyboardManager_HandleWindowKeyboardKeyPressed(nint a1, nint a2);
 
     //private HookContainer<MouseDevice_WindowMessageIntercepter>? _HOOK_MouseDevice_WindowMessageIntercepter;
     //public delegate nint MouseDevice_WindowMessageIntercepter(nint hwnd, uint uMsg, nint wParam, nint lParam, nuint uIdSubClass, nint dwRefData);
 
-    private HookContainer<KeyboardDevice_WindowMessageIntercepter>? _HOOK_KeyboardDevice_WindowMessageIntercepter;
+    private IHook<KeyboardDevice_WindowMessageIntercepter>? _HOOK_KeyboardDevice_WindowMessageIntercepter;
     public delegate void KeyboardDevice_WindowMessageIntercepter(nint this_, uint uMsg, nint uMsg_, nint wParam, nuint lParam);
 
     public delegate nint DirectInput8Create(nint hinst, int dwVersion, nint riidltf, nint ppvOut, nint punkOuter);
@@ -56,36 +49,32 @@ public unsafe class ImGuiInputHookManager
 
     private ImGuiSupport _imguiSupport;
     private IReloadedHooks _hooks;
-    private ISharedScans _scans;
     private IModConfig _modConfig;
 
-    public ImGuiInputHookManager(ImGuiSupport imguiSupport, IReloadedHooks hooks, ISharedScans scans, IModConfig modConfig)
+    public ImGuiInputHookManager(ImGuiSupport imguiSupport, IReloadedHooks hooks, IModConfig modConfig)
     {
         _imguiSupport = imguiSupport;
         _hooks = hooks;
-        _scans = scans;
         _modConfig = modConfig;
     }
 
     public void SetupInputHooks()
     {
-        foreach (var pattern in Patterns)
-            _scans.AddScan(pattern.Key, pattern.Value);
-        _HOOK_KeyboardManager_HandleWindowKeyboardKeyPressed = _scans.CreateHook<KeyboardManager_HandleWindowKeyboardKeyPressed>(HandleWindowKeyboardKeyPressedImpl, _modConfig.ModId);
+        Project.Scans.AddScanHook(nameof(KeyboardManager_HandleWindowKeyboardKeyPressed),
+            (result, hooks) => _HOOK_KeyboardManager_HandleWindowKeyboardKeyPressed = hooks.CreateHook<KeyboardManager_HandleWindowKeyboardKeyPressed>(HandleWindowKeyboardKeyPressedImpl, result).Activate());
+
         //_HOOK_MouseDevice_WindowMessageIntercepter = _scans.CreateHook<MouseDevice_WindowMessageIntercepter>(MouseDevice_WindowMessageIntercepterImpl, _modConfig.ModId);
-        _HOOK_KeyboardDevice_WindowMessageIntercepter = _scans.CreateHook<KeyboardDevice_WindowMessageIntercepter>(KeyboardDeviceWindowMessageIntercepterImpl, _modConfig.ModId);
+        Project.Scans.AddScanHook(nameof(KeyboardDevice_WindowMessageIntercepter),
+            (result, hooks) => _HOOK_KeyboardDevice_WindowMessageIntercepter = hooks.CreateHook<KeyboardDevice_WindowMessageIntercepter>(KeyboardDeviceWindowMessageIntercepterImpl, result).Activate());
 
         // Chain hook direct input so imgui inputs don't also get passed to the game.
         var handle = PInvoke.GetModuleHandle("dinput8.dll");
-        nint directInput8CreatePtr = PInvoke.GetProcAddress(handle, "DirectInput8Create");
-        _directInputCreateHook = _hooks.CreateHook<DirectInput8Create>(DirectInput8CreateImpl, directInput8CreatePtr).Activate();
+        _directInputCreateHook = _hooks.CreateHook<DirectInput8Create>(DirectInput8CreateImpl, PInvoke.GetProcAddress(handle, "DirectInput8Create")).Activate();
 
         var user32 = PInvoke.GetModuleHandle("user32.dll");
-        nint getCursorPosPtr = PInvoke.GetProcAddress(user32, "GetCursorPos");
-        //_getCursorPosHook = _hooks.CreateHook<GetCursorPos>(GetCursorPosImpl, getCursorPosPtr).Activate();
+        //_getCursorPosHook = _hooks.CreateHook<GetCursorPos>(GetCursorPosImpl, PInvoke.GetProcAddress(user32, "GetCursorPos")).Activate();
 
-        nint setCursorPtr = PInvoke.GetProcAddress(user32, "SetCursor");
-        _setCursorHook = _hooks.CreateHook<SetCursor>(SetCursorImpl, setCursorPtr).Activate();
+        _setCursorHook = _hooks.CreateHook<SetCursor>(SetCursorImpl, PInvoke.GetProcAddress(user32, "SetCursor")).Activate();
 
     }
 
@@ -126,7 +115,7 @@ public unsafe class ImGuiInputHookManager
         if (_imguiSupport.ContextCreated && ImGuiMethods.GetIO()->WantCaptureKeyboard)
             return;
 
-        _HOOK_KeyboardDevice_WindowMessageIntercepter!.Hook!.OriginalFunction(this_, uMsg, uMsg_, wParam, lParam);
+        _HOOK_KeyboardDevice_WindowMessageIntercepter!.OriginalFunction(this_, uMsg, uMsg_, wParam, lParam);
     }
 
 
@@ -143,7 +132,7 @@ public unsafe class ImGuiInputHookManager
         if (_imguiSupport.ContextCreated && ImGuiMethods.GetIO()->WantCaptureKeyboard)
             return;
 
-        _HOOK_KeyboardManager_HandleWindowKeyboardKeyPressed!.Hook!.OriginalFunction(dwRefData, key);
+        _HOOK_KeyboardManager_HandleWindowKeyboardKeyPressed!.OriginalFunction(dwRefData, key);
     }
 
     // This one handles mouse button presses. (we don't need it)
@@ -152,9 +141,9 @@ public unsafe class ImGuiInputHookManager
     {
         var io = ImGui.GetIO();
         if (io.WantCaptureMouse || (_imguiSupport.IsMenuOpen && !_imguiSupport.MouseActiveWhileMenuOpen))
-            return _HOOK_MouseDevice_WindowMessageIntercepter!.Hook!.OriginalFunction(hwnd, 0, wParam, lParam, uIdSubClass, dwRefData);
+            return _HOOK_MouseDevice_WindowMessageIntercepter!.OriginalFunction(hwnd, 0, wParam, lParam, uIdSubClass, dwRefData);
 
-        return _HOOK_MouseDevice_WindowMessageIntercepter!.Hook!.OriginalFunction(hwnd, uMsg, wParam, lParam, uIdSubClass, dwRefData);
+        return _HOOK_MouseDevice_WindowMessageIntercepter!.OriginalFunction(hwnd, uMsg, wParam, lParam, uIdSubClass, dwRefData);
     }
     */
 

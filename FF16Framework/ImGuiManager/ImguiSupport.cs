@@ -59,7 +59,7 @@ public class ImGuiSupport : IImGuiSupport
 
     private OverlayLogger _overlayLogger;
 
-    public ImGuiSupport(IReloadedHooks hooks, ISharedScans scans, IModConfig modConfig, ILogger logger,
+    public ImGuiSupport(IReloadedHooks hooks, IModConfig modConfig, ILogger logger,
         IImguiHook imguiHook, IImGui imgui, ImGuiConfig imGuiConfig)
     {
         _hooks = hooks;
@@ -68,7 +68,7 @@ public class ImGuiSupport : IImGuiSupport
         _imguiHook = imguiHook; 
         _imgui = imgui;
         _imGuiConfig = imGuiConfig;
-        _inputManager = new ImGuiInputHookManager(this, hooks, scans, modConfig);
+        _inputManager = new ImGuiInputHookManager(this, hooks, modConfig);
     }
 
     /// <summary>
@@ -82,7 +82,10 @@ public class ImGuiSupport : IImGuiSupport
         _modFolder = modFolder;
 
         _inputManager.SetupInputHooks();
-        SDK.Init(_hooks);
+        SDK.Init(_hooks, debug =>
+        {
+            _logger.WriteLine(debug);
+        });
 
         var handle = PInvoke.GetModuleHandle("user32.dll");
         nint destroyWindowPtr = PInvoke.GetProcAddress(handle, "DestroyWindow");
