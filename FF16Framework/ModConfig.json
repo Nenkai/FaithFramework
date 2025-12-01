@@ -48,8 +48,7 @@
   "IsUniversalMod": false,
   "ModDependencies": [
     "Reloaded.Memory.SigScan.ReloadedII",
-    "reloaded.sharedlib.hooks",
-    "SharedScans.Reloaded"
+    "reloaded.sharedlib.hooks"
   ],
   "OptionalDependencies": [],
   "SupportedAppId": [
