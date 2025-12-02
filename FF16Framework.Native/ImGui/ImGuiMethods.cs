@@ -996,7 +996,7 @@ public unsafe class ImGuiMethods
     [DllImport("ImGui/Binaries/ImGuiLib", CallingConvention = CallingConvention.Cdecl, EntryPoint = "ImGui_DestroyPlatformWindows", ExactSpelling = true)]
     public static extern void DestroyPlatformWindows();
     [DllImport("ImGui/Binaries/ImGuiLib", CallingConvention = CallingConvention.Cdecl, EntryPoint = "ImGui_FindViewportByID", ExactSpelling = true)]
-    public static extern ImGuiViewportStruct* FindViewportByID(uint id);
+    public static extern ImGuiViewportStruct* FindViewportByID(uint viewport_id);
     [DllImport("ImGui/Binaries/ImGuiLib", CallingConvention = CallingConvention.Cdecl, EntryPoint = "ImGui_FindViewportByPlatformHandle", ExactSpelling = true)]
     public static extern ImGuiViewportStruct* FindViewportByPlatformHandle(void* platform_handle);
     [DllImport("ImGui/Binaries/ImGuiLib", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
@@ -1047,8 +1047,6 @@ public unsafe class ImGuiMethods
     public static extern void ImGuiIO_ClearInputKeys(ImGuiIOStruct* self);
     [DllImport("ImGui/Binaries/ImGuiLib", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
     public static extern void ImGuiIO_ClearInputMouse(ImGuiIOStruct* self);
-    [DllImport("ImGui/Binaries/ImGuiLib", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-    public static extern void ImGuiIO_ClearInputCharacters(ImGuiIOStruct* self);
     [DllImport("ImGui/Binaries/ImGuiLib", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
     public static extern void ImGuiInputTextCallbackData_DeleteChars(ImGuiInputTextCallbackDataStruct* self, int pos, int bytes_count);
     [DllImport("ImGui/Binaries/ImGuiLib", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
@@ -1145,8 +1143,6 @@ public unsafe class ImGuiMethods
     public static extern void ImGuiListClipper_IncludeItemsByIndex(ImGuiListClipperStruct* self, int item_begin, int item_end);
     [DllImport("ImGui/Binaries/ImGuiLib", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
     public static extern void ImGuiListClipper_SeekCursorForItem(ImGuiListClipperStruct* self, int item_index);
-    [DllImport("ImGui/Binaries/ImGuiLib", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-    public static extern void ImGuiListClipper_IncludeRangeByIndices(ImGuiListClipperStruct* self, int item_begin, int item_end);
     [DllImport("ImGui/Binaries/ImGuiLib", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
     public static extern void ImColor_SetHSV(Vector4 self, float h, float s, float v, float a);
     [DllImport("ImGui/Binaries/ImGuiLib", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
@@ -1412,6 +1408,8 @@ public unsafe class ImGuiMethods
     [DllImport("ImGui/Binaries/ImGuiLib", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
     public static extern void ImFontAtlas_CompactCache(ImFontAtlasStruct* self);
     [DllImport("ImGui/Binaries/ImGuiLib", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    public static extern void ImFontAtlas_SetFontLoader(ImFontAtlasStruct* self, ImFontLoaderStruct* font_loader);
+    [DllImport("ImGui/Binaries/ImGuiLib", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
     public static extern void ImFontAtlas_ClearInputData(ImFontAtlasStruct* self);
     [DllImport("ImGui/Binaries/ImGuiLib", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
     public static extern void ImFontAtlas_ClearFonts(ImFontAtlasStruct* self);
@@ -1486,7 +1484,7 @@ public unsafe class ImGuiMethods
     [DllImport("ImGui/Binaries/ImGuiLib", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
     public static extern Vector2 ImFont_CalcTextSizeA(ImFontStruct* self, float size, float max_width, float wrap_width, [MarshalAs(UnmanagedType.LPUTF8Str)] string text_begin);
     [DllImport("ImGui/Binaries/ImGuiLib", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-    public static extern Vector2 ImFont_CalcTextSizeAEx(ImFontStruct* self, float size, float max_width, float wrap_width, [MarshalAs(UnmanagedType.LPUTF8Str)] string text_begin, [MarshalAs(UnmanagedType.LPUTF8Str)] string text_end, sbyte** remaining);
+    public static extern Vector2 ImFont_CalcTextSizeAEx(ImFontStruct* self, float size, float max_width, float wrap_width, [MarshalAs(UnmanagedType.LPUTF8Str)] string text_begin, [MarshalAs(UnmanagedType.LPUTF8Str)] string text_end, sbyte** out_remaining);
     [DllImport("ImGui/Binaries/ImGuiLib", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
     public static extern sbyte* ImFont_CalcWordWrapPosition(ImFontStruct* self, float size, [MarshalAs(UnmanagedType.LPUTF8Str)] string text, [MarshalAs(UnmanagedType.LPUTF8Str)] string text_end, float wrap_width);
     [DllImport("ImGui/Binaries/ImGuiLib", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
@@ -1494,7 +1492,7 @@ public unsafe class ImGuiMethods
     [DllImport("ImGui/Binaries/ImGuiLib", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
     public static extern void ImFont_RenderCharEx(ImFontStruct* self, ImDrawListStruct* draw_list, float size, Vector2 pos, uint col, uint c, Vector4 cpu_fine_clip);
     [DllImport("ImGui/Binaries/ImGuiLib", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-    public static extern void ImFont_RenderText(ImFontStruct* self, ImDrawListStruct* draw_list, float size, Vector2 pos, uint col, Vector4 clip_rect, [MarshalAs(UnmanagedType.LPUTF8Str)] string text_begin, [MarshalAs(UnmanagedType.LPUTF8Str)] string text_end, float wrap_width, bool cpu_fine_clip);
+    public static extern void ImFont_RenderText(ImFontStruct* self, ImDrawListStruct* draw_list, float size, Vector2 pos, uint col, Vector4 clip_rect, [MarshalAs(UnmanagedType.LPUTF8Str)] string text_begin, [MarshalAs(UnmanagedType.LPUTF8Str)] string text_end, float wrap_width, int flags);
     [DllImport("ImGui/Binaries/ImGuiLib", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
     public static extern sbyte* ImFont_CalcWordWrapPositionA(ImFontStruct* self, float scale, [MarshalAs(UnmanagedType.LPUTF8Str)] string text, [MarshalAs(UnmanagedType.LPUTF8Str)] string text_end, float wrap_width);
     [DllImport("ImGui/Binaries/ImGuiLib", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
@@ -1507,6 +1505,10 @@ public unsafe class ImGuiMethods
     public static extern Vector2 ImGuiViewport_GetCenter(ImGuiViewportStruct* self);
     [DllImport("ImGui/Binaries/ImGuiLib", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
     public static extern Vector2 ImGuiViewport_GetWorkCenter(ImGuiViewportStruct* self);
+    [DllImport("ImGui/Binaries/ImGuiLib", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    public static extern void ImGuiPlatformIO_ClearPlatformHandlers(ImGuiPlatformIOStruct* self);
+    [DllImport("ImGui/Binaries/ImGuiLib", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    public static extern void ImGuiPlatformIO_ClearRendererHandlers(ImGuiPlatformIOStruct* self);
     [DllImport("ImGui/Binaries/ImGuiLib", CallingConvention = CallingConvention.Cdecl, EntryPoint = "ImGui_PushFont", ExactSpelling = true)]
     public static extern void PushFont(ImFontStruct* font);
     [DllImport("ImGui/Binaries/ImGuiLib", CallingConvention = CallingConvention.Cdecl, EntryPoint = "ImGui_SetWindowFontScale", ExactSpelling = true)]
@@ -1543,8 +1545,6 @@ public unsafe class ImGuiMethods
     public static extern bool ListBoxObsolete([MarshalAs(UnmanagedType.LPUTF8Str)] string label, ref int current_item, delegate* unmanaged[Cdecl]<nint, int, nint, byte> old_callback, void* user_data, int items_count);
     [DllImport("ImGui/Binaries/ImGuiLib", CallingConvention = CallingConvention.Cdecl, EntryPoint = "ImGui_ListBoxObsoleteEx", ExactSpelling = true)]
     public static extern bool ListBoxObsoleteEx([MarshalAs(UnmanagedType.LPUTF8Str)] string label, ref int current_item, delegate* unmanaged[Cdecl]<nint, int, nint, byte> old_callback, void* user_data, int items_count, int height_in_items);
-    [DllImport("ImGui/Binaries/ImGuiLib", CallingConvention = CallingConvention.Cdecl, EntryPoint = "ImGui_SetItemAllowOverlap", ExactSpelling = true)]
-    public static extern void SetItemAllowOverlap();
     [DllImport("ImGui/Binaries/ImGuiLib", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
     public static extern ImFontLoaderStruct* ImGuiFreeTypeGetFontLoader();
     [DllImport("ImGui/Binaries/ImGuiLib", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
@@ -1678,12 +1678,15 @@ public unsafe struct ImGuiStyleStruct
     public float ColumnsMinSpacing;
     public float ScrollbarSize;
     public float ScrollbarRounding;
+    public float ScrollbarPadding;
     public float GrabMinSize;
     public float GrabRounding;
     public float LogSliderDeadzone;
     public float ImageBorderSize;
     public float TabRounding;
     public float TabBorderSize;
+    public float TabMinWidthBase;
+    public float TabMinWidthShrink;
     public float TabCloseButtonMinWidthSelected;
     public float TabCloseButtonMinWidthUnselected;
     public float TabBarBorderSize;
@@ -1693,6 +1696,9 @@ public unsafe struct ImGuiStyleStruct
     public ImGuiTreeNodeFlags TreeLinesFlags;
     public float TreeLinesSize;
     public float TreeLinesRounding;
+    public float DragDropTargetRounding;
+    public float DragDropTargetBorderSize;
+    public float DragDropTargetPadding;
     public int ColorButtonPosition;
     public Vector2 ButtonTextAlign;
     public Vector2 SelectableTextAlign;
@@ -1701,6 +1707,8 @@ public unsafe struct ImGuiStyleStruct
     public Vector2 SeparatorTextPadding;
     public Vector2 DisplayWindowPadding;
     public Vector2 DisplaySafeAreaPadding;
+    [MarshalAs(UnmanagedType.I1)]
+    public bool DockingNodeHasCloseButton;
     public float DockingSeparatorSize;
     public float MouseCursorScale;
     [MarshalAs(UnmanagedType.I1)]
@@ -1781,6 +1789,8 @@ public unsafe struct ImGuiStyleStruct
         public Vector4 e57;
         public Vector4 e58;
         public Vector4 e59;
+        public Vector4 e60;
+        public Vector4 e61;
     }
 }
 
@@ -1825,6 +1835,8 @@ public unsafe struct ImGuiIOStruct
     [MarshalAs(UnmanagedType.I1)]
     public bool ConfigDockingNoSplit;
     [MarshalAs(UnmanagedType.I1)]
+    public bool ConfigDockingNoDockingOver;
+    [MarshalAs(UnmanagedType.I1)]
     public bool ConfigDockingWithShift;
     [MarshalAs(UnmanagedType.I1)]
     public bool ConfigDockingAlwaysTabBar;
@@ -1838,6 +1850,8 @@ public unsafe struct ImGuiIOStruct
     public bool ConfigViewportsNoDecoration;
     [MarshalAs(UnmanagedType.I1)]
     public bool ConfigViewportsNoDefaultParent;
+    [MarshalAs(UnmanagedType.I1)]
+    public bool ConfigViewportsPlatformFocusSetsImGuiFocus;
     [MarshalAs(UnmanagedType.I1)]
     public bool ConfigDpiScaleFonts;
     [MarshalAs(UnmanagedType.I1)]
@@ -2230,6 +2244,7 @@ public unsafe struct ImGuiListClipperStruct
     public double StartPosY;
     public double StartSeekOffsetY;
     public void* TempData;
+    public int Flags;
 }
 
 public unsafe struct ImGuiMultiSelectIOStruct
@@ -2389,9 +2404,9 @@ public unsafe struct ImFontConfigStruct
     public bool PixelSnapH;
     [MarshalAs(UnmanagedType.I1)]
     public bool PixelSnapV;
-    public sbyte FontNo;
     public sbyte OversampleH;
     public sbyte OversampleV;
+    public uint EllipsisChar;
     public float SizePixels;
     public uint* GlyphRanges;
     public uint* GlyphExcludeRanges;
@@ -2399,10 +2414,10 @@ public unsafe struct ImFontConfigStruct
     public float GlyphMinAdvanceX;
     public float GlyphMaxAdvanceX;
     public float GlyphExtraAdvanceX;
+    public uint FontNo;
     public uint FontLoaderFlags;
     public float RasterizerMultiply;
     public float RasterizerDensity;
-    public uint EllipsisChar;
     public int Flags;
     public ImFontStruct* DstFont;
     public ImFontLoaderStruct* FontLoader;
@@ -2629,7 +2644,7 @@ public unsafe struct ImFontBakedStruct
         }
     }
 
-    public uint LockLoadingFallback
+    public uint LoadNoFallback
     {
         readonly get
         {
@@ -2642,16 +2657,29 @@ public unsafe struct ImFontBakedStruct
         }
     }
 
+    public uint LoadNoRenderOnLayout
+    {
+        readonly get
+        {
+            return (_bitfield >> 28) & 0x1u;
+        }
+
+        set
+        {
+            _bitfield = (_bitfield & ~(0x1u << 28)) | ((value & 0x1u) << 28);
+        }
+    }
+
     public int LastUsedFrame;
     public uint BakedId;
-    public ImFontStruct* ContainerFont;
+    public ImFontStruct* OwnerFont;
     public void* FontLoaderDatas;
 }
 
 public unsafe struct ImFontStruct
 {
     public ImFontBakedStruct* LastBaked;
-    public ImFontAtlasStruct* ContainerAtlas;
+    public ImFontAtlasStruct* OwnerAtlas;
     public int Flags;
     public float CurrentRasterizerDensity;
     public uint FontId;
@@ -2677,6 +2705,7 @@ public unsafe struct ImGuiViewportStruct
     public Vector2 WorkSize;
     public float DpiScale;
     public uint ParentViewportId;
+    public ImGuiViewportStruct* ParentViewport;
     public ImDrawDataStruct* DrawData;
     public void* RendererUserData;
     public void* PlatformUserData;

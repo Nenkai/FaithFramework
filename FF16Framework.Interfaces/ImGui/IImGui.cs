@@ -749,13 +749,13 @@ unsafe public interface IImGui
     /// Implied v_speed = 1.0f, v_min = 0.0f, v_max = 0.0f, format = "%.3f", flags = 0<br/>
     ///<br/>
     /// Widgets: Drag Sliders<br/>
-    /// - CTRL+Click on any drag box to turn them into an input box. Manually input values aren't clamped by default and can go off-bounds. Use ImGuiSliderFlags_AlwaysClamp to always clamp.<br/>
+    /// - Ctrl+Click on any drag box to turn them into an input box. Manually input values aren't clamped by default and can go off-bounds. Use ImGuiSliderFlags_AlwaysClamp to always clamp.<br/>
     /// - For all the Float2/Float3/Float4/Int2/Int3/Int4 versions of every function, note that a 'float v[X]' function argument is the same as 'float* v',<br/>
     ///   the array syntax is just a way to document the number of elements that are expected to be accessible. You can pass address of your first element out of a contiguous set, e.g. &amp;myvector.x<br/>
     /// - Adjust format string to decorate the value with a prefix, a suffix, or adapt the editing and display precision e.g. "%.3f" -&gt; 1.234; "%5.2f secs" -&gt; 01.23 secs; "Biscuit: %.0f" -&gt; Biscuit: 1; etc.<br/>
     /// - Format string may also be set to NULL or use the default format ("%f" or "%d").<br/>
     /// - Speed are per-pixel of mouse movement (v_speed=0.2f: mouse needs to move by 5 pixels to increase value by 1). For keyboard/gamepad navigation, minimum speed is Max(v_speed, minimum_step_at_given_precision).<br/>
-    /// - Use v_min &lt; v_max to clamp edits to given limits. Note that CTRL+Click manual input can override those limits if ImGuiSliderFlags_AlwaysClamp is not used.<br/>
+    /// - Use v_min &lt; v_max to clamp edits to given limits. Note that Ctrl+Click manual input can override those limits if ImGuiSliderFlags_AlwaysClamp is not used.<br/>
     /// - Use v_max = FLT_MAX / INT_MAX etc to avoid clamping to a maximum, same with v_min = -FLT_MAX / INT_MIN to avoid clamping to a minimum.<br/>
     /// - We use the same sets of flags for DragXXX() and SliderXXX() functions as the features are the same and it makes it easier to swap them.<br/>
     /// - Legacy: Pre-1.78 there are DragXXX() function signatures that take a final `float power=1.0f' argument instead of the `ImGuiSliderFlags flags=0' argument.<br/>
@@ -828,7 +828,7 @@ unsafe public interface IImGui
     /// Implied format = "%.3f", flags = 0<br/>
     ///<br/>
     /// Widgets: Regular Sliders<br/>
-    /// - CTRL+Click on any slider to turn them into an input box. Manually input values aren't clamped by default and can go off-bounds. Use ImGuiSliderFlags_AlwaysClamp to always clamp.<br/>
+    /// - Ctrl+Click on any slider to turn them into an input box. Manually input values aren't clamped by default and can go off-bounds. Use ImGuiSliderFlags_AlwaysClamp to always clamp.<br/>
     /// - Adjust format string to decorate the value with a prefix, a suffix, or adapt the editing and display precision e.g. "%.3f" -&gt; 1.234; "%5.2f secs" -&gt; 01.23 secs; "Biscuit: %.0f" -&gt; Biscuit: 1; etc.<br/>
     /// - Format string may also be set to NULL or use the default format ("%f" or "%d").<br/>
     /// - Legacy: Pre-1.78 there are SliderXXX() function signatures that take a final `float power=1.0f' argument instead of the `ImGuiSliderFlags flags=0' argument.<br/>
@@ -908,7 +908,7 @@ unsafe public interface IImGui
     /// Implied callback = NULL, user_data = NULL<br/>
     ///<br/>
     /// Widgets: Input with Keyboard<br/>
-    /// - If you want to use InputText() with std::string or any custom dynamic string type, see misc/cpp/imgui_stdlib.h and comments in imgui_demo.cpp.<br/>
+    /// - If you want to use InputText() with std::string or any custom dynamic string type, use the wrapper in misc/cpp/imgui_stdlib.h/.cpp!<br/>
     /// - Most of the ImGuiInputTextFlags flags are only useful for InputText() and not for InputFloatX, InputIntX, InputDouble etc.<br/>
     ///</summary>
     bool InputText(string label, sbyte* buf, nuint buf_size, ImGuiInputTextFlags flags);
@@ -993,7 +993,7 @@ unsafe public interface IImGui
     ///</summary>
     bool TreeNode(string label);
     ///<summary>
-    /// helper variation to easily decorelate the id from the displayed string. Read the FAQ about why and how to use ID. to align arbitrary text at the same level as a TreeNode() you can use Bullet().<br/>
+    /// helper variation to easily decorrelate the id from the displayed string. Read the FAQ about why and how to use ID. to align arbitrary text at the same level as a TreeNode() you can use Bullet().<br/>
     ///</summary>
     bool TreeNodeStr(string str_id, string fmt);
     ///<summary>
@@ -1063,7 +1063,7 @@ unsafe public interface IImGui
     /// Implied selection_size = -1, items_count = -1<br/>
     ///<br/>
     /// Multi-selection system for Selectable(), Checkbox(), TreeNode() functions [BETA]<br/>
-    /// - This enables standard multi-selection/range-selection idioms (CTRL+Mouse/Keyboard, SHIFT+Mouse/Keyboard, etc.) in a way that also allow a clipper to be used.<br/>
+    /// - This enables standard multi-selection/range-selection idioms (Ctrl+Mouse/Keyboard, Shift+Mouse/Keyboard, etc.) in a way that also allow a clipper to be used.<br/>
     /// - ImGuiSelectionUserData is often used to store your item index within the current view (but may store something else).<br/>
     /// - Read comments near ImGuiMultiSelectIO for instructions/details and see 'Demo-&gt;Widgets-&gt;Selection State &amp; Multi-Select' for demo.<br/>
     /// - TreeNode() is technically supported but... using this correctly is more complicated. You need some sort of linear/random access to your tree,<br/>
@@ -1385,7 +1385,7 @@ unsafe public interface IImGui
     ///</summary>
     int TableGetColumnIndex();
     ///<summary>
-    /// return current row index.<br/>
+    /// return current row index (header rows are accounted for)<br/>
     ///</summary>
     int TableGetRowIndex();
     ///<summary>
@@ -1472,18 +1472,24 @@ unsafe public interface IImGui
     /// Implied size = ImVec2(0, 0), flags = 0, window_class = NULL<br/>
     ///<br/>
     /// Docking<br/>
-    /// [BETA API] Enable with io.ConfigFlags |= ImGuiConfigFlags_DockingEnable.<br/>
-    /// Note: You can use most Docking facilities without calling any API. You DO NOT need to call DockSpace() to use Docking!<br/>
-    /// - Drag from window title bar or their tab to dock/undock. Hold SHIFT to disable docking.<br/>
-    /// - Drag from window menu button (upper-left button) to undock an entire node (all windows).<br/>
-    /// - When io.ConfigDockingWithShift == true, you instead need to hold SHIFT to enable docking.<br/>
-    /// About dockspaces:<br/>
-    /// - Use DockSpaceOverViewport() to create a window covering the screen or a specific viewport + a dockspace inside it.<br/>
-    ///   This is often used with ImGuiDockNodeFlags_PassthruCentralNode to make it transparent.<br/>
-    /// - Use DockSpace() to create an explicit dock node _within_ an existing window. See Docking demo for details.<br/>
-    /// - Important: Dockspaces need to be submitted _before_ any window they can host. Submit it early in your frame!<br/>
-    /// - Important: Dockspaces need to be kept alive if hidden, otherwise windows docked into it will be undocked.<br/>
-    ///   e.g. if you have multiple tabs with a dockspace inside each tab: submit the non-visible dockspaces with ImGuiDockNodeFlags_KeepAliveOnly.<br/>
+    /// - Read https:github.com/ocornut/imgui/wiki/Docking for details.<br/>
+    /// - Enable with io.ConfigFlags |= ImGuiConfigFlags_DockingEnable.<br/>
+    /// - You can use most Docking facilities without calling any API. You don't necessarily need to call a DockSpaceXXX function to use Docking!<br/>
+    ///   - Drag from window title bar or their tab to dock/undock. Hold SHIFT to disable docking.<br/>
+    ///   - Drag from window menu button (upper-left button) to undock an entire node (all windows).<br/>
+    ///   - When io.ConfigDockingWithShift == true, you instead need to hold SHIFT to enable docking.<br/>
+    /// - Dockspaces:<br/>
+    ///   - If you want to dock windows into the edge of your screen, most application can simply call DockSpaceOverViewport():<br/>
+    ///     e.g. ImGui::NewFrame(); then ImGui::DockSpaceOverViewport();   Create a dockspace in main viewport.<br/>
+    ///      or: ImGui::NewFrame(); then ImGui::DockSpaceOverViewport(0, nullptr, ImGuiDockNodeFlags_PassthruCentralNode);   Create a dockspace in main viewport, where central node is transparent.<br/>
+    ///   - A dockspace is an explicit dock node within an existing window.<br/>
+    ///   - DockSpaceOverViewport() basically creates an invisible window covering a viewport, and submit a DockSpace() into it.<br/>
+    ///   - IMPORTANT: Dockspaces need to be submitted _before_ any window they can host. Submit them early in your frame!<br/>
+    ///   - IMPORTANT: Dockspaces need to be kept alive if hidden, otherwise windows docked into it will be undocked.<br/>
+    ///     If you have e.g. multiple tabs with a dockspace inside each tab: submit the non-visible dockspaces with ImGuiDockNodeFlags_KeepAliveOnly.<br/>
+    /// - Programmatic docking:<br/>
+    ///   - There is no public API yet other than the very limited SetNextWindowDockID() function. Sorry for that!<br/>
+    ///   - Read https:github.com/ocornut/imgui/wiki/Docking for examples of how to use current internal API.<br/>
     ///</summary>
     uint DockSpace(uint dockspace_id);
     uint DockSpaceEx(uint dockspace_id, Vector2 size, ImGuiDockNodeFlags flags, IImGuiWindowClass window_class);
@@ -1571,7 +1577,7 @@ unsafe public interface IImGui
     /// Disabling [BETA API]<br/>
     /// - Disable all user interactions and dim items visuals (applying style.DisabledAlpha over current colors)<br/>
     /// - Those can be nested but it cannot be used to enable an already disabled section (a single BeginDisabled(true) in the stack is enough to keep everything disabled)<br/>
-    /// - Tooltips windows by exception are opted out of disabling.<br/>
+    /// - Tooltips windows are automatically opted out of disabling. Note that IsItemHovered() by default returns false on disabled items, unless using ImGuiHoveredFlags_AllowWhenDisabled. <br/>
     /// - BeginDisabled(false)/EndDisabled() essentially does nothing but is provided to facilitate use of boolean expressions (as a micro-optimization: if you have tens of thousands of BeginDisabled(false)/EndDisabled() pairs, you might want to reformulate your code to avoid making those calls)<br/>
     ///</summary>
     void BeginDisabled(bool disabled);
@@ -1796,8 +1802,8 @@ unsafe public interface IImGui
     ///<summary>
     /// Inputs Utilities: Shortcut Testing &amp; Routing [BETA]<br/>
     /// - ImGuiKeyChord = a ImGuiKey + optional ImGuiMod_Alt/ImGuiMod_Ctrl/ImGuiMod_Shift/ImGuiMod_Super.<br/>
-    ///       ImGuiKey_C                           Accepted by functions taking ImGuiKey or ImGuiKeyChord arguments)<br/>
-    ///       ImGuiMod_Ctrl | ImGuiKey_C           Accepted by functions taking ImGuiKeyChord arguments)<br/>
+    ///       ImGuiKey_C                           Accepted by functions taking ImGuiKey or ImGuiKeyChord arguments<br/>
+    ///       ImGuiMod_Ctrl | ImGuiKey_C           Accepted by functions taking ImGuiKeyChord arguments<br/>
     ///   only ImGuiMod_XXX values are legal to combine with an ImGuiKey. You CANNOT combine two ImGuiKey values.<br/>
     /// - The general idea is that several callers may register interest in a shortcut, and only one owner gets it.<br/>
     ///      Parent   -&gt; call Shortcut(Ctrl+S)     When Parent is focused, Parent gets the shortcut.<br/>
@@ -1984,7 +1990,7 @@ unsafe public interface IImGui
     ///<summary>
     /// this is a helper for backends.<br/>
     ///</summary>
-    IImGuiViewport FindViewportByID(uint id);
+    IImGuiViewport FindViewportByID(uint viewport_id);
     ///<summary>
     /// this is a helper for backends. the type platform_handle is decided by the backend (e.g. HWND, MyWindow*, GLFWwindow* etc.)<br/>
     ///</summary>
@@ -2087,10 +2093,6 @@ unsafe public interface IImGui
     /// Clear current mouse state.<br/>
     ///</summary>
     void ImGuiIO_ClearInputMouse(IImGuiIO self);
-    ///<summary>
-    /// [Obsoleted in 1.89.8] Clear the current frame text input buffer. Now included within ClearInputKeys().<br/>
-    ///</summary>
-    void ImGuiIO_ClearInputCharacters(IImGuiIO self);
     void ImGuiInputTextCallbackData_DeleteChars(IImGuiInputTextCallbackData self, int pos, int bytes_count);
     void ImGuiInputTextCallbackData_InsertChars(IImGuiInputTextCallbackData self, int pos, string text, string text_end);
     void ImGuiInputTextCallbackData_SelectAll(IImGuiInputTextCallbackData self);
@@ -2187,10 +2189,6 @@ unsafe public interface IImGui
     ///</summary>
     void ImGuiListClipper_SeekCursorForItem(IImGuiListClipper self, int item_index);
     ///<summary>
-    /// [renamed in 1.89.9]<br/>
-    ///</summary>
-    void ImGuiListClipper_IncludeRangeByIndices(IImGuiListClipper self, int item_begin, int item_end);
-    ///<summary>
     /// FIXME-OBSOLETE: May need to obsolete/cleanup those helpers.<br/>
     ///</summary>
     void ImColor_SetHSV(Vector4 self, float h, float s, float v, float a);
@@ -2228,7 +2226,7 @@ unsafe public interface IImGui
     ///</summary>
     void ImGuiSelectionExternalStorage_ApplyRequests(IImGuiSelectionExternalStorage self, IImGuiMultiSelectIO ms_io);
     ///<summary>
-    /// == (TexRef._TexData ? TexRef._TexData-&gt;TexID : TexRef._TexID<br/>
+    /// == (TexRef._TexData ? TexRef._TexData-&gt;TexID : TexRef._TexID)<br/>
     ///<br/>
     /// Since 1.83: returns ImTextureID associated with this draw call. Warning: DO NOT assume this is always same as 'TextureId' (we will change this function for an upcoming feature)<br/>
     /// Since 1.92: removed ImDrawCmd::TextureId field, the getter function must be used!<br/>
@@ -2413,7 +2411,7 @@ unsafe public interface IImGui
     ///</summary>
     void ImDrawList_AddDrawCmd(IImDrawList self);
     ///<summary>
-    /// Create a clone of the CmdBuffer/IdxBuffer/VtxBuffer.<br/>
+    /// Create a clone of the CmdBuffer/IdxBuffer/VtxBuffer. For multi-threaded rendering, consider using `imgui_threaded_rendering` from https:github.com/ocornut/imgui_club instead.<br/>
     ///</summary>
     IImDrawList ImDrawList_CloneOutput(IImDrawList self);
     ///<summary>
@@ -2447,11 +2445,11 @@ unsafe public interface IImGui
     ///</summary>
     void ImDrawList_PrimVtx(IImDrawList self, Vector2 pos, Vector2 uv, uint col);
     ///<summary>
-    /// RENAMED in 1.92.x<br/>
+    /// RENAMED in 1.92.0<br/>
     ///</summary>
     void ImDrawList_PushTextureID(IImDrawList self, ImTextureRef tex_ref);
     ///<summary>
-    /// RENAMED in 1.92.x<br/>
+    /// RENAMED in 1.92.0<br/>
     ///</summary>
     void ImDrawList_PopTextureID(IImDrawList self);
     ///<summary>
@@ -2491,14 +2489,11 @@ unsafe public interface IImGui
     ImTextureRef ImTextureData_GetTexRef(IImTextureData self);
     ulong ImTextureData_GetTexID(IImTextureData self);
     ///<summary>
-    /// Call after creating or destroying the texture. Never modify TexID directly!<br/>
-    ///<br/>
     /// Called by Renderer backend<br/>
+    /// - Call SetTexID() and SetStatus() after honoring texture requests. Never modify TexID and Status directly!<br/>
+    /// - A backend may decide to destroy a texture that we did not request to destroy, which is fine (e.g. freeing resources), but we immediately set the texture back in _WantCreate mode.<br/>
     ///</summary>
     void ImTextureData_SetTexID(IImTextureData self, ulong tex_id);
-    ///<summary>
-    /// Call after honoring a request. Never modify Status directly!<br/>
-    ///</summary>
     void ImTextureData_SetStatus(IImTextureData self, ImTextureStatus status);
     void ImFontGlyphRangesBuilder_Clear(IImFontGlyphRangesBuilder self);
     ///<summary>
@@ -2542,13 +2537,17 @@ unsafe public interface IImGui
     IImFont ImFontAtlas_AddFontFromMemoryCompressedBase85TTF(IImFontAtlas self, string compressed_font_data_base85, float size_pixels, IImFontConfig font_cfg, ref uint glyph_ranges);
     void ImFontAtlas_RemoveFont(IImFontAtlas self, IImFont font);
     ///<summary>
-    /// Clear everything (input fonts, output glyphs/textures)<br/>
+    /// Clear everything (input fonts, output glyphs/textures).<br/>
     ///</summary>
     void ImFontAtlas_Clear(IImFontAtlas self);
     ///<summary>
     /// Compact cached glyphs and texture.<br/>
     ///</summary>
     void ImFontAtlas_CompactCache(IImFontAtlas self);
+    ///<summary>
+    /// Change font loader at runtime.<br/>
+    ///</summary>
+    void ImFontAtlas_SetFontLoader(IImFontAtlas self, IImFontLoader font_loader);
     ///<summary>
     /// [OBSOLETE] Clear input data (all ImFontConfig structures including sizes, TTF data, glyph ranges, etc.) = all the data used to build the texture and fonts.<br/>
     ///<br/>
@@ -2570,7 +2569,7 @@ unsafe public interface IImGui
     /// - User is in charge of copying the pixels into graphics memory (e.g. create a texture with your engine). Then store your texture handle with SetTexID().<br/>
     /// - The pitch is always = Width * BytesPerPixels (1 or 4)<br/>
     /// - Building in RGBA32 format is provided for convenience and compatibility, but note that unless you manually manipulate or copy color data into<br/>
-    ///   the texture (e.g. when using the AddCustomRect*** api), then the RGB pixels emitted will always be white (~75% of memory/bandwidth waste.<br/>
+    ///   the texture (e.g. when using the AddCustomRect*** api), then the RGB pixels emitted will always be white (~75% of memory/bandwidth waste).<br/>
     /// - From 1.92 with backends supporting ImGuiBackendFlags_RendererHasTextures:<br/>
     ///   - Calling Build(), GetTexDataAsAlpha8(), GetTexDataAsRGBA32() is not needed.<br/>
     ///   - In backend: replace calls to ImFontAtlas::SetTexID() with calls to ImTextureData::SetTexID() after honoring texture creation.<br/>
@@ -2644,7 +2643,7 @@ unsafe public interface IImGui
     ///<br/>
     /// Register and retrieve custom rectangles<br/>
     /// - You can request arbitrary rectangles to be packed into the atlas, for your own purpose.<br/>
-    /// - Since 1.92.X, packing is done immediately in the function call (previously packing was done during the Build call)<br/>
+    /// - Since 1.92.0, packing is done immediately in the function call (previously packing was done during the Build call)<br/>
     /// - You can render your pixels into the texture right after calling the AddCustomRect() functions.<br/>
     /// - VERY IMPORTANT:<br/>
     ///   - Texture may be created/resized at any time when calling ImGui or ImFontAtlas functions.<br/>
@@ -2670,23 +2669,23 @@ unsafe public interface IImGui
     ///</summary>
     bool ImFontAtlas_GetCustomRect(IImFontAtlas self, int id, IImFontAtlasRect out_r);
     ///<summary>
-    /// RENAMED in 1.92.X<br/>
+    /// RENAMED in 1.92.0<br/>
     ///</summary>
     int ImFontAtlas_AddCustomRectRegular(IImFontAtlas self, int w, int h);
     ///<summary>
-    /// OBSOLETED in 1.92.X<br/>
+    /// OBSOLETED in 1.92.0<br/>
     ///</summary>
     IImFontAtlasRect ImFontAtlas_GetCustomRectByIndex(IImFontAtlas self, int id);
     ///<summary>
-    /// OBSOLETED in 1.92.X<br/>
+    /// OBSOLETED in 1.92.0<br/>
     ///</summary>
     void ImFontAtlas_CalcCustomRectUV(IImFontAtlas self, IImFontAtlasRect r, Vector2 out_uv_min, Vector2 out_uv_max);
     ///<summary>
-    /// OBSOLETED in 1.92.X: Use custom ImFontLoader in ImFontConfig<br/>
+    /// OBSOLETED in 1.92.0: Use custom ImFontLoader in ImFontConfig<br/>
     ///</summary>
     int ImFontAtlas_AddCustomRectFontGlyph(IImFontAtlas self, IImFont font, uint codepoint, int w, int h, float advance_x, Vector2 offset);
     ///<summary>
-    /// ADDED AND OBSOLETED in 1.92.X<br/>
+    /// ADDED AND OBSOLETED in 1.92.0<br/>
     ///</summary>
     int ImFontAtlas_AddCustomRectFontGlyphForSize(IImFontAtlas self, IImFont font, float font_size, uint codepoint, int w, int h, float advance_x, Vector2 offset);
     void ImFontBaked_ClearOutputData(IImFontBaked self);
@@ -2719,20 +2718,17 @@ unsafe public interface IImGui
     ///</summary>
     IImFontBaked ImFont_GetFontBakedEx(IImFont self, float font_size, float density);
     ///<summary>
-    /// Implied text_end = NULL, remaining = NULL<br/>
+    /// Implied text_end = NULL, out_remaining = NULL<br/>
     ///</summary>
     Vector2 ImFont_CalcTextSizeA(IImFont self, float size, float max_width, float wrap_width, string text_begin);
-    ///<summary>
-    /// utf8<br/>
-    ///</summary>
-    Vector2 ImFont_CalcTextSizeAEx(IImFont self, float size, float max_width, float wrap_width, string text_begin, string text_end, sbyte** remaining);
+    Vector2 ImFont_CalcTextSizeAEx(IImFont self, float size, float max_width, float wrap_width, string text_begin, string text_end, sbyte** out_remaining);
     string ImFont_CalcWordWrapPosition(IImFont self, float size, string text, string text_end, float wrap_width);
     ///<summary>
     /// Implied cpu_fine_clip = NULL<br/>
     ///</summary>
     void ImFont_RenderChar(IImFont self, IImDrawList draw_list, float size, Vector2 pos, uint col, uint c);
     void ImFont_RenderCharEx(IImFont self, IImDrawList draw_list, float size, Vector2 pos, uint col, uint c, Vector4 cpu_fine_clip);
-    void ImFont_RenderText(IImFont self, IImDrawList draw_list, float size, Vector2 pos, uint col, Vector4 clip_rect, string text_begin, string text_end, float wrap_width, bool cpu_fine_clip);
+    void ImFont_RenderText(IImFont self, IImDrawList draw_list, float size, Vector2 pos, uint col, Vector4 clip_rect, string text_begin, string text_end, float wrap_width, int flags);
     string ImFont_CalcWordWrapPositionA(IImFont self, float scale, string text, string text_end, float wrap_width);
     ///<summary>
     /// [Internal] Don't use!<br/>
@@ -2748,6 +2744,14 @@ unsafe public interface IImGui
     ///</summary>
     Vector2 ImGuiViewport_GetCenter(IImGuiViewport self);
     Vector2 ImGuiViewport_GetWorkCenter(IImGuiViewport self);
+    ///<summary>
+    /// Clear all Platform_XXX fields. Typically called on Platform Backend shutdown.<br/>
+    ///</summary>
+    void ImGuiPlatformIO_ClearPlatformHandlers(IImGuiPlatformIO self);
+    ///<summary>
+    /// Clear all Renderer_XXX fields. Typically called on Renderer Backend shutdown.<br/>
+    ///</summary>
+    void ImGuiPlatformIO_ClearRendererHandlers(IImGuiPlatformIO self);
     ///<summary>
     /// OBSOLETED in 1.92.0 (from June 2025)<br/>
     ///</summary>
@@ -2790,8 +2794,8 @@ unsafe public interface IImGui
     bool BeginChildFrameEx(uint id, Vector2 size, ImGuiWindowFlags window_flags);
     void EndChildFrame();
     ///<summary>
-    ///static inline bool BeginChild(const char* str_id, const ImVec2&amp; size_arg, bool borders, ImGuiWindowFlags window_flags){ return BeginChild(str_id, size_arg, borders ? ImGuiChildFlags_Borders : ImGuiChildFlags_None, window_flags); }  Unnecessary as true == ImGuiChildFlags_Borders<br/>
-    ///static inline bool BeginChild(ImGuiID id, const ImVec2&amp; size_arg, bool borders, ImGuiWindowFlags window_flags)        { return BeginChild(id, size_arg, borders ? ImGuiChildFlags_Borders : ImGuiChildFlags_None, window_flags);     }  Unnecessary as true == ImGuiChildFlags_Borders<br/>
+    ///inline bool       BeginChild(const char* str_id, const ImVec2&amp; size_arg, bool borders, ImGuiWindowFlags window_flags){ return BeginChild(str_id, size_arg, borders ? ImGuiChildFlags_Borders : ImGuiChildFlags_None, window_flags); }  Unnecessary as true == ImGuiChildFlags_Borders<br/>
+    ///inline bool       BeginChild(ImGuiID id, const ImVec2&amp; size_arg, bool borders, ImGuiWindowFlags window_flags)        { return BeginChild(id, size_arg, borders ? ImGuiChildFlags_Borders : ImGuiChildFlags_None, window_flags);     }  Unnecessary as true == ImGuiChildFlags_Borders<br/>
     ///</summary>
     void ShowStackToolWindow(ref bool p_open);
     ///<summary>
@@ -2804,12 +2808,6 @@ unsafe public interface IImGui
     ///</summary>
     bool ListBoxObsolete(string label, ref int current_item, delegate* unmanaged[Cdecl]<nint, int, nint, byte> old_callback, void* user_data, int items_count);
     bool ListBoxObsoleteEx(string label, ref int current_item, delegate* unmanaged[Cdecl]<nint, int, nint, byte> old_callback, void* user_data, int items_count, int height_in_items);
-    ///<summary>
-    /// Use SetNextItemAllowOverlap() before item.<br/>
-    ///<br/>
-    /// OBSOLETED in 1.89.7 (from June 2023)<br/>
-    ///</summary>
-    void SetItemAllowOverlap();
     ///<summary>
     /// - prefer deep-copying this into your own ImFontLoader instance if you use hot-reloading that messes up static data.<br/>
     ///</summary>
@@ -2938,7 +2936,7 @@ public enum ImGuiWindowFlags
     ///</summary>
     ImGuiWindowFlags_NoNavInputs = 1 << 16,
     ///<summary>
-    /// No focusing toward this window with keyboard/gamepad navigation (e.g. skipped by CTRL+TAB)<br/>
+    /// No focusing toward this window with keyboard/gamepad navigation (e.g. skipped by Ctrl+Tab)<br/>
     ///</summary>
     ImGuiWindowFlags_NoNavFocus = 1 << 17,
     ///<summary>
@@ -2977,20 +2975,12 @@ public enum ImGuiWindowFlags
     ///<summary>
     /// Don't use! For internal use by BeginMenu()<br/>
     ///</summary>
-    ImGuiWindowFlags_ChildMenu = 1 << 28,
-    ///<summary>
-    /// Obsoleted in 1.90.9: Use ImGuiChildFlags_NavFlattened in BeginChild() call.<br/>
-    ///</summary>
-    ImGuiWindowFlags_NavFlattened = 1 << 29,
-    ///<summary>
-    /// Obsoleted in 1.90.0: Use ImGuiChildFlags_AlwaysUseWindowPadding in BeginChild() call.<br/>
-    ///</summary>
-    ImGuiWindowFlags_AlwaysUseWindowPadding = 1 << 30
+    ImGuiWindowFlags_ChildMenu = 1 << 28
 }
 
 ///<summary>
 /// Flags for ImGui::BeginChild()<br/>
-/// (Legacy: bit 0 must always correspond to ImGuiChildFlags_Borders to be backward compatible with old API using 'bool border = false'.<br/>
+/// (Legacy: bit 0 must always correspond to ImGuiChildFlags_Borders to be backward compatible with old API using 'bool border = false'.)<br/>
 /// About using AutoResizeX/AutoResizeY flags:<br/>
 /// - May be combined with SetNextWindowSizeConstraints() to set a min/max size for each axis (see "Demo-&gt;Child-&gt;Auto-resize with Constraints").<br/>
 /// - Size measurement for a given axis is only performed when the child window is within visible boundaries, or is just appearing.<br/>
@@ -3037,11 +3027,7 @@ public enum ImGuiChildFlags
     ///<summary>
     /// [BETA] Share focus scope, allow keyboard/gamepad navigation to cross over parent border to this child or between sibling child windows.<br/>
     ///</summary>
-    ImGuiChildFlags_NavFlattened = 1 << 8,
-    ///<summary>
-    /// Renamed in 1.91.1 (August 2024) for consistency.<br/>
-    ///</summary>
-    ImGuiChildFlags_Border = ImGuiChildFlags_Borders
+    ImGuiChildFlags_NavFlattened = 1 << 8
 }
 
 ///<summary>
@@ -3193,7 +3179,19 @@ public enum ImGuiInputTextFlags
     ///<summary>
     /// Callback on any edit. Note that InputText() already returns true on edit + you can always use IsItemEdited(). The callback is useful to manipulate the underlying buffer while focus is active.<br/>
     ///</summary>
-    ImGuiInputTextFlags_CallbackEdit = 1 << 23
+    ImGuiInputTextFlags_CallbackEdit = 1 << 23,
+    ///<summary>
+    /// InputTextMultiline(): word-wrap lines that are too long.<br/>
+    ///<br/>
+    /// Multi-line Word-Wrapping [BETA]<br/>
+    /// - Not well tested yet. Please report any incorrect cursor movement, selection behavior etc. bug to https:github.com/ocornut/imgui/issues/3237.<br/>
+    /// - Wrapping style is not ideal. Wrapping of long words/sections (e.g. words larger than total available width) may be particularly unpleasing.<br/>
+    /// - Wrapping width needs to always account for the possibility of a vertical scrollbar.<br/>
+    /// - It is much slower than regular text fields.<br/>
+    ///   Ballpark estimate of cost on my 2019 desktop PC: for a 100 KB text buffer: +~0.3 ms (Optimized) / +~1.0 ms (Debug build).<br/>
+    ///   The CPU cost is very roughly proportional to text length, so a 10 KB buffer should cost about ten times less.<br/>
+    ///</summary>
+    ImGuiInputTextFlags_WordWrap = 1 << 24
 }
 
 ///<summary>
@@ -3267,7 +3265,7 @@ public enum ImGuiTreeNodeFlags
     ///</summary>
     ImGuiTreeNodeFlags_LabelSpanAllColumns = 1 << 15,
     ///<summary>
-    /// Nav: left arrow moves back to parent. This is processed in TreePop() when there's an unfullfilled Left nav request remaining.<br/>
+    /// Nav: left arrow moves back to parent. This is processed in TreePop() when there's an unfulfilled Left nav request remaining.<br/>
     ///<br/>
     ///ImGuiTreeNodeFlags_NoScrollOnOpen     = 1 &lt;&lt; 16,   FIXME: TODO: Disable automatic scroll on TreePop() if node got just open and contents is not visible<br/>
     ///</summary>
@@ -3295,11 +3293,7 @@ public enum ImGuiTreeNodeFlags
     ///<summary>
     /// Renamed in 1.90.7<br/>
     ///</summary>
-    ImGuiTreeNodeFlags_SpanTextWidth = ImGuiTreeNodeFlags_SpanLabelWidth,
-    ///<summary>
-    /// Renamed in 1.89.7<br/>
-    ///</summary>
-    ImGuiTreeNodeFlags_AllowItemOverlap = ImGuiTreeNodeFlags_AllowOverlap
+    ImGuiTreeNodeFlags_SpanTextWidth = ImGuiTreeNodeFlags_SpanLabelWidth
 }
 
 ///<summary>
@@ -3385,13 +3379,13 @@ public enum ImGuiSelectableFlags
     ///</summary>
     ImGuiSelectableFlags_Highlight = 1 << 5,
     ///<summary>
+    /// Auto-select when moved into, unless Ctrl is held. Automatic when in a BeginMultiSelect() block.<br/>
+    ///</summary>
+    ImGuiSelectableFlags_SelectOnNav = 1 << 6,
+    ///<summary>
     /// Renamed in 1.91.0<br/>
     ///</summary>
-    ImGuiSelectableFlags_DontClosePopups = ImGuiSelectableFlags_NoAutoClosePopups,
-    ///<summary>
-    /// Renamed in 1.89.7<br/>
-    ///</summary>
-    ImGuiSelectableFlags_AllowItemOverlap = ImGuiSelectableFlags_AllowOverlap
+    ImGuiSelectableFlags_DontClosePopups = ImGuiSelectableFlags_NoAutoClosePopups
 }
 
 ///<summary>
@@ -3470,15 +3464,25 @@ public enum ImGuiTabBarFlags
     ///</summary>
     ImGuiTabBarFlags_DrawSelectedOverline = 1 << 6,
     ///<summary>
-    /// Resize tabs when they don't fit<br/>
+    /// Shrink down tabs when they don't fit, until width is style.TabMinWidthShrink, then enable scrolling buttons.<br/>
+    ///<br/>
+    /// Fitting/Resize policy<br/>
     ///</summary>
-    ImGuiTabBarFlags_FittingPolicyResizeDown = 1 << 7,
+    ImGuiTabBarFlags_FittingPolicyMixed = 1 << 7,
     ///<summary>
-    /// Add scroll buttons when tabs don't fit<br/>
+    /// Shrink down tabs when they don't fit<br/>
     ///</summary>
-    ImGuiTabBarFlags_FittingPolicyScroll = 1 << 8,
-    ImGuiTabBarFlags_FittingPolicyMask_ = ImGuiTabBarFlags_FittingPolicyResizeDown | ImGuiTabBarFlags_FittingPolicyScroll,
-    ImGuiTabBarFlags_FittingPolicyDefault_ = ImGuiTabBarFlags_FittingPolicyResizeDown
+    ImGuiTabBarFlags_FittingPolicyShrink = 1 << 8,
+    ///<summary>
+    /// Enable scrolling buttons when tabs don't fit<br/>
+    ///</summary>
+    ImGuiTabBarFlags_FittingPolicyScroll = 1 << 9,
+    ImGuiTabBarFlags_FittingPolicyMask_ = ImGuiTabBarFlags_FittingPolicyMixed | ImGuiTabBarFlags_FittingPolicyShrink | ImGuiTabBarFlags_FittingPolicyScroll,
+    ImGuiTabBarFlags_FittingPolicyDefault_ = ImGuiTabBarFlags_FittingPolicyMixed,
+    ///<summary>
+    /// Renamed in 1.92.2<br/>
+    ///</summary>
+    ImGuiTabBarFlags_FittingPolicyResizeDown = ImGuiTabBarFlags_FittingPolicyShrink
 }
 
 ///<summary>
@@ -3620,7 +3624,7 @@ public enum ImGuiHoveredFlags
     /// Tooltips mode<br/>
     /// - typically used in IsItemHovered() + SetTooltip() sequence.<br/>
     /// - this is a shortcut to pull flags from 'style.HoverFlagsForTooltipMouse' or 'style.HoverFlagsForTooltipNav' where you can reconfigure desired behavior.<br/>
-    ///   e.g. 'TooltipHoveredFlagsForMouse' defaults to 'ImGuiHoveredFlags_Stationary | ImGuiHoveredFlags_DelayShort'.<br/>
+    ///   e.g. 'HoverFlagsForTooltipMouse' defaults to 'ImGuiHoveredFlags_Stationary | ImGuiHoveredFlags_DelayShort | ImGuiHoveredFlags_AllowWhenDisabled'.<br/>
     /// - for frequently actioned or hovered items providing a tooltip, you want may to use ImGuiHoveredFlags_ForTooltip (stationary + delay) so the tooltip doesn't show too often.<br/>
     /// - for items which main purpose is to be hovered, or items with low affordance, or in less consistent apps, prefer no delay or shorter delay.<br/>
     ///</summary>
@@ -3754,6 +3758,10 @@ public enum ImGuiDragDropFlags
     ///</summary>
     ImGuiDragDropFlags_AcceptNoPreviewTooltip = 1 << 12,
     ///<summary>
+    /// Accepting item will render as if hovered. Useful for e.g. a Button() used as a drop target.<br/>
+    ///</summary>
+    ImGuiDragDropFlags_AcceptDrawAsHovered = 1 << 13,
+    ///<summary>
     /// For peeking ahead and inspecting the payload before delivery.<br/>
     ///</summary>
     ImGuiDragDropFlags_AcceptPeekOnly = ImGuiDragDropFlags_AcceptBeforeDelivery | ImGuiDragDropFlags_AcceptNoDrawDefaultRect,
@@ -3858,7 +3866,7 @@ public enum ImGuiInputFlags
     ///</summary>
     ImGuiInputFlags_RouteOverFocused = 1 << 14,
     ///<summary>
-    /// Option: global route: higher priority than active item. Unlikely you need to use that: will interfere with every active items, e.g. CTRL+A registered by InputText will be overridden by this. May not be fully honored as user/internal code is likely to always assume they can access keys when active.<br/>
+    /// Option: global route: higher priority than active item. Unlikely you need to use that: will interfere with every active items, e.g. Ctrl+A registered by InputText will be overridden by this. May not be fully honored as user/internal code is likely to always assume they can access keys when active.<br/>
     ///</summary>
     ImGuiInputFlags_RouteOverActive = 1 << 15,
     ///<summary>
@@ -3967,23 +3975,27 @@ public enum ImGuiBackendFlags
     ///</summary>
     ImGuiBackendFlags_RendererHasVtxOffset = 1 << 3,
     ///<summary>
-    /// Backend Renderer supports ImTextureData requests to create/update/destroy textures. This enables incremental texture updates and texture reloads.<br/>
+    /// Backend Renderer supports ImTextureData requests to create/update/destroy textures. This enables incremental texture updates and texture reloads. See https:github.com/ocornut/imgui/blob/master/docs/BACKENDS.md for instructions on how to upgrade your custom backend.<br/>
     ///</summary>
     ImGuiBackendFlags_RendererHasTextures = 1 << 4,
     ///<summary>
-    /// Backend Platform supports multiple viewports.<br/>
+    /// Backend Renderer supports multiple viewports.<br/>
     ///<br/>
-    /// [BETA] Viewports<br/>
+    /// [BETA] Multi-Viewports<br/>
     ///</summary>
-    ImGuiBackendFlags_PlatformHasViewports = 1 << 10,
+    ImGuiBackendFlags_RendererHasViewports = 1 << 10,
+    ///<summary>
+    /// Backend Platform supports multiple viewports.<br/>
+    ///</summary>
+    ImGuiBackendFlags_PlatformHasViewports = 1 << 11,
     ///<summary>
     /// Backend Platform supports calling io.AddMouseViewportEvent() with the viewport under the mouse. IF POSSIBLE, ignore viewports with the ImGuiViewportFlags_NoInputs flag (Win32 backend, GLFW 3.30+ backend can do this, SDL backend cannot). If this cannot be done, Dear ImGui needs to use a flawed heuristic to find the viewport under.<br/>
     ///</summary>
-    ImGuiBackendFlags_HasMouseHoveredViewport = 1 << 11,
+    ImGuiBackendFlags_HasMouseHoveredViewport = 1 << 12,
     ///<summary>
-    /// Backend Renderer supports multiple viewports.<br/>
+    /// Backend Platform supports honoring viewport-&gt;ParentViewport/ParentViewportId value, by applying the corresponding parent/child relation at the Platform level.<br/>
     ///</summary>
-    ImGuiBackendFlags_RendererHasViewports = 1 << 12
+    ImGuiBackendFlags_HasParentViewport = 1 << 13
 }
 
 ///<summary>
@@ -4131,19 +4143,27 @@ public enum ImGuiCol
     ///</summary>
     ImGuiCol_TreeLines,
     ///<summary>
-    /// Rectangle highlighting a drop target<br/>
+    /// Rectangle border highlighting a drop target<br/>
     ///</summary>
     ImGuiCol_DragDropTarget,
+    ///<summary>
+    /// Rectangle background highlighting a drop target<br/>
+    ///</summary>
+    ImGuiCol_DragDropTargetBg,
+    ///<summary>
+    /// Unsaved Document marker (in window title and tabs)<br/>
+    ///</summary>
+    ImGuiCol_UnsavedMarker,
     ///<summary>
     /// Color of keyboard/gamepad navigation cursor/rectangle, when visible<br/>
     ///</summary>
     ImGuiCol_NavCursor,
     ///<summary>
-    /// Highlight window when using CTRL+TAB<br/>
+    /// Highlight window when using Ctrl+Tab<br/>
     ///</summary>
     ImGuiCol_NavWindowingHighlight,
     ///<summary>
-    /// Darken/colorize entire screen behind the CTRL+TAB window list, when active<br/>
+    /// Darken/colorize entire screen behind the Ctrl+Tab window list, when active<br/>
     ///</summary>
     ImGuiCol_NavWindowingDimBg,
     ///<summary>
@@ -4174,9 +4194,9 @@ public enum ImGuiCol
 /// - The enum only refers to fields of ImGuiStyle which makes sense to be pushed/popped inside UI code.<br/>
 ///   During initialization or between frames, feel free to just poke into ImGuiStyle directly.<br/>
 /// - Tip: Use your programming IDE navigation facilities on the names in the _second column_ below to find the actual members and their description.<br/>
-///   - In Visual Studio: CTRL+comma ("Edit.GoToAll") can follow symbols inside comments, whereas CTRL+F12 ("Edit.GoToImplementation") cannot.<br/>
-///   - In Visual Studio w/ Visual Assist installed: ALT+G ("VAssistX.GoToImplementation") can also follow symbols inside comments.<br/>
-///   - In VS Code, CLion, etc.: CTRL+click can follow symbols inside comments.<br/>
+///   - In Visual Studio: Ctrl+Comma ("Edit.GoToAll") can follow symbols inside comments, whereas Ctrl+F12 ("Edit.GoToImplementation") cannot.<br/>
+///   - In Visual Studio w/ Visual Assist installed: Alt+G ("VAssistX.GoToImplementation") can also follow symbols inside comments.<br/>
+///   - In VS Code, CLion, etc.: Ctrl+Click can follow symbols inside comments.<br/>
 /// - When changing this enum, you need to update the associated internal table GStyleVarInfo[] accordingly. This is where we link enum values to members offset/type.<br/>
 ///</summary>
 public enum ImGuiStyleVar
@@ -4264,6 +4284,10 @@ public enum ImGuiStyleVar
     ///</summary>
     ImGuiStyleVar_ScrollbarRounding,
     ///<summary>
+    /// float     ScrollbarPadding<br/>
+    ///</summary>
+    ImGuiStyleVar_ScrollbarPadding,
+    ///<summary>
     /// float     GrabMinSize<br/>
     ///</summary>
     ImGuiStyleVar_GrabMinSize,
@@ -4283,6 +4307,14 @@ public enum ImGuiStyleVar
     /// float     TabBorderSize<br/>
     ///</summary>
     ImGuiStyleVar_TabBorderSize,
+    ///<summary>
+    /// float     TabMinWidthBase<br/>
+    ///</summary>
+    ImGuiStyleVar_TabMinWidthBase,
+    ///<summary>
+    /// float     TabMinWidthShrink<br/>
+    ///</summary>
+    ImGuiStyleVar_TabMinWidthShrink,
     ///<summary>
     /// float     TabBarBorderSize<br/>
     ///</summary>
@@ -4485,7 +4517,7 @@ public enum ImGuiColorEditFlags
     ImGuiColorEditFlags_PickerMask_ = ImGuiColorEditFlags_PickerHueWheel | ImGuiColorEditFlags_PickerHueBar,
     ImGuiColorEditFlags_InputMask_ = ImGuiColorEditFlags_InputRGB | ImGuiColorEditFlags_InputHSV,
     ///<summary>
-    /// [Removed in 1.91.8] This is the default now. Will display a checkerboard unless ImGuiColorEditFlags_AlphaNoBg is set.<br/>
+    /// Removed in 1.91.8. This is the default now. Will display a checkerboard unless ImGuiColorEditFlags_AlphaNoBg is set.<br/>
     ///</summary>
     ImGuiColorEditFlags_AlphaPreview = 0
 }
@@ -4507,7 +4539,7 @@ public enum ImGuiSliderFlags
     ///</summary>
     ImGuiSliderFlags_NoRoundToFormat = 1 << 6,
     ///<summary>
-    /// Disable CTRL+Click or Enter key allowing to input text directly into the widget.<br/>
+    /// Disable Ctrl+Click or Enter key allowing to input text directly into the widget.<br/>
     ///</summary>
     ImGuiSliderFlags_NoInput = 1 << 7,
     ///<summary>
@@ -4515,7 +4547,7 @@ public enum ImGuiSliderFlags
     ///</summary>
     ImGuiSliderFlags_WrapAround = 1 << 8,
     ///<summary>
-    /// Clamp value to min/max bounds when input manually with CTRL+Click. By default CTRL+Click allows going out of bounds.<br/>
+    /// Clamp value to min/max bounds when input manually with Ctrl+Click. By default Ctrl+Click allows going out of bounds.<br/>
     ///</summary>
     ImGuiSliderFlags_ClampOnInput = 1 << 9,
     ///<summary>
@@ -5169,6 +5201,11 @@ public unsafe interface IImGuiStyle
     ref float ScrollbarRounding { get; }
 
     ///<summary>
+    /// Padding of scrollbar grab within its frame (same for both axes).<br/>
+    ///</summary>
+    ref float ScrollbarPadding { get; }
+
+    ///<summary>
     /// Minimum width/height of a grab box for slider/scrollbar.<br/>
     ///</summary>
     ref float GrabMinSize { get; }
@@ -5197,6 +5234,16 @@ public unsafe interface IImGuiStyle
     /// Thickness of border around tabs.<br/>
     ///</summary>
     ref float TabBorderSize { get; }
+
+    ///<summary>
+    /// Minimum tab width, to make tabs larger than their contents. TabBar buttons are not affected.<br/>
+    ///</summary>
+    ref float TabMinWidthBase { get; }
+
+    ///<summary>
+    /// Minimum tab width after shrinking, when using ImGuiTabBarFlags_FittingPolicyMixed policy.<br/>
+    ///</summary>
+    ref float TabMinWidthShrink { get; }
 
     ///<summary>
     /// -1: always visible. 0.0f: visible when hovered. &gt;0.0f: visible when hovered if minimum width.<br/>
@@ -5244,6 +5291,21 @@ public unsafe interface IImGuiStyle
     ref float TreeLinesRounding { get; }
 
     ///<summary>
+    /// Radius of the drag and drop target frame.<br/>
+    ///</summary>
+    ref float DragDropTargetRounding { get; }
+
+    ///<summary>
+    /// Thickness of the drag and drop target border.<br/>
+    ///</summary>
+    ref float DragDropTargetBorderSize { get; }
+
+    ///<summary>
+    /// Size to expand the drag and drop target from actual target item size.<br/>
+    ///</summary>
+    ref float DragDropTargetPadding { get; }
+
+    ///<summary>
     /// Side of the color button in the ColorEdit4 widget (left/right). Defaults to ImGuiDir_Right.<br/>
     ///</summary>
     ref int ColorButtonPosition { get; }
@@ -5282,6 +5344,11 @@ public unsafe interface IImGuiStyle
     /// Apply to every windows, menus, popups, tooltips: amount where we avoid displaying contents. Adjust if you cannot see the edges of your screen (e.g. on a TV where scaling has not been configured).<br/>
     ///</summary>
     ref Vector2 DisplaySafeAreaPadding { get; }
+
+    ///<summary>
+    /// Docking node has their own CloseButton() to close all docked windows.<br/>
+    ///</summary>
+    ref bool DockingNodeHasCloseButton { get; }
 
     ///<summary>
     /// Thickness of resizing border between docked windows<br/>
@@ -5455,7 +5522,7 @@ public unsafe interface IImGuiIO
     IImFont FontDefault { get; }
 
     ///<summary>
-    /// = false           [OBSOLETE] Allow user scaling text of individual window with CTRL+Wheel.<br/>
+    /// = false           Allow user scaling text of individual window with Ctrl+Wheel.<br/>
     ///</summary>
     ref bool FontAllowUserScaling { get; }
 
@@ -5504,6 +5571,11 @@ public unsafe interface IImGuiIO
     ref bool ConfigDockingNoSplit { get; }
 
     ///<summary>
+    /// = false           Simplified docking mode: disable window merging into a same tab-bar, so docking is limited to splitting windows.<br/>
+    ///</summary>
+    ref bool ConfigDockingNoDockingOver { get; }
+
+    ///<summary>
     /// = false           Enable docking with holding Shift key (reduce visual noise, allows dropping in wider space)<br/>
     ///</summary>
     ref bool ConfigDockingWithShift { get; }
@@ -5536,9 +5608,14 @@ public unsafe interface IImGuiIO
     ref bool ConfigViewportsNoDecoration { get; }
 
     ///<summary>
-    /// = false           Disable default OS parenting to main viewport for secondary viewports. By default, viewports are marked with ParentViewportId = &lt;main_viewport&gt;, expecting the platform backend to setup a parent/child relationship between the OS windows (some backend may ignore this). Set to true if you want the default to be 0, then all viewports will be top-level OS windows.<br/>
+    /// = true            When false: set secondary viewports' ParentViewportId to main viewport ID by default. Expects the platform backend to setup a parent/child relationship between the OS windows based on this value. Some backend may ignore this. Set to true if you want viewports to automatically be parent of main viewport, otherwise all viewports will be top-level OS windows.<br/>
     ///</summary>
     ref bool ConfigViewportsNoDefaultParent { get; }
+
+    ///<summary>
+    ///= true  When a platform window is focused (e.g. using Alt+Tab, clicking Platform Title Bar), apply corresponding focus on imgui windows (may clear focus/active id from imgui windows location in other platform windows). In principle this is better enabled but we provide an opt-out, because some Linux window managers tend to eagerly focus windows (e.g. on mouse hover, or even a simple window pos/size change).<br/>
+    ///</summary>
+    ref bool ConfigViewportsPlatformFocusSetsImGuiFocus { get; }
 
     ///<summary>
     /// = false           [EXPERIMENTAL] Automatically overwrite style.FontScaleDpi when Monitor DPI changes. This will scale fonts but _NOT_ scale sizes/padding for now.<br/>
@@ -5597,7 +5674,7 @@ public unsafe interface IImGuiIO
     ref bool ConfigWindowsMoveFromTitleBarOnly { get; }
 
     ///<summary>
-    /// = false       [EXPERIMENTAL] CTRL+C copy the contents of focused window into the clipboard. Experimental because: (1) has known issues with nested Begin/End pairs (2) text output quality varies (3) text output is in submission order rather than spatial order.<br/>
+    /// = false       [EXPERIMENTAL] Ctrl+C copy the contents of focused window into the clipboard. Experimental because: (1) has known issues with nested Begin/End pairs (2) text output quality varies (3) text output is in submission order rather than spatial order.<br/>
     ///</summary>
     ref bool ConfigWindowsCopyContentsWithCtrlC { get; }
 
@@ -5680,7 +5757,7 @@ public unsafe interface IImGuiIO
     /// Option to enable various debug tools showing buttons that will call the IM_DEBUG_BREAK() macro.<br/>
     /// - The Item Picker tool will be available regardless of this being enabled, in order to maximize its discoverability.<br/>
     /// - Requires a debugger being attached, otherwise IM_DEBUG_BREAK() options will appear to crash your application.<br/>
-    ///   e.g. io.ConfigDebugIsDebuggerPresent = ::IsDebuggerPresent() on Win32, or refer to ImOsIsDebuggerPresent() imgui_test_engine/imgui_te_utils.cpp for a Unix compatible version).<br/>
+    ///   e.g. io.ConfigDebugIsDebuggerPresent = ::IsDebuggerPresent() on Win32, or refer to ImOsIsDebuggerPresent() imgui_test_engine/imgui_te_utils.cpp for a Unix compatible version.<br/>
     ///</summary>
     ref bool ConfigDebugIsDebuggerPresent { get; }
 
@@ -5843,7 +5920,7 @@ public unsafe interface IImGuiIO
     RangeAccessor<bool> MouseDown { get; }
 
     ///<summary>
-    /// Mouse wheel Vertical: 1 unit scrolls about 5 lines text. &gt;0 scrolls Up, &lt;0 scrolls Down. Hold SHIFT to turn vertical scroll into horizontal scroll.<br/>
+    /// Mouse wheel Vertical: 1 unit scrolls about 5 lines text. &gt;0 scrolls Up, &lt;0 scrolls Down. Hold Shift to turn vertical scroll into horizontal scroll.<br/>
     ///</summary>
     ref float MouseWheel { get; }
 
@@ -5863,7 +5940,7 @@ public unsafe interface IImGuiIO
     ref uint MouseHoveredViewport { get; }
 
     ///<summary>
-    /// Keyboard modifier down: Control<br/>
+    /// Keyboard modifier down: Ctrl (non-macOS), Cmd (macOS)<br/>
     ///</summary>
     ref bool KeyCtrl { get; }
 
@@ -5878,12 +5955,12 @@ public unsafe interface IImGuiIO
     ref bool KeyAlt { get; }
 
     ///<summary>
-    /// Keyboard modifier down: Cmd/Super/Windows<br/>
+    /// Keyboard modifier down: Windows/Super (non-macOS), Ctrl (macOS)<br/>
     ///</summary>
     ref bool KeySuper { get; }
 
     ///<summary>
-    /// Key mods flags (any of ImGuiMod_Ctrl/ImGuiMod_Shift/ImGuiMod_Alt/ImGuiMod_Super flags, same as io.KeyCtrl/KeyShift/KeyAlt/KeySuper but merged into flags. Read-only, updated by NewFrame()<br/>
+    /// Key mods flags (any of ImGuiMod_Ctrl/ImGuiMod_Shift/ImGuiMod_Alt/ImGuiMod_Super flags, same as io.KeyCtrl/KeyShift/KeyAlt/KeySuper but merged into flags). Read-only, updated by NewFrame()<br/>
     ///<br/>
     /// Other state maintained from data above + IO function calls<br/>
     ///</summary>
@@ -5955,12 +6032,12 @@ public unsafe interface IImGuiIO
     RangeAccessor<bool> MouseDownOwnedUnlessPopupClose { get; }
 
     ///<summary>
-    /// On a non-Mac system, holding SHIFT requests WheelY to perform the equivalent of a WheelX event. On a Mac system this is already enforced by the system.<br/>
+    /// On a non-Mac system, holding Shift requests WheelY to perform the equivalent of a WheelX event. On a Mac system this is already enforced by the system.<br/>
     ///</summary>
     ref bool MouseWheelRequestAxisSwap { get; }
 
     ///<summary>
-    /// (OSX) Set to true when the current click was a Ctrl+click that spawned a simulated right click<br/>
+    /// (OSX) Set to true when the current click was a Ctrl+Click that spawned a simulated right click<br/>
     ///</summary>
     ref bool MouseCtrlLeftAsRightClick { get; }
 
@@ -6087,7 +6164,7 @@ public unsafe interface IImGuiInputTextCallbackData
     ref int BufTextLen { get; }
 
     ///<summary>
-    /// Buffer size (in bytes) = capacity+1   Read-only     [Resize,Completion,History,Always] Include zero-terminator storage. In C land == ARRAYSIZE(my_char_array), in C++ land: string.capacity()+1<br/>
+    /// Buffer size (in bytes) = capacity+1   Read-only     [Resize,Completion,History,Always] Include zero-terminator storage. In C land: == ARRAYSIZE(my_char_array), in C++ land: string.capacity()+1<br/>
     ///</summary>
     ref int BufSize { get; }
 
@@ -6102,7 +6179,7 @@ public unsafe interface IImGuiInputTextCallbackData
     ref int CursorPos { get; }
 
     ///<summary>
-    ///                                       Read-write    [Completion,History,Always] == to SelectionEnd when no selection)<br/>
+    ///                                       Read-write    [Completion,History,Always] == to SelectionEnd when no selection<br/>
     ///</summary>
     ref int SelectionStart { get; }
 
@@ -6310,6 +6387,18 @@ public unsafe interface IImGuiStorage
 }
 
 ///<summary>
+/// Flags for ImGuiListClipper (currently not fully exposed in function calls: a future refactor will likely add this to ImGuiListClipper::Begin function equivalent)<br/>
+///</summary>
+public enum ImGuiListClipperFlags
+{
+    ImGuiListClipperFlags_None = 0,
+    ///<summary>
+    /// [Internal] Disabled modifying table row counters. Avoid assumption that 1 clipper item == 1 table row.<br/>
+    ///</summary>
+    ImGuiListClipperFlags_NoSetTableRowCounters = 1 << 0
+}
+
+///<summary>
 /// Helper: Manually clip large list of items.<br/>
 /// If you have lots evenly spaced items and you have random access to the list, you can perform coarse<br/>
 /// clipping based on visibility to only submit items that are in view.<br/>
@@ -6374,6 +6463,11 @@ public unsafe interface IImGuiListClipper
     /// [Internal] Internal data<br/>
     ///</summary>
     void* TempData { get; set; }
+
+    ///<summary>
+    /// [Internal] Flags, currently not yet well exposed.<br/>
+    ///</summary>
+    ref int Flags { get; }
 }
 
 ///<summary>
@@ -6387,7 +6481,7 @@ public enum ImGuiMultiSelectFlags
     ///</summary>
     ImGuiMultiSelectFlags_SingleSelect = 1 << 0,
     ///<summary>
-    /// Disable CTRL+A shortcut to select all.<br/>
+    /// Disable Ctrl+A shortcut to select all.<br/>
     ///</summary>
     ImGuiMultiSelectFlags_NoSelectAll = 1 << 1,
     ///<summary>
@@ -6447,7 +6541,11 @@ public enum ImGuiMultiSelectFlags
     ///<br/>
     ///ImGuiMultiSelectFlags_RangeSelect2d       = 1 &lt;&lt; 15,   Shift+Selection uses 2d geometry instead of linear sequence, so possible to use Shift+up/down to select vertically in grid. Analogous to what BoxSelect does.<br/>
     ///</summary>
-    ImGuiMultiSelectFlags_NavWrapX = 1 << 16
+    ImGuiMultiSelectFlags_NavWrapX = 1 << 16,
+    ///<summary>
+    /// Disable default right-click processing, which selects item on mouse down, and is designed for context-menus.<br/>
+    ///</summary>
+    ImGuiMultiSelectFlags_NoSelectOnRightClick = 1 << 17
 }
 
 ///<summary>
@@ -6922,7 +7020,7 @@ public unsafe interface IImDrawData
     ref bool Valid { get; }
 
     ///<summary>
-    /// Number of ImDrawList* to render. (== CmdLists.Size). Exists for legacy reason.<br/>
+    /// == CmdLists.Size. (OBSOLETE: exists for legacy reasons). Number of ImDrawList* to render.<br/>
     ///</summary>
     ref int CmdListsCount { get; }
 
@@ -6962,13 +7060,12 @@ public unsafe interface IImDrawData
     IImGuiViewport OwnerViewport { get; }
 
     ///<summary>
-    /// List of textures to update. Most of the times the list is shared by all ImDrawData, has only 1 texture and it doesn't need any update. This almost always points to ImGui::GetPlatformIO().Textures[]. May be overriden or set to NULL if you want to manually update textures.<br/>
+    /// List of textures to update. Most of the times the list is shared by all ImDrawData, has only 1 texture and it doesn't need any update. This almost always points to ImGui::GetPlatformIO().Textures[]. May be overridden or set to NULL if you want to manually update textures.<br/>
     ///</summary>
     ImStructPtrVectorPtrWrapper<IImTextureData> Textures { get; }
 }
 
 ///<summary>
-/// We intentionally support a limited amount of texture formats to limit burden on CPU-side code and extension.<br/>
 /// Most standard backends only support RGBA32 but we provide a single channel option for low-resource/embedded systems.<br/>
 ///</summary>
 public enum ImTextureFormat
@@ -7051,7 +7148,7 @@ public unsafe interface IImTextureData
     public nint NativePointer { get; }
 
     ///<summary>
-    /// w    -    Sequential index to facilitate identifying a texture when debugging/printing. Unique per atlas.<br/>
+    /// w    -    [DEBUG] Sequential index to facilitate identifying a texture when debugging/printing. Unique per atlas.<br/>
     ///<br/>
     ///------------------------------------------ core / backend ---------------------------------------<br/>
     ///</summary>
@@ -7158,7 +7255,7 @@ public unsafe interface IImFontConfig
     ref int FontDataSize { get; }
 
     ///<summary>
-    /// true      TTF/OTF data ownership taken by the container ImFontAtlas (will delete memory itself).<br/>
+    /// true      TTF/OTF data ownership taken by the owner ImFontAtlas (will delete memory itself).<br/>
     ///</summary>
     ref bool FontDataOwnedByAtlas { get; }
 
@@ -7180,11 +7277,6 @@ public unsafe interface IImFontConfig
     ref bool PixelSnapV { get; }
 
     ///<summary>
-    /// 0         Index of font within TTF/OTF file<br/>
-    ///</summary>
-    ref sbyte FontNo { get; }
-
-    ///<summary>
     /// 0 (2)     Rasterize at higher quality for sub-pixel positioning. 0 == auto == 1 or 2 depending on size. Note the difference between 2 and 3 is minimal. You can reduce this to 1 for large glyphs save memory. Read https:github.com/nothings/stb/blob/master/tests/oversample/README.md for details.<br/>
     ///</summary>
     ref sbyte OversampleH { get; }
@@ -7193,6 +7285,11 @@ public unsafe interface IImFontConfig
     /// 0 (1)     Rasterize at higher quality for sub-pixel positioning. 0 == auto == 1. This is not really useful as we don't use sub-pixel positions on the Y axis.<br/>
     ///</summary>
     ref sbyte OversampleV { get; }
+
+    ///<summary>
+    /// 0         Explicitly specify Unicode codepoint of ellipsis character. When fonts are being merged first specified ellipsis will be used.<br/>
+    ///</summary>
+    ref uint EllipsisChar { get; }
 
     ///<summary>
     ///           Size in pixels for rasterizer (more or less maps to the resulting font height).<br/>
@@ -7232,6 +7329,11 @@ public unsafe interface IImFontConfig
     ref float GlyphExtraAdvanceX { get; }
 
     ///<summary>
+    /// 0         Index of font within TTF/OTF file<br/>
+    ///</summary>
+    ref uint FontNo { get; }
+
+    ///<summary>
     /// 0         Settings for custom font builder. THIS IS BUILDER IMPLEMENTATION DEPENDENT. Leave as zero if unsure.<br/>
     ///</summary>
     ref uint FontLoaderFlags { get; }
@@ -7249,11 +7351,6 @@ public unsafe interface IImFontConfig
     ref float RasterizerDensity { get; }
 
     ///<summary>
-    /// 0         Explicitly specify Unicode codepoint of ellipsis character. When fonts are being merged first specified ellipsis will be used.<br/>
-    ///</summary>
-    ref uint EllipsisChar { get; }
-
-    ///<summary>
     /// Font flags (don't use just yet, will be exposed in upcoming 1.92.X updates)<br/>
     ///<br/>
     /// [Internal]<br/>
@@ -7266,7 +7363,7 @@ public unsafe interface IImFontConfig
     IImFont DstFont { get; }
 
     ///<summary>
-    /// Custom font backend for this source (other use one stored in ImFontAtlas)<br/>
+    /// Custom font backend for this source (default source is the one stored in ImFontAtlas)<br/>
     ///</summary>
     IImFontLoader FontLoader { get; }
 
@@ -7576,7 +7673,7 @@ public unsafe interface IImFontAtlas
     IImFontAtlasBuilder Builder { get; }
 
     ///<summary>
-    /// Font loader opaque interface (default to stb_truetype, can be changed to use FreeType by defining IMGUI_ENABLE_FREETYPE). Don't set directly!<br/>
+    /// Font loader opaque interface (default to use FreeType when IMGUI_ENABLE_FREETYPE is defined, otherwise default to use stb_truetype). Use SetFontLoader() to change this at runtime.<br/>
     ///</summary>
     IImFontLoader FontLoader { get; }
 
@@ -7694,24 +7791,29 @@ public unsafe interface IImFontBaked
     uint WantDestroy { get; set; }
 
     ///<summary>
-    /// 0       <br/>
+    /// 0        Disable loading fallback in lower-level calls.<br/>
     ///</summary>
-    uint LockLoadingFallback { get; set; }
+    uint LoadNoFallback { get; set; }
 
     ///<summary>
-    /// 4           Record of that time this was bounds<br/>
+    /// 0        Enable a two-steps mode where CalcTextSize() calls will load AdvanceX *without* rendering/packing glyphs. Only advantagous if you know that the glyph is unlikely to actually be rendered, otherwise it is slower because we'd do one query on the first CalcTextSize and one query on the first Draw.<br/>
+    ///</summary>
+    uint LoadNoRenderOnLayout { get; set; }
+
+    ///<summary>
+    /// 4        Record of that time this was bounds<br/>
     ///</summary>
     ref int LastUsedFrame { get; }
 
     ///<summary>
-    /// 4     <br/>
+    /// 4           Unique ID for this baked storage<br/>
     ///</summary>
     ref uint BakedId { get; }
 
     ///<summary>
     /// 4-8    in   Parent font<br/>
     ///</summary>
-    IImFont ContainerFont { get; }
+    IImFont OwnerFont { get; }
 
     ///<summary>
     /// 4-8         Font loader opaque storage (per baked font * sources): single contiguous buffer allocated by imgui, passed to loader.<br/>
@@ -7743,7 +7845,7 @@ public enum ImFontFlags
 ///<summary>
 /// Font runtime data and rendering<br/>
 /// - ImFontAtlas automatically loads a default embedded font for you if you didn't load one manually.<br/>
-/// - Since 1.92.X a font may be rendered as any size! Therefore a font doesn't have one specific size.<br/>
+/// - Since 1.92.0 a font may be rendered as any size! Therefore a font doesn't have one specific size.<br/>
 /// - Use 'font-&gt;GetFontBaked(size)' to retrieve the ImFontBaked* corresponding to a given size.<br/>
 /// - If you used g.Font + g.FontSize (which is frequent from the ImGui layer), you can use g.FontBaked as a shortcut, as g.FontBaked == g.Font-&gt;GetFontBaked(g.FontSize).<br/>
 ///</summary>
@@ -7761,7 +7863,7 @@ public unsafe interface IImFont
     ///<summary>
     /// 4-8    What we have been loaded into.<br/>
     ///</summary>
-    IImFontAtlas ContainerAtlas { get; }
+    IImFontAtlas OwnerAtlas { get; }
 
     ///<summary>
     /// 4      Font flags.<br/>
@@ -7787,7 +7889,7 @@ public unsafe interface IImFont
     ref float LegacySize { get; }
 
     ///<summary>
-    /// 16     in   List of sources. Pointers within ContainerAtlas-&gt;Sources[]<br/>
+    /// 16     in   List of sources. Pointers within OwnerAtlas-&gt;Sources[]<br/>
     ///</summary>
     ImStructPtrVectorWrapper<IImFontConfig> Sources { get; }
 
@@ -7947,6 +8049,11 @@ public unsafe interface IImGuiViewport
     ref uint ParentViewportId { get; }
 
     ///<summary>
+    /// (Advanced) Direct shortcut to ImGui::FindViewportByID(ParentViewportId). NULL: no parent.<br/>
+    ///</summary>
+    IImGuiViewport ParentViewport { get; }
+
+    ///<summary>
     /// The ImDrawData corresponding to this viewport. Valid after Render() and until the next call to NewFrame().<br/>
     ///</summary>
     IImDrawData DrawData { get; }
@@ -8017,7 +8124,7 @@ public unsafe interface IImGuiPlatformIO
 
     ///<summary>
     /// Optional: Open link/folder/file in OS Shell<br/>
-    /// (default to use ShellExecuteW() on Windows, system() on Linux/Mac)<br/>
+    /// (default to use ShellExecuteW() on Windows, system() on Linux/Mac. expected to return false on failure, but some platforms may always return true)<br/>
     ///</summary>
     delegate* unmanaged[Cdecl]<nint, nint, byte> Platform_OpenInShellFn { get; set; }
 
@@ -8333,7 +8440,7 @@ public enum ImGuiFreeTypeLoaderFlags
 ///<summary>
 /// This is automatically assigned when using '#define IMGUI_ENABLE_FREETYPE'.<br/>
 /// If you need to dynamically select between multiple builders:<br/>
-/// - you can manually assign this builder with 'atlas-&gt;FontLoader = ImGuiFreeType::GetFontLoader()'<br/>
+/// - you can manually assign this builder with 'atlas-&gt;SetFontLoader(ImGuiFreeType::GetFontLoader())'<br/>
 ///</summary>
 public unsafe interface IImGuiFreeTypeImDrawData
 {

@@ -723,9 +723,9 @@ public unsafe class ImGui : IImGui
     public void RenderPlatformWindowsDefault() => ImGuiMethods.RenderPlatformWindowsDefault();
     public void RenderPlatformWindowsDefaultEx(void* platform_render_arg, void* renderer_render_arg) => ImGuiMethods.RenderPlatformWindowsDefaultEx(platform_render_arg, renderer_render_arg);
     public void DestroyPlatformWindows() => ImGuiMethods.DestroyPlatformWindows();
-    public IImGuiViewport FindViewportByID(uint id)
+    public IImGuiViewport FindViewportByID(uint viewport_id)
     {
-        var retPtr = ImGuiMethods.FindViewportByID(id);
+        var retPtr = ImGuiMethods.FindViewportByID(viewport_id);
         if (retPtr is null)
         return null !;
         var retImpl = new ImGuiViewport(retPtr);
@@ -765,7 +765,6 @@ public unsafe class ImGui : IImGui
     public void ImGuiIO_ClearEventsQueue(IImGuiIO self) => ImGuiMethods.ImGuiIO_ClearEventsQueue(self is not null ? (ImGuiIOStruct*)self.NativePointer : null);
     public void ImGuiIO_ClearInputKeys(IImGuiIO self) => ImGuiMethods.ImGuiIO_ClearInputKeys(self is not null ? (ImGuiIOStruct*)self.NativePointer : null);
     public void ImGuiIO_ClearInputMouse(IImGuiIO self) => ImGuiMethods.ImGuiIO_ClearInputMouse(self is not null ? (ImGuiIOStruct*)self.NativePointer : null);
-    public void ImGuiIO_ClearInputCharacters(IImGuiIO self) => ImGuiMethods.ImGuiIO_ClearInputCharacters(self is not null ? (ImGuiIOStruct*)self.NativePointer : null);
     public void ImGuiInputTextCallbackData_DeleteChars(IImGuiInputTextCallbackData self, int pos, int bytes_count) => ImGuiMethods.ImGuiInputTextCallbackData_DeleteChars(self is not null ? (ImGuiInputTextCallbackDataStruct*)self.NativePointer : null, pos, bytes_count);
     public void ImGuiInputTextCallbackData_InsertChars(IImGuiInputTextCallbackData self, int pos, string text, string text_end) => ImGuiMethods.ImGuiInputTextCallbackData_InsertChars(self is not null ? (ImGuiInputTextCallbackDataStruct*)self.NativePointer : null, pos, text, text_end);
     public void ImGuiInputTextCallbackData_SelectAll(IImGuiInputTextCallbackData self) => ImGuiMethods.ImGuiInputTextCallbackData_SelectAll(self is not null ? (ImGuiInputTextCallbackDataStruct*)self.NativePointer : null);
@@ -838,7 +837,6 @@ public unsafe class ImGui : IImGui
     public void ImGuiListClipper_IncludeItemByIndex(IImGuiListClipper self, int item_index) => ImGuiMethods.ImGuiListClipper_IncludeItemByIndex(self is not null ? (ImGuiListClipperStruct*)self.NativePointer : null, item_index);
     public void ImGuiListClipper_IncludeItemsByIndex(IImGuiListClipper self, int item_begin, int item_end) => ImGuiMethods.ImGuiListClipper_IncludeItemsByIndex(self is not null ? (ImGuiListClipperStruct*)self.NativePointer : null, item_begin, item_end);
     public void ImGuiListClipper_SeekCursorForItem(IImGuiListClipper self, int item_index) => ImGuiMethods.ImGuiListClipper_SeekCursorForItem(self is not null ? (ImGuiListClipperStruct*)self.NativePointer : null, item_index);
-    public void ImGuiListClipper_IncludeRangeByIndices(IImGuiListClipper self, int item_begin, int item_end) => ImGuiMethods.ImGuiListClipper_IncludeRangeByIndices(self is not null ? (ImGuiListClipperStruct*)self.NativePointer : null, item_begin, item_end);
     public void ImColor_SetHSV(Vector4 self, float h, float s, float v, float a) => ImGuiMethods.ImColor_SetHSV(self, h, s, v, a);
     public Vector4 ImColor_HSV(float h, float s, float v, float a) => ImGuiMethods.ImColor_HSV(h, s, v, a);
     public void ImGuiSelectionBasicStorage_ApplyRequests(IImGuiSelectionBasicStorage self, IImGuiMultiSelectIO ms_io) => ImGuiMethods.ImGuiSelectionBasicStorage_ApplyRequests(self is not null ? (ImGuiSelectionBasicStorageStruct*)self.NativePointer : null, ms_io is not null ? (ImGuiMultiSelectIOStruct*)ms_io.NativePointer : null);
@@ -1027,6 +1025,7 @@ public unsafe class ImGui : IImGui
     public void ImFontAtlas_RemoveFont(IImFontAtlas self, IImFont font) => ImGuiMethods.ImFontAtlas_RemoveFont(self is not null ? (ImFontAtlasStruct*)self.NativePointer : null, font is not null ? (ImFontStruct*)font.NativePointer : null);
     public void ImFontAtlas_Clear(IImFontAtlas self) => ImGuiMethods.ImFontAtlas_Clear(self is not null ? (ImFontAtlasStruct*)self.NativePointer : null);
     public void ImFontAtlas_CompactCache(IImFontAtlas self) => ImGuiMethods.ImFontAtlas_CompactCache(self is not null ? (ImFontAtlasStruct*)self.NativePointer : null);
+    public void ImFontAtlas_SetFontLoader(IImFontAtlas self, IImFontLoader font_loader) => ImGuiMethods.ImFontAtlas_SetFontLoader(self is not null ? (ImFontAtlasStruct*)self.NativePointer : null, font_loader is not null ? (ImFontLoaderStruct*)font_loader.NativePointer : null);
     public void ImFontAtlas_ClearInputData(IImFontAtlas self) => ImGuiMethods.ImFontAtlas_ClearInputData(self is not null ? (ImFontAtlasStruct*)self.NativePointer : null);
     public void ImFontAtlas_ClearFonts(IImFontAtlas self) => ImGuiMethods.ImFontAtlas_ClearFonts(self is not null ? (ImFontAtlasStruct*)self.NativePointer : null);
     public void ImFontAtlas_ClearTexData(IImFontAtlas self) => ImGuiMethods.ImFontAtlas_ClearTexData(self is not null ? (ImFontAtlasStruct*)self.NativePointer : null);
@@ -1112,7 +1111,7 @@ public unsafe class ImGui : IImGui
     }
 
     public Vector2 ImFont_CalcTextSizeA(IImFont self, float size, float max_width, float wrap_width, string text_begin) => ImGuiMethods.ImFont_CalcTextSizeA(self is not null ? (ImFontStruct*)self.NativePointer : null, size, max_width, wrap_width, text_begin);
-    public Vector2 ImFont_CalcTextSizeAEx(IImFont self, float size, float max_width, float wrap_width, string text_begin, string text_end, sbyte** remaining) => ImGuiMethods.ImFont_CalcTextSizeAEx(self is not null ? (ImFontStruct*)self.NativePointer : null, size, max_width, wrap_width, text_begin, text_end, remaining);
+    public Vector2 ImFont_CalcTextSizeAEx(IImFont self, float size, float max_width, float wrap_width, string text_begin, string text_end, sbyte** out_remaining) => ImGuiMethods.ImFont_CalcTextSizeAEx(self is not null ? (ImFontStruct*)self.NativePointer : null, size, max_width, wrap_width, text_begin, text_end, out_remaining);
     public string ImFont_CalcWordWrapPosition(IImFont self, float size, string text, string text_end, float wrap_width)
     {
         sbyte* retStrPtr = ImGuiMethods.ImFont_CalcWordWrapPosition(self is not null ? (ImFontStruct*)self.NativePointer : null, size, text, text_end, wrap_width);
@@ -1124,7 +1123,7 @@ public unsafe class ImGui : IImGui
 
     public void ImFont_RenderChar(IImFont self, IImDrawList draw_list, float size, Vector2 pos, uint col, uint c) => ImGuiMethods.ImFont_RenderChar(self is not null ? (ImFontStruct*)self.NativePointer : null, draw_list is not null ? (ImDrawListStruct*)draw_list.NativePointer : null, size, pos, col, c);
     public void ImFont_RenderCharEx(IImFont self, IImDrawList draw_list, float size, Vector2 pos, uint col, uint c, Vector4 cpu_fine_clip) => ImGuiMethods.ImFont_RenderCharEx(self is not null ? (ImFontStruct*)self.NativePointer : null, draw_list is not null ? (ImDrawListStruct*)draw_list.NativePointer : null, size, pos, col, c, cpu_fine_clip);
-    public void ImFont_RenderText(IImFont self, IImDrawList draw_list, float size, Vector2 pos, uint col, Vector4 clip_rect, string text_begin, string text_end, float wrap_width, bool cpu_fine_clip) => ImGuiMethods.ImFont_RenderText(self is not null ? (ImFontStruct*)self.NativePointer : null, draw_list is not null ? (ImDrawListStruct*)draw_list.NativePointer : null, size, pos, col, clip_rect, text_begin, text_end, wrap_width, cpu_fine_clip);
+    public void ImFont_RenderText(IImFont self, IImDrawList draw_list, float size, Vector2 pos, uint col, Vector4 clip_rect, string text_begin, string text_end, float wrap_width, int flags) => ImGuiMethods.ImFont_RenderText(self is not null ? (ImFontStruct*)self.NativePointer : null, draw_list is not null ? (ImDrawListStruct*)draw_list.NativePointer : null, size, pos, col, clip_rect, text_begin, text_end, wrap_width, flags);
     public string ImFont_CalcWordWrapPositionA(IImFont self, float scale, string text, string text_end, float wrap_width)
     {
         sbyte* retStrPtr = ImGuiMethods.ImFont_CalcWordWrapPositionA(self is not null ? (ImFontStruct*)self.NativePointer : null, scale, text, text_end, wrap_width);
@@ -1139,6 +1138,8 @@ public unsafe class ImGui : IImGui
     public bool ImFont_IsGlyphRangeUnused(IImFont self, uint c_begin, uint c_last) => ImGuiMethods.ImFont_IsGlyphRangeUnused(self is not null ? (ImFontStruct*)self.NativePointer : null, c_begin, c_last);
     public Vector2 ImGuiViewport_GetCenter(IImGuiViewport self) => ImGuiMethods.ImGuiViewport_GetCenter(self is not null ? (ImGuiViewportStruct*)self.NativePointer : null);
     public Vector2 ImGuiViewport_GetWorkCenter(IImGuiViewport self) => ImGuiMethods.ImGuiViewport_GetWorkCenter(self is not null ? (ImGuiViewportStruct*)self.NativePointer : null);
+    public void ImGuiPlatformIO_ClearPlatformHandlers(IImGuiPlatformIO self) => ImGuiMethods.ImGuiPlatformIO_ClearPlatformHandlers(self is not null ? (ImGuiPlatformIOStruct*)self.NativePointer : null);
+    public void ImGuiPlatformIO_ClearRendererHandlers(IImGuiPlatformIO self) => ImGuiMethods.ImGuiPlatformIO_ClearRendererHandlers(self is not null ? (ImGuiPlatformIOStruct*)self.NativePointer : null);
     public void PushFont(IImFont font) => ImGuiMethods.PushFont(font is not null ? (ImFontStruct*)font.NativePointer : null);
     public void SetWindowFontScale(float scale) => ImGuiMethods.SetWindowFontScale(scale);
     public void ImageImVec4(ImTextureRef tex_ref, Vector2 image_size, Vector2 uv0, Vector2 uv1, Vector4 tint_col, Vector4 border_col) => ImGuiMethods.ImageImVec4(tex_ref, image_size, uv0, uv1, tint_col, border_col);
@@ -1157,7 +1158,6 @@ public unsafe class ImGui : IImGui
     public bool ComboObsoleteEx(string label, ref int current_item, delegate* unmanaged[Cdecl]<nint, int, nint, byte> old_callback, void* user_data, int items_count, int popup_max_height_in_items) => ImGuiMethods.ComboObsoleteEx(label, ref current_item, old_callback, user_data, items_count, popup_max_height_in_items);
     public bool ListBoxObsolete(string label, ref int current_item, delegate* unmanaged[Cdecl]<nint, int, nint, byte> old_callback, void* user_data, int items_count) => ImGuiMethods.ListBoxObsolete(label, ref current_item, old_callback, user_data, items_count);
     public bool ListBoxObsoleteEx(string label, ref int current_item, delegate* unmanaged[Cdecl]<nint, int, nint, byte> old_callback, void* user_data, int items_count, int height_in_items) => ImGuiMethods.ListBoxObsoleteEx(label, ref current_item, old_callback, user_data, items_count, height_in_items);
-    public void SetItemAllowOverlap() => ImGuiMethods.SetItemAllowOverlap();
     public unsafe struct ImDrawListSharedData : IImDrawListSharedData
     {
         public nint NativePointer { get; }
@@ -1239,12 +1239,15 @@ public unsafe class ImGui : IImGui
         public readonly ref float ColumnsMinSpacing => ref Unsafe.AsRef<float>(&((ImGuiStyleStruct*)NativePointer)->ColumnsMinSpacing);
         public readonly ref float ScrollbarSize => ref Unsafe.AsRef<float>(&((ImGuiStyleStruct*)NativePointer)->ScrollbarSize);
         public readonly ref float ScrollbarRounding => ref Unsafe.AsRef<float>(&((ImGuiStyleStruct*)NativePointer)->ScrollbarRounding);
+        public readonly ref float ScrollbarPadding => ref Unsafe.AsRef<float>(&((ImGuiStyleStruct*)NativePointer)->ScrollbarPadding);
         public readonly ref float GrabMinSize => ref Unsafe.AsRef<float>(&((ImGuiStyleStruct*)NativePointer)->GrabMinSize);
         public readonly ref float GrabRounding => ref Unsafe.AsRef<float>(&((ImGuiStyleStruct*)NativePointer)->GrabRounding);
         public readonly ref float LogSliderDeadzone => ref Unsafe.AsRef<float>(&((ImGuiStyleStruct*)NativePointer)->LogSliderDeadzone);
         public readonly ref float ImageBorderSize => ref Unsafe.AsRef<float>(&((ImGuiStyleStruct*)NativePointer)->ImageBorderSize);
         public readonly ref float TabRounding => ref Unsafe.AsRef<float>(&((ImGuiStyleStruct*)NativePointer)->TabRounding);
         public readonly ref float TabBorderSize => ref Unsafe.AsRef<float>(&((ImGuiStyleStruct*)NativePointer)->TabBorderSize);
+        public readonly ref float TabMinWidthBase => ref Unsafe.AsRef<float>(&((ImGuiStyleStruct*)NativePointer)->TabMinWidthBase);
+        public readonly ref float TabMinWidthShrink => ref Unsafe.AsRef<float>(&((ImGuiStyleStruct*)NativePointer)->TabMinWidthShrink);
         public readonly ref float TabCloseButtonMinWidthSelected => ref Unsafe.AsRef<float>(&((ImGuiStyleStruct*)NativePointer)->TabCloseButtonMinWidthSelected);
         public readonly ref float TabCloseButtonMinWidthUnselected => ref Unsafe.AsRef<float>(&((ImGuiStyleStruct*)NativePointer)->TabCloseButtonMinWidthUnselected);
         public readonly ref float TabBarBorderSize => ref Unsafe.AsRef<float>(&((ImGuiStyleStruct*)NativePointer)->TabBarBorderSize);
@@ -1254,6 +1257,9 @@ public unsafe class ImGui : IImGui
         public readonly ref ImGuiTreeNodeFlags TreeLinesFlags => ref Unsafe.AsRef<ImGuiTreeNodeFlags>(&((ImGuiStyleStruct*)NativePointer)->TreeLinesFlags);
         public readonly ref float TreeLinesSize => ref Unsafe.AsRef<float>(&((ImGuiStyleStruct*)NativePointer)->TreeLinesSize);
         public readonly ref float TreeLinesRounding => ref Unsafe.AsRef<float>(&((ImGuiStyleStruct*)NativePointer)->TreeLinesRounding);
+        public readonly ref float DragDropTargetRounding => ref Unsafe.AsRef<float>(&((ImGuiStyleStruct*)NativePointer)->DragDropTargetRounding);
+        public readonly ref float DragDropTargetBorderSize => ref Unsafe.AsRef<float>(&((ImGuiStyleStruct*)NativePointer)->DragDropTargetBorderSize);
+        public readonly ref float DragDropTargetPadding => ref Unsafe.AsRef<float>(&((ImGuiStyleStruct*)NativePointer)->DragDropTargetPadding);
         public readonly ref int ColorButtonPosition => ref Unsafe.AsRef<int>(&((ImGuiStyleStruct*)NativePointer)->ColorButtonPosition);
         public readonly ref Vector2 ButtonTextAlign => ref Unsafe.AsRef<Vector2>(&((ImGuiStyleStruct*)NativePointer)->ButtonTextAlign);
         public readonly ref Vector2 SelectableTextAlign => ref Unsafe.AsRef<Vector2>(&((ImGuiStyleStruct*)NativePointer)->SelectableTextAlign);
@@ -1262,6 +1268,7 @@ public unsafe class ImGui : IImGui
         public readonly ref Vector2 SeparatorTextPadding => ref Unsafe.AsRef<Vector2>(&((ImGuiStyleStruct*)NativePointer)->SeparatorTextPadding);
         public readonly ref Vector2 DisplayWindowPadding => ref Unsafe.AsRef<Vector2>(&((ImGuiStyleStruct*)NativePointer)->DisplayWindowPadding);
         public readonly ref Vector2 DisplaySafeAreaPadding => ref Unsafe.AsRef<Vector2>(&((ImGuiStyleStruct*)NativePointer)->DisplaySafeAreaPadding);
+        public readonly ref bool DockingNodeHasCloseButton => ref Unsafe.AsRef<bool>(&((ImGuiStyleStruct*)NativePointer)->DockingNodeHasCloseButton);
         public readonly ref float DockingSeparatorSize => ref Unsafe.AsRef<float>(&((ImGuiStyleStruct*)NativePointer)->DockingSeparatorSize);
         public readonly ref float MouseCursorScale => ref Unsafe.AsRef<float>(&((ImGuiStyleStruct*)NativePointer)->MouseCursorScale);
         public readonly ref bool AntiAliasedLines => ref Unsafe.AsRef<bool>(&((ImGuiStyleStruct*)NativePointer)->AntiAliasedLines);
@@ -1269,7 +1276,7 @@ public unsafe class ImGui : IImGui
         public readonly ref bool AntiAliasedFill => ref Unsafe.AsRef<bool>(&((ImGuiStyleStruct*)NativePointer)->AntiAliasedFill);
         public readonly ref float CurveTessellationTol => ref Unsafe.AsRef<float>(&((ImGuiStyleStruct*)NativePointer)->CurveTessellationTol);
         public readonly ref float CircleTessellationMaxError => ref Unsafe.AsRef<float>(&((ImGuiStyleStruct*)NativePointer)->CircleTessellationMaxError);
-        public readonly RangeAccessor<Vector4> Colors => new RangeAccessor<Vector4>(&((ImGuiStyleStruct*)NativePointer)->Colors, 60);
+        public readonly RangeAccessor<Vector4> Colors => new RangeAccessor<Vector4>(&((ImGuiStyleStruct*)NativePointer)->Colors, 62);
         public readonly ref float HoverStationaryDelay => ref Unsafe.AsRef<float>(&((ImGuiStyleStruct*)NativePointer)->HoverStationaryDelay);
         public readonly ref float HoverDelayShort => ref Unsafe.AsRef<float>(&((ImGuiStyleStruct*)NativePointer)->HoverDelayShort);
         public readonly ref float HoverDelayNormal => ref Unsafe.AsRef<float>(&((ImGuiStyleStruct*)NativePointer)->HoverDelayNormal);
@@ -1315,6 +1322,7 @@ public unsafe class ImGui : IImGui
         public readonly ref bool ConfigNavCursorVisibleAuto => ref Unsafe.AsRef<bool>(&((ImGuiIOStruct*)NativePointer)->ConfigNavCursorVisibleAuto);
         public readonly ref bool ConfigNavCursorVisibleAlways => ref Unsafe.AsRef<bool>(&((ImGuiIOStruct*)NativePointer)->ConfigNavCursorVisibleAlways);
         public readonly ref bool ConfigDockingNoSplit => ref Unsafe.AsRef<bool>(&((ImGuiIOStruct*)NativePointer)->ConfigDockingNoSplit);
+        public readonly ref bool ConfigDockingNoDockingOver => ref Unsafe.AsRef<bool>(&((ImGuiIOStruct*)NativePointer)->ConfigDockingNoDockingOver);
         public readonly ref bool ConfigDockingWithShift => ref Unsafe.AsRef<bool>(&((ImGuiIOStruct*)NativePointer)->ConfigDockingWithShift);
         public readonly ref bool ConfigDockingAlwaysTabBar => ref Unsafe.AsRef<bool>(&((ImGuiIOStruct*)NativePointer)->ConfigDockingAlwaysTabBar);
         public readonly ref bool ConfigDockingTransparentPayload => ref Unsafe.AsRef<bool>(&((ImGuiIOStruct*)NativePointer)->ConfigDockingTransparentPayload);
@@ -1322,6 +1330,7 @@ public unsafe class ImGui : IImGui
         public readonly ref bool ConfigViewportsNoTaskBarIcon => ref Unsafe.AsRef<bool>(&((ImGuiIOStruct*)NativePointer)->ConfigViewportsNoTaskBarIcon);
         public readonly ref bool ConfigViewportsNoDecoration => ref Unsafe.AsRef<bool>(&((ImGuiIOStruct*)NativePointer)->ConfigViewportsNoDecoration);
         public readonly ref bool ConfigViewportsNoDefaultParent => ref Unsafe.AsRef<bool>(&((ImGuiIOStruct*)NativePointer)->ConfigViewportsNoDefaultParent);
+        public readonly ref bool ConfigViewportsPlatformFocusSetsImGuiFocus => ref Unsafe.AsRef<bool>(&((ImGuiIOStruct*)NativePointer)->ConfigViewportsPlatformFocusSetsImGuiFocus);
         public readonly ref bool ConfigDpiScaleFonts => ref Unsafe.AsRef<bool>(&((ImGuiIOStruct*)NativePointer)->ConfigDpiScaleFonts);
         public readonly ref bool ConfigDpiScaleViewports => ref Unsafe.AsRef<bool>(&((ImGuiIOStruct*)NativePointer)->ConfigDpiScaleViewports);
         public readonly ref bool MouseDrawCursor => ref Unsafe.AsRef<bool>(&((ImGuiIOStruct*)NativePointer)->MouseDrawCursor);
@@ -1521,6 +1530,7 @@ public unsafe class ImGui : IImGui
         public readonly ref double StartPosY => ref Unsafe.AsRef<double>(&((ImGuiListClipperStruct*)NativePointer)->StartPosY);
         public readonly ref double StartSeekOffsetY => ref Unsafe.AsRef<double>(&((ImGuiListClipperStruct*)NativePointer)->StartSeekOffsetY);
         public readonly void* TempData { get => ((ImGuiListClipperStruct*)NativePointer)->TempData; set => ((ImGuiListClipperStruct*)NativePointer)->TempData = value; }
+        public readonly ref int Flags => ref Unsafe.AsRef<int>(&((ImGuiListClipperStruct*)NativePointer)->Flags);
     }
 
     public unsafe struct ImGuiMultiSelectIO : IImGuiMultiSelectIO
@@ -1711,9 +1721,9 @@ public unsafe class ImGui : IImGui
         public readonly ref bool MergeMode => ref Unsafe.AsRef<bool>(&((ImFontConfigStruct*)NativePointer)->MergeMode);
         public readonly ref bool PixelSnapH => ref Unsafe.AsRef<bool>(&((ImFontConfigStruct*)NativePointer)->PixelSnapH);
         public readonly ref bool PixelSnapV => ref Unsafe.AsRef<bool>(&((ImFontConfigStruct*)NativePointer)->PixelSnapV);
-        public readonly ref sbyte FontNo => ref Unsafe.AsRef<sbyte>(&((ImFontConfigStruct*)NativePointer)->FontNo);
         public readonly ref sbyte OversampleH => ref Unsafe.AsRef<sbyte>(&((ImFontConfigStruct*)NativePointer)->OversampleH);
         public readonly ref sbyte OversampleV => ref Unsafe.AsRef<sbyte>(&((ImFontConfigStruct*)NativePointer)->OversampleV);
+        public readonly ref uint EllipsisChar => ref Unsafe.AsRef<uint>(&((ImFontConfigStruct*)NativePointer)->EllipsisChar);
         public readonly ref float SizePixels => ref Unsafe.AsRef<float>(&((ImFontConfigStruct*)NativePointer)->SizePixels);
         public readonly uint* GlyphRanges { get => ((ImFontConfigStruct*)NativePointer)->GlyphRanges; set => ((ImFontConfigStruct*)NativePointer)->GlyphRanges = value; }
         public readonly uint* GlyphExcludeRanges { get => ((ImFontConfigStruct*)NativePointer)->GlyphExcludeRanges; set => ((ImFontConfigStruct*)NativePointer)->GlyphExcludeRanges = value; }
@@ -1721,10 +1731,10 @@ public unsafe class ImGui : IImGui
         public readonly ref float GlyphMinAdvanceX => ref Unsafe.AsRef<float>(&((ImFontConfigStruct*)NativePointer)->GlyphMinAdvanceX);
         public readonly ref float GlyphMaxAdvanceX => ref Unsafe.AsRef<float>(&((ImFontConfigStruct*)NativePointer)->GlyphMaxAdvanceX);
         public readonly ref float GlyphExtraAdvanceX => ref Unsafe.AsRef<float>(&((ImFontConfigStruct*)NativePointer)->GlyphExtraAdvanceX);
+        public readonly ref uint FontNo => ref Unsafe.AsRef<uint>(&((ImFontConfigStruct*)NativePointer)->FontNo);
         public readonly ref uint FontLoaderFlags => ref Unsafe.AsRef<uint>(&((ImFontConfigStruct*)NativePointer)->FontLoaderFlags);
         public readonly ref float RasterizerMultiply => ref Unsafe.AsRef<float>(&((ImFontConfigStruct*)NativePointer)->RasterizerMultiply);
         public readonly ref float RasterizerDensity => ref Unsafe.AsRef<float>(&((ImFontConfigStruct*)NativePointer)->RasterizerDensity);
-        public readonly ref uint EllipsisChar => ref Unsafe.AsRef<uint>(&((ImFontConfigStruct*)NativePointer)->EllipsisChar);
         public readonly ref int Flags => ref Unsafe.AsRef<int>(&((ImFontConfigStruct*)NativePointer)->Flags);
         public readonly IImFont DstFont => new ImFont(((ImFontConfigStruct*)NativePointer)->DstFont);
         public readonly IImFontLoader FontLoader => new ImFontLoader(((ImFontConfigStruct*)NativePointer)->FontLoader);
@@ -1830,10 +1840,11 @@ public unsafe class ImGui : IImGui
         public readonly ref uint _bitfield => ref Unsafe.AsRef<uint>(&((ImFontBakedStruct*)NativePointer)->_bitfield);
         public readonly uint MetricsTotalSurface { get => ((ImFontBakedStruct*)NativePointer)->MetricsTotalSurface; set => ((ImFontBakedStruct*)NativePointer)->MetricsTotalSurface = value; }
         public readonly uint WantDestroy { get => ((ImFontBakedStruct*)NativePointer)->WantDestroy; set => ((ImFontBakedStruct*)NativePointer)->WantDestroy = value; }
-        public readonly uint LockLoadingFallback { get => ((ImFontBakedStruct*)NativePointer)->LockLoadingFallback; set => ((ImFontBakedStruct*)NativePointer)->LockLoadingFallback = value; }
+        public readonly uint LoadNoFallback { get => ((ImFontBakedStruct*)NativePointer)->LoadNoFallback; set => ((ImFontBakedStruct*)NativePointer)->LoadNoFallback = value; }
+        public readonly uint LoadNoRenderOnLayout { get => ((ImFontBakedStruct*)NativePointer)->LoadNoRenderOnLayout; set => ((ImFontBakedStruct*)NativePointer)->LoadNoRenderOnLayout = value; }
         public readonly ref int LastUsedFrame => ref Unsafe.AsRef<int>(&((ImFontBakedStruct*)NativePointer)->LastUsedFrame);
         public readonly ref uint BakedId => ref Unsafe.AsRef<uint>(&((ImFontBakedStruct*)NativePointer)->BakedId);
-        public readonly IImFont ContainerFont => new ImFont(((ImFontBakedStruct*)NativePointer)->ContainerFont);
+        public readonly IImFont OwnerFont => new ImFont(((ImFontBakedStruct*)NativePointer)->OwnerFont);
         public readonly void* FontLoaderDatas { get => ((ImFontBakedStruct*)NativePointer)->FontLoaderDatas; set => ((ImFontBakedStruct*)NativePointer)->FontLoaderDatas = value; }
     }
 
@@ -1843,7 +1854,7 @@ public unsafe class ImGui : IImGui
 
         public ImFont(ImFontStruct* nativePtr) => NativePointer = (nint)nativePtr;
         public readonly IImFontBaked LastBaked => new ImFontBaked(((ImFontStruct*)NativePointer)->LastBaked);
-        public readonly IImFontAtlas ContainerAtlas => new ImFontAtlas(((ImFontStruct*)NativePointer)->ContainerAtlas);
+        public readonly IImFontAtlas OwnerAtlas => new ImFontAtlas(((ImFontStruct*)NativePointer)->OwnerAtlas);
         public readonly ref int Flags => ref Unsafe.AsRef<int>(&((ImFontStruct*)NativePointer)->Flags);
         public readonly ref float CurrentRasterizerDensity => ref Unsafe.AsRef<float>(&((ImFontStruct*)NativePointer)->CurrentRasterizerDensity);
         public readonly ref uint FontId => ref Unsafe.AsRef<uint>(&((ImFontStruct*)NativePointer)->FontId);
@@ -1871,6 +1882,7 @@ public unsafe class ImGui : IImGui
         public readonly ref Vector2 WorkSize => ref Unsafe.AsRef<Vector2>(&((ImGuiViewportStruct*)NativePointer)->WorkSize);
         public readonly ref float DpiScale => ref Unsafe.AsRef<float>(&((ImGuiViewportStruct*)NativePointer)->DpiScale);
         public readonly ref uint ParentViewportId => ref Unsafe.AsRef<uint>(&((ImGuiViewportStruct*)NativePointer)->ParentViewportId);
+        public readonly IImGuiViewport ParentViewport => new ImGuiViewport(((ImGuiViewportStruct*)NativePointer)->ParentViewport);
         public readonly IImDrawData DrawData => new ImDrawData(((ImGuiViewportStruct*)NativePointer)->DrawData);
         public readonly void* RendererUserData { get => ((ImGuiViewportStruct*)NativePointer)->RendererUserData; set => ((ImGuiViewportStruct*)NativePointer)->RendererUserData = value; }
         public readonly void* PlatformUserData { get => ((ImGuiViewportStruct*)NativePointer)->PlatformUserData; set => ((ImGuiViewportStruct*)NativePointer)->PlatformUserData = value; }
