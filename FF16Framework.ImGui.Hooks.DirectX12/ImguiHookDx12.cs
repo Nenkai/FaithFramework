@@ -321,7 +321,7 @@ public unsafe class ImguiHookDx12 : IImguiHook
 
     public void Dispose()
     {
-        ShutdownD3D12();
+        ShutdownD3D12(isReinit: false);
         DisableHooks();
 
         _textureHeapAllocator?.Destroy();
@@ -364,7 +364,7 @@ public unsafe class ImguiHookDx12 : IImguiHook
     /// <returns></returns>
     private bool InitD3D12()
     {
-        DebugLog.WriteLine($"[{nameof(ImguiHookDx12)}] InitD3D12");
+        DebugLog.WriteLine($"[{nameof(ImguiHookDx12)}] InitD3D12 (buffer count: {SwapChain.Description.BufferCount})");
 
         ShutdownD3D12();
         ImGuiMethods.cImGui_ImplWin32_Init(SwapChain.Description.OutputHandle);
@@ -396,7 +396,7 @@ public unsafe class ImguiHookDx12 : IImguiHook
         var renderTargetDesc = new DescriptorHeapDescription
         {
             Type = DescriptorHeapType.RenderTargetView,
-            DescriptorCount = 3, // 2 normally, 3 if frame gen
+            DescriptorCount = SwapChain.Description.BufferCount, // depends based on user's OS settings, don't hardcode a number here
             Flags = DescriptorHeapFlags.None,
             NodeMask = 1
         };
@@ -461,9 +461,12 @@ public unsafe class ImguiHookDx12 : IImguiHook
     /// <summary>
     /// Shuts down D3D12 for ImGui rendering. This will clean up all known resources and call ImGui_ImplDX12_Shutdown.
     /// </summary>
-    private void ShutdownD3D12()
+    private void ShutdownD3D12(bool isReinit = true)
     {
-        DebugLog.WriteLine($"[{nameof(ImguiHookDx12)}] ShutdownD3D12");
+        if (isReinit)
+            DebugLog.WriteLine($"[{nameof(ImguiHookDx12)}] Cleaning up D3D12 for reinitialization");
+        else
+            DebugLog.WriteLine($"[{nameof(ImguiHookDx12)}] ShutdownD3D12 called ");
 
         if (_imGuiBackendRendererData is not null)
             ImGuiMethods.cImGui_ImplDX12_Shutdown();
