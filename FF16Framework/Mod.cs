@@ -1,4 +1,8 @@
-﻿using FF16Framework.ImGui.Hooks;
+﻿using System;
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
+
+using FF16Framework.ImGui.Hooks;
 using FF16Framework.ImGui.Hooks.DirectX12;
 using FF16Framework.ImGuiManager;
 using FF16Framework.ImGuiManager.Windows;
@@ -18,10 +22,6 @@ using RyoTune.Reloaded;
 
 using SharpDX;
 using SharpDX.Direct3D12;
-
-using System;
-using System.Diagnostics;
-using System.Runtime.CompilerServices;
 
 using Tomlyn;
 
@@ -74,8 +74,6 @@ public class Mod : ModBase, IExports // <= Do not Remove.
     /// </summary>
     private readonly IModConfig _modConfig;
 
-    private static IStartupScanner? _startupScanner = null!;
-
     private NexHooks _nexHooks;
     private SaveHooks _saveHooks;
 
@@ -112,12 +110,6 @@ public class Mod : ModBase, IExports // <= Do not Remove.
             return;
         }
 
-        var startupScannerController = _modLoader.GetController<IStartupScanner>();
-        if (startupScannerController == null || !startupScannerController.TryGetTarget(out _startupScanner))
-        {
-            return;
-        }
-
         InitSaveHooks();
         InitNex();
         InitImGui();
@@ -125,10 +117,14 @@ public class Mod : ModBase, IExports // <= Do not Remove.
         _logger.WriteLine($"[{_modConfig.ModId}] Framework {_modConfig.ModVersion} initted.", _logger.ColorGreen);
     }
 
-    private delegate void RenderExecCommandListsAndPresent(nint a1);
-
     private bool imguiRenderable = false;
     private static IHook<RenderExecCommandListsAndPresent>? RenderExecCommandListsAndPresentHook;
+    private delegate void RenderExecCommandListsAndPresent(nint a1);
+
+    /// <summary>
+    /// Fired when the game is rendering a frame.
+    /// </summary>
+    /// <param name="a1"></param>
     private unsafe void RenderExecCommandListsAndPresentImpl(nint a1)
     {
         RenderExecCommandListsAndPresentHook!.OriginalFunction(a1);
