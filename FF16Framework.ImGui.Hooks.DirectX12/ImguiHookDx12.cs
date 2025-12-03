@@ -323,6 +323,7 @@ public unsafe class ImguiHookDx12 : IImguiHook
     {
         ShutdownD3D12(isReinit: false);
         DisableHooks();
+        _createSwapChainForHwndHook?.Disable();
 
         _textureHeapAllocator?.Destroy();
 
@@ -454,6 +455,8 @@ public unsafe class ImguiHookDx12 : IImguiHook
         ImGuiMethods.cImGui_ImplDX12_Init((nint)(&initInfo));
         _imGuiBackendRendererData = ImGuiMethods.GetIO()->BackendRendererUserData;
 
+        DebugLog.WriteLine($"[{nameof(ImguiHookDx12)}] D3D12 initted.");
+
         _initializedD3D12 = true;
         return true;
     }
@@ -527,6 +530,8 @@ public unsafe class ImguiHookDx12 : IImguiHook
             _hookedSwapchainVtableAddr = 0;
             _previousVTableAddr = 0;
         }
+
+        // We don't unhook swapchain creation. Not needed.
     }
 
     /// <summary>
@@ -635,6 +640,7 @@ public unsafe class ImguiHookDx12 : IImguiHook
 
         ImGuiMethods.cImGui_ImplDX12_NewFrame();
 
+        // OUTDATED COMMENT MAYBE:
         // ImGui >=1.92 note
         // When resizing windows outside the game window (viewports), the game wants to
         // Resize windows for some reason using PlatformIO_SetWindowSize
@@ -692,7 +698,8 @@ public unsafe class ImguiHookDx12 : IImguiHook
     /// <returns></returns>
     public nint ResizeBuffersImpl(nint swapchainPtr, uint bufferCount, uint width, uint height, Format newFormat, SwapChainFlags swapchainFlags)
     {
-        DebugLog.WriteLine($"[{nameof(ImguiHookDx12)}] ResizeBuffers Start");
+
+        DebugLog.WriteLine($"[{nameof(ImguiHookDx12)}] --- ResizeBuffers called ---");
 
         if (_resizeBufferDepth > 0)
         {
@@ -714,7 +721,7 @@ public unsafe class ImguiHookDx12 : IImguiHook
         if (result != nint.Zero)
             DebugLog.WriteLine($"[{nameof(ImguiHookDx12)}] ResizeBuffers original failed with {result:X}");
 
-        DebugLog.WriteLine($"[{nameof(ImguiHookDx12)}] ResizeBuffers end");
+        DebugLog.WriteLine($"[{nameof(ImguiHookDx12)}] --- ResizeBuffers end (result: {result:X8}) ---");
         return result;
     }
 
@@ -734,7 +741,7 @@ public unsafe class ImguiHookDx12 : IImguiHook
     /// <returns></returns>
     public nint ResizeTargetImpl(nint swapchainPtr, nint pNewTargetParameters)
     {
-        DebugLog.WriteLine($"[{nameof(ImguiHookDx12)}] ResizeTarget end");
+        DebugLog.WriteLine($"[{nameof(ImguiHookDx12)}] --- ResizeTarget called ---");
         if (_resizeTargetDepth > 0)
         {
             Debug.WriteLine($"[{nameof(ImguiHookDx12)}] ResizeTarget discarding via Recursion Lock");
@@ -753,9 +760,9 @@ public unsafe class ImguiHookDx12 : IImguiHook
         _resizeTargetDepth--;
 
         if (result != nint.Zero)
-            DebugLog.WriteLine($"[{nameof(ImguiHookDx12)}] ResizeTarget original failed with {result:X}");
+            DebugLog.WriteLine($"[{nameof(ImguiHookDx12)}] ResizeTarget original failed with result: 0x{result:X}");
 
-        DebugLog.WriteLine($"[{nameof(ImguiHookDx12)}] ResizeTarget End {result:X8}");
+        DebugLog.WriteLine($"[{nameof(ImguiHookDx12)}] --- ResizeTarget end (result: {result:X8}) ---");
         return result;
     }
 
