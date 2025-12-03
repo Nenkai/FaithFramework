@@ -20,10 +20,8 @@ public readonly unsafe struct RangeAccessor<T>(void* data, int count) where T : 
     {
         get
         {
-            if (index < 0 || index >= Count)
-            {
-                throw new IndexOutOfRangeException();
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(index, nameof(index));
+            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(index, Count, nameof(index));
 
             return ref Unsafe.AsRef<T>((byte*)Data + s_sizeOfT * index);
         }
@@ -34,7 +32,7 @@ public readonly unsafe struct RangeAccessor<T>(void* data, int count) where T : 
 /// Used to wrap custom structs for interfacing.
 /// </summary>
 /// <typeparam name="T"></typeparam>
-public readonly unsafe struct RangeStructAccessor<T>(void* data, int count, int stride, Func<nint, T> wrapper)
+public unsafe struct RangeStructAccessor<T>(void* data, int count, int stride, Func<nint, T> wrapper)
 {
     public readonly void* Data = data;
     public readonly int Count = count;
@@ -49,10 +47,8 @@ public readonly unsafe struct RangeStructAccessor<T>(void* data, int count, int 
     {
         get
         {
-            if (index < 0 || index >= Count)
-            {
-                throw new IndexOutOfRangeException();
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(index, nameof(index));
+            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(index, Count, nameof(index));
 
             nint address = (nint)Data + (_stride * index);
             return _wrapper(address);

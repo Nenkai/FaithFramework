@@ -327,12 +327,17 @@ public class ImGuiSupport : IImGuiSupport
     {
         IImGuiIO io = _imgui.GetIO();
         IImFontAtlas atlas = io.Fonts;
-        IImFont firstFont = atlas.Fonts[0];
+        foreach (IImFont font in atlas.Fonts)
+        {
+
+        }
 
         IImGuiPlatformIO platIo = _imgui.GetPlatformIO();
         ImStructVectorWrapper<IImGuiPlatformMonitor> monitors = platIo.Monitors;
-        IImGuiPlatformMonitor firstMonitor = monitors[0];
+        foreach (IImGuiPlatformMonitor monitor in monitors)
+        {
 
+        }
         RangeStructAccessor<IImGuiKeyData> keys = io.KeysData;
         IImGuiKeyData key0 = keys[0];
         IImGuiKeyData key1 = keys[1];
