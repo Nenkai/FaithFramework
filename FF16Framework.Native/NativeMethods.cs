@@ -12,9 +12,6 @@ namespace FF16Framework.Native;
 
 public class NativeMethods
 {
-    [DllImport("user32.dll")]
-    public static extern IntPtr LoadCursor(IntPtr hInstance, int lpCursorName);
-
     [DllImport("user32.dll", EntryPoint = "GetWindowLong")]
     private static extern IntPtr GetWindowLongPtr32(IntPtr hWnd, int nIndex);
 

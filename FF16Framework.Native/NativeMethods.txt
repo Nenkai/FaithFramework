@@ -10,9 +10,10 @@ GetModuleHandle
 GetModuleHandleEx
 GetModuleFileName
 GetProcAddress
+IsBadReadPtr
+IsWindowUnicode
 LoadLibraryW
 LoadCursor
-IsWindowUnicode
 RegisterClassEx
 ResetEvent
 WaitForSingleObject

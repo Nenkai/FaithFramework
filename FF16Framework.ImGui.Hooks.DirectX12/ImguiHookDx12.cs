@@ -46,7 +46,7 @@ public unsafe class ImguiHookDx12 : IImguiHook
     private IHook<ResizeTargetDelegate> _resizeTargetHook;
     private IHook<CreateSwapChainForHwnd> _createSwapChainForHwndHook;
 
-    delegate nint PresentDelegate(nint swapChainPtr, int syncInterval, PresentFlags flags);
+    delegate nint PresentDelegate(nuint swapChainPtr, int syncInterval, PresentFlags flags);
     delegate nint ResizeBuffersDelegate(nint swapchainPtr, uint bufferCount, uint width, uint height, Format newFormat, SwapChainFlags swapchainFlags);
     delegate nint ResizeTargetDelegate(nint swapchainPtr, nint pNewTargetParameters);
     delegate nint CreateSwapChainForHwnd(nint this_, nint pDevice, nint hWnd, SwapChainDescription* pDesc, SwapChainFullScreenDescription* pFullscreenDesc, nint pRestrictToOutput, nint ppSwapChain);
@@ -66,6 +66,9 @@ public unsafe class ImguiHookDx12 : IImguiHook
     private bool _createSwapChainRecursionLock;
 
     private bool _isHookingD3D12 = false; // Used to ensure CreateSwapChainForHwnd hook does not call recursively
+    private bool _isUsingFrameGenerationSwapchain = false; // Used to determine whether we are using Frame Gen (DLSS/FSR)'s swapchain (not really used?)
+    private bool _isUsingProtonSwapchain = false; // Used to determine whether we are using Proton's Swapchain
+    private nuint _protonSwapchainOffset; // Used to determine where the real swapchain is in proton's wrapper swapchain
 
     public Device Device { get; private set; }
     public SwapChain3 SwapChain { get; private set; }
@@ -100,7 +103,7 @@ public unsafe class ImguiHookDx12 : IImguiHook
     * We put a lock on the current thread in order to prevent stack overflow.
     */
 
-    public static int? CommandQueueOffset = null;
+    public static nuint? CommandQueueOffset = null;
 
     public ImguiHookDx12()
     {
@@ -205,9 +208,7 @@ public unsafe class ImguiHookDx12 : IImguiHook
             // TODO: use this to figure if it's a DLSS or FSR object? could never get that working
             var typeInfo = RTTIUtility.GetLocator((void*)swapChain.NativePointer);
 
-            FactoryVTable = SDK.Hooks.VirtualFunctionTableFromObject(factory.NativePointer, Enum.GetNames(typeof(IDXGIFactory)).Length);
-            SwapchainVTable = SDK.Hooks.VirtualFunctionTableFromObject(swapChain.NativePointer, Enum.GetNames(typeof(IDXGISwapChainVTable)).Length);
-            ComamndQueueVTable = SDK.Hooks.VirtualFunctionTableFromObject(commandQueue.NativePointer, Enum.GetNames(typeof(ID3D12CommandQueueVTable)).Length);
+            bool usingFrameGenSwapchain = false;
 
             // We need to try and find the command queue from the swapchain
             // We are not allowed to simply use it from hooked calls (D3D12 may forbid this)
@@ -219,11 +220,65 @@ public unsafe class ImguiHookDx12 : IImguiHook
                 {
                     if (ptr[i] == commandQueue.NativePointer)
                     {
-                        CommandQueueOffset = i * 8;
+                        CommandQueueOffset = (nuint)(i * 8);
                         break;
                     }
                 }
             }
+
+            if (CommandQueueOffset is null)
+            {
+                bool shouldBreak = false;
+                for (nuint @base = 0; @base < 512 * (nuint)sizeof(nuint); @base += (nuint)sizeof(nuint))
+                {
+                    nuint preScanBase = (nuint)swapChain.NativePointer + @base;
+                    if (PInvoke.IsBadReadPtr((void*)preScanBase, (nuint)sizeof(nuint)))
+                        break;
+
+                    nuint scanBase = *(nuint*)preScanBase;
+                    if (scanBase == 0 || PInvoke.IsBadReadPtr((void*)scanBase, (nuint)sizeof(nuint)))
+                        continue;
+
+                    for (nuint i = 0; i < 512 * (nuint)sizeof(nuint); i += (nuint)sizeof(nuint))
+                    {
+                        nuint preData = scanBase + i;
+
+                        if (PInvoke.IsBadReadPtr((void*)preData, (nuint)sizeof(nint)))
+                            break;
+
+                        nuint* data = *(nuint**)preData;
+
+                        if ((nuint)data == (nuint)commandQueue.NativePointer)
+                        {
+                            // As per REFramework:
+                            //   If we hook Streamline's Swapchain, the menu fails to render correctly/flickers
+                            //   So we switch out the swapchain with the internal one owned by Streamline
+                            //   Side note: Even though we are scanning for Proton here,
+                            //   this doubles as an offset scanner for the real swapchain inside Streamline (or FSR3)
+                            if (_isUsingFrameGenerationSwapchain)
+                                swapChain = new SwapChain3((nint)scanBase);
+
+                            if (!_isUsingFrameGenerationSwapchain)
+                                _isUsingProtonSwapchain = true;
+
+                            CommandQueueOffset = i;
+                            _protonSwapchainOffset = @base;
+                            shouldBreak = true;
+
+                            DebugLog.WriteLine($"[{nameof(ImguiHookDx12)}] Proton potentially detected");
+                            DebugLog.WriteLine($"[{nameof(ImguiHookDx12)}] Found command queue offset: 0x{i:X8}");
+                            break;
+                        }
+                    }
+
+                    if (_isUsingProtonSwapchain || shouldBreak)
+                        break;
+                }
+            }
+
+            FactoryVTable = SDK.Hooks.VirtualFunctionTableFromObject(factory.NativePointer, Enum.GetNames<IDXGIFactory>().Length);
+            SwapchainVTable = SDK.Hooks.VirtualFunctionTableFromObject(swapChain.NativePointer, Enum.GetNames<IDXGISwapChainVTable>().Length);
+            ComamndQueueVTable = SDK.Hooks.VirtualFunctionTableFromObject(commandQueue.NativePointer, Enum.GetNames<ID3D12CommandQueueVTable>().Length);
 
             DebugLog.WriteLine($"[{nameof(ImguiHookDx12)}] Swapchain command queue offset: 0x{CommandQueueOffset:X}");
 
@@ -552,11 +607,11 @@ public unsafe class ImguiHookDx12 : IImguiHook
     /// <param name="syncInterval"></param>
     /// <param name="flags"></param>
     /// <returns></returns>
-    public nint PresentImpl(nint swapChainPtr, int syncInterval, PresentFlags flags)
+    public nint PresentImpl(nuint swapChainPtr, int syncInterval, PresentFlags flags)
     {
         PresentDelegate originalFunc = _presentHook.OriginalFunction;
 
-        SwapChain3 swapChain = new SwapChain3(swapChainPtr);
+        SwapChain3 swapChain = new SwapChain3((nint)swapChainPtr);
 
         // Ignore windows which don't belong to us.
         var windowHandle = swapChain.Description.OutputHandle;
@@ -566,7 +621,7 @@ public unsafe class ImguiHookDx12 : IImguiHook
             return originalFunc(swapChainPtr, syncInterval, flags);
         }
 
-        if (!_convertPointerHooksToVtableHookPhase && (nuint)swapChainPtr != _hookedSwapchainVtableAddr)
+        if (!_convertPointerHooksToVtableHookPhase && swapChainPtr != _hookedSwapchainVtableAddr)
             return originalFunc(swapChainPtr, syncInterval, flags);
 
         // For safety reasons, we switch from vtable entry pointer hooks to whole vtable hook
@@ -575,12 +630,12 @@ public unsafe class ImguiHookDx12 : IImguiHook
             _presentHook.Disable();
 
             // Save the swapchain pointer/vtable pointers
-            _hookedSwapchainVtableAddr = (nuint)swapChainPtr;
+            _hookedSwapchainVtableAddr = swapChainPtr;
             _previousVTableAddr = *(nuint*)swapChainPtr;
 
             // NOTE: Must ensure that IDXGISwapChainVTable has all the members defined for IDXGISwapChain (including inherited ones), since we are copying the whole vtable.
             // It should have all members up to IDXGISwapChain4.
-            IVirtualFunctionTable hookedVTable = SDK.Hooks.HookedVirtualFunctionTableFromObject(swapChainPtr, Enum.GetNames<IDXGISwapChainVTable>().Length);
+            IVirtualFunctionTable hookedVTable = SDK.Hooks.HookedVirtualFunctionTableFromObject((nint)swapChainPtr, Enum.GetNames<IDXGISwapChainVTable>().Length);
             _presentHook = hookedVTable.CreateFunctionHook<PresentDelegate>((int)IDXGISwapChainVTable.Present, PresentImpl).Activate();
             _resizeBuffersHook = hookedVTable.CreateFunctionHook<ResizeBuffersDelegate>((int)IDXGISwapChainVTable.ResizeBuffers, ResizeBuffersImpl).Activate();
             _resizeTargetHook = hookedVTable.CreateFunctionHook<ResizeTargetDelegate>((int)IDXGISwapChainVTable.ResizeTarget, ResizeTargetImpl).Activate();
@@ -592,8 +647,14 @@ public unsafe class ImguiHookDx12 : IImguiHook
         SwapChain = swapChain;
         Device = SwapChain.GetDevice<Device>();
 
-        // TODO proton swapchain
-        CommandQueue = new CommandQueue(*(nint*)(swapChainPtr + CommandQueueOffset!.Value));
+        // Proton's real swap chain may be located elsewhere, we've tracked it earlier
+        if (_isUsingProtonSwapchain)
+        {
+            nuint realSwapchainPtr = *(nuint*)(swapChainPtr + _protonSwapchainOffset);
+            CommandQueue = new CommandQueue(*(nint*)(realSwapchainPtr + CommandQueueOffset!.Value));
+        }
+        else
+            CommandQueue = new CommandQueue(*(nint*)(swapChainPtr + CommandQueueOffset!.Value));
 
         if (_presentDepth > 0)
         {
