@@ -5,11 +5,6 @@ VisualStudioVersion = 18.0.11222.15
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FF16Framework", "FF16Framework\FF16Framework.csproj", "{33F46890-20D1-486A-A663-6200279FD0DC}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{A5D575D2-C339-4161-AC6F-A9F9C0C6CF5C}"
-	ProjectSection(SolutionItems) = preProject
-		.editorconfig = .editorconfig
-	EndProjectSection
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FF16Framework.Interfaces", "FF16Framework.Interfaces\FF16Framework.Interfaces.csproj", "{1219E370-9E9E-BE1F-A4C2-F046FCADAE20}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NenTools.ImGui.Hooks", "NenTools.ImGui\NenTools.ImGui.Hooks\NenTools.ImGui.Hooks.csproj", "{F6C7BF6B-35F3-1E9A-D6DF-B7EE74EAFF27}"
