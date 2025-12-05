@@ -1,8 +1,0 @@
-{
-  "profiles": {
-    "ImGuiInterfaceGenerator": {
-      "commandName": "Project",
-      "commandLineArgs": "C:\\Users\\nenkai\\source\\repos\\dear_bindings\\generated"
-    }
-  }
-}
