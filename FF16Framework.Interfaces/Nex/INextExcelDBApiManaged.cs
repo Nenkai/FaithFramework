@@ -5,6 +5,9 @@
 /// </summary>
 public interface INextExcelDBApiManaged
 {
+    /// <summary>
+    /// Whether the database is initialized and ready for use.
+    /// </summary>
     bool Initialized { get; }
 
     /// <summary>
@@ -22,14 +25,14 @@ public interface INextExcelDBApiManaged
     /// <summary>
     /// Gets a table.
     /// </summary>
-    /// <param name="table">Table type.</param>
+    /// <param name="tableId">Table type.</param>
     /// <returns>Table instance. Returns null if not found.</returns>
     INexTable? GetTable(NexTableIds tableId);
 
     /// <summary>
     /// Returns whether the provided table is loaded.
     /// </summary>
-    /// <param name="table"></param>
+    /// <param name="tableId"></param>
     /// <returns></returns>
     bool IsTableLoaded(NexTableIds tableId);
 }

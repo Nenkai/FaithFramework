@@ -52,14 +52,17 @@
     <PackageReference Include="Reloaded.SharedLib.Hooks" Version="1.9.0" />
     <PackageReference Include="RyoTune.Reloaded" Version="4.2.1" />
     <PackageReference Include="SharpDX.Direct3D12" Version="4.2.0" />
-    <PackageReference Include="SixLabors.ImageSharp" Version="3.1.10" />
     <PackageReference Include="Tomlyn" Version="0.19.0" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\FF16Framework.ImGui.Hooks.DirectX12\FF16Framework.ImGui.Hooks.DirectX12.csproj" />
     <ProjectReference Include="..\FF16Framework.Interfaces\FF16Framework.Interfaces.csproj" />
-    <ProjectReference Include="..\FF16Framework.Native\FF16Framework.Native.csproj" />
+    <ProjectReference Include="..\NenTools.ImGui\NenTools.ImGui.Hooks.DirectX12\NenTools.ImGui.Hooks.DirectX12.csproj" />
+    <ProjectReference Include="..\NenTools.ImGui\NenTools.ImGui.Implementation\NenTools.ImGui.Implementation.csproj" />
+    <ProjectReference Include="..\NenTools.ImGui\NenTools.ImGui.Interfaces\NenTools.ImGui.Interfaces.csproj" />
+    <ProjectReference Include="..\NenTools.ImGui\NenTools.ImGui.Native\NenTools.ImGui.Native.csproj" />
+    <ProjectReference Include="..\NenTools.ImGui\NenTools.ImGui.Shell.Interfaces\NenTools.ImGui.Shell.Interfaces.csproj" />
+    <ProjectReference Include="..\NenTools.ImGui\NenTools.ImGui.Shell\NenTools.ImGui.Shell.csproj" />
   </ItemGroup>
 
   <ItemGroup>

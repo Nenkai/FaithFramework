@@ -1,35 +1,38 @@
-﻿using FF16Framework.Interfaces.ImGui;
-using FF16Framework.Interfaces.ImGuiManager;
-
-using Reloaded.Mod.Interfaces;
-
-using System;
+﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
+using NenTools.ImGui.Interfaces;
+using NenTools.ImGui.Shell;
+using NenTools.ImGui.Shell.Interfaces;
+
+using Reloaded.Mod.Interfaces;
+
 namespace FF16Framework.ImGuiManager.Windows;
 
+[ImGuiMenu(Category = "Other", Priority = ImGuiShell.SystemPriority, Owner = nameof(FF16Framework))]
 public class AboutWindow : IImGuiComponent
 {
     public bool IsOverlay => false;
     public bool IsOpen = false;
 
-    private IModConfig _modConfig;
-    private IModLoader _modLoader;
-    private IImGuiTextureManager _textureManager;
+    private readonly IImGui _imGui;
+    private readonly IModConfig _modConfig;
+    private readonly IModLoader _modLoader;
 
-    public AboutWindow(IModConfig modConfig, IModLoader modLoader, IImGuiTextureManager textureManager)
+    public AboutWindow(IImGui imgui, IModConfig modConfig, IModLoader modLoader)
     {
+        _imGui = imgui;
         _modConfig = modConfig;
         _modLoader = modLoader;
-        _textureManager = textureManager;
     }
 
-    public void RenderMenu(IImGuiSupport imguiSupport, IImGui imgui)
+    public void RenderMenu(IImGuiShell imGuiShell)
     {
-        if (imgui.MenuItemEx("About Window", "", false, true))
+        if (_imGui.MenuItemEx("About Window", "", false, true))
         {
             IsOpen = true;
         }
@@ -38,7 +41,7 @@ public class AboutWindow : IImGuiComponent
     private IQueuedImGuiImage? _iconImage;
     private CancellationTokenSource _loadCts = new CancellationTokenSource();
 
-    public void Render(IImGuiSupport imguiSupport, IImGui imgui)
+    public void Render(IImGuiShell imGuiShell)
     {
         if (!IsOpen)
         {
@@ -49,36 +52,36 @@ public class AboutWindow : IImGuiComponent
         if (_iconImage is null)
         {
             string path = _modLoader.GetDirectoryForModId(_modConfig.ModId);
-            _iconImage = _textureManager.QueueImageLoad(Path.Combine(path, _modConfig.ModIcon), ct: _loadCts.Token);
+            _iconImage = imGuiShell.TextureManager.QueueImageLoad(Path.Combine(path, _modConfig.ModIcon), ct: _loadCts.Token);
         }
 
-        if (imgui.Begin("About Window", ref IsOpen, 0))
+        if (_imGui.Begin("About Window", ref IsOpen, 0))
         {
-            float windowWidth = imgui.GetWindowSize().X;
+            float windowWidth = _imGui.GetWindowSize().X;
             if (_iconImage.IsLoaded)
             {
-                imgui.SetCursorPosX((windowWidth - _iconImage.Image.Width) * 0.5f);
-                imgui.Image(new ImTextureRef() { TexID = _iconImage.Image.TexId }, new System.Numerics.Vector2(_iconImage.Image.Width, _iconImage.Image.Height));
+                _imGui.SetCursorPosX((windowWidth - _iconImage.Image.Width) * 0.5f);
+                _imGui.Image(_imGui.CreateTextureRef(_iconImage.Image.TexId), new System.Numerics.Vector2(_iconImage.Image.Width, _iconImage.Image.Height));
             }
 
             string mainText = $"{_modConfig.ModId} {_modConfig.ModVersion} by {_modConfig.ModAuthor}";
-            imgui.SetCursorPosX((windowWidth - imgui.CalcTextSize(mainText).X) * 0.5f);
-            imgui.Text(mainText);
-            imgui.Spacing();
+            _imGui.SetCursorPosX((windowWidth - _imGui.CalcTextSize(mainText).X) * 0.5f);
+            _imGui.Text(mainText);
+            _imGui.Spacing();
 
-            imgui.Text("Support Me:"); imgui.SameLine(); imgui.TextLinkOpenURL("https://ko-fi.com/nenkai");
-            imgui.Text("Github:"); imgui.SameLine(); imgui.TextLinkOpenURL("https://github.com/Nenkai/FF16Framework");
-            imgui.Text("Nexus Mods:"); imgui.SameLine(); imgui.TextLinkOpenURL("https://www.nexusmods.com/finalfantasy16/mods/138");
-            imgui.Spacing();
+            _imGui.Text("Support Me:"); _imGui.SameLine(); _imGui.TextLinkOpenURL("https://ko-fi.com/nenkai");
+            _imGui.Text("Github:"); _imGui.SameLine(); _imGui.TextLinkOpenURL("https://github.com/Nenkai/FF16Framework");
+            _imGui.Text("Nexus Mods:"); _imGui.SameLine(); _imGui.TextLinkOpenURL("https://www.nexusmods.com/finalfantasy16/mods/138");
+            _imGui.Spacing();
 
-            imgui.Text("Keys:");
-            imgui.Text("- INSERT: Show ImGui Menu");
-            imgui.Spacing();
+            _imGui.Text("Keys:");
+            _imGui.Text("- INSERT: Show ImGui Menu");
+            _imGui.Spacing();
 
-            imgui.Text("NOTE: Logs are also saved as a file in the game's directory as 'modtools_log.txt'.");
+            _imGui.Text("NOTE: Logs are also saved as a file in the game's directory as 'modtools_log.txt'.");
         }
 
-        imgui.End();
+        _imGui.End();
     }
 
     private void UnloadResourcesIfNeeded()

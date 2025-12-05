@@ -6,6 +6,9 @@ using System.Threading.Tasks;
 
 namespace FF16Framework.Interfaces.Nex.Structures;
 
+#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
+#pragma warning disable CS0169 // The field is never used
+
 // Size: 0x80
 public struct NexManagerInstance
 {

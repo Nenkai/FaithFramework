@@ -1,9 +1,4 @@
-﻿using FF16Framework.Interfaces.ImGui;
-using FF16Framework.Interfaces.ImGuiManager;
-
-using Reloaded.Mod.Interfaces;
-
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -11,63 +6,70 @@ using System.Threading.Tasks;
 using System.Numerics;
 using System.Drawing;
 
+using NenTools.ImGui.Interfaces;
+using NenTools.ImGui.Shell;
+using NenTools.ImGui.Shell.Interfaces;
+
 namespace FF16Framework.ImGuiManager.Windows;
 
+[ImGuiMenu(Category = "Tools", Priority = ImGuiShell.SystemPriority, Owner = nameof(FF16Framework))]
 public class SettingsComponent : IImGuiComponent
 {
     public bool IsOverlay => false;
 
-    private ImGuiConfig _config;
+    private readonly ImGuiConfig _config;
+    private readonly IImGui _imGui;
 
-    public SettingsComponent(ImGuiConfig config)
+    public SettingsComponent(IImGui imGui, ImGuiConfig config)
     {
+        _imGui = imGui;
         _config = config;
     }
 
-    public void RenderMenu(IImGuiSupport imGuiSupport, IImGui imGui)
+    public void RenderMenu(IImGuiShell imGuiShell)
     {
-        if (imGui.BeginMenu("Configuration"))
+        if (_imGui.BeginMenu("Configuration"))
         {
-            imGui.SeparatorText("Overlay Logger");
-            if (imGui.MenuItemBoolPtr("Enable Overlay Logger", string.Empty, ref _config.OverlayLogger.EnabledField, true))
+            _imGui.SeparatorText("Overlay Logger");
+            if (_imGui.MenuItemBoolPtr("Enable Overlay Logger", string.Empty, ref _config.OverlayLogger.EnabledField, true))
             {
                 if (_config.OverlayLogger.Enabled)
-                    imGuiSupport.LogWriteLine(nameof(FF16Framework), "Overlay logger is now enabled.", outputTargetFlags: LoggerOutputTargetFlags.All);
+                    imGuiShell.LogWriteLine("FaithFramework", "Overlay logger is now enabled.", outputTargetFlags: LoggerOutputTargetFlags.All);
             }
 
-            imGui.PushItemWidth(100);
-            imGui.SliderInt("Max lines", ref _config.OverlayLogger.MaxLinesField, 1, 150);
-            imGui.PopItemWidth();
+            _imGui.PushItemWidth(100);
+            _imGui.SliderInt("Max lines", ref _config.OverlayLogger.MaxLinesField, 1, 150);
+            _imGui.PopItemWidth();
 
-            imGui.PushItemWidth(100);
-            imGui.SliderFloat("Fade time", ref _config.OverlayLogger.FadeTimeSecondsField, 1, 20.0f);
-            imGui.PopItemWidth();
+            _imGui.PushItemWidth(100);
+            _imGui.SliderFloat("Fade time", ref _config.OverlayLogger.FadeTimeSecondsField, 1, 20.0f);
+            _imGui.PopItemWidth();
 
-            if (imGui.Button("Test overlay logger"))
+            if (_imGui.Button("Test overlay logger"))
             {
                 for (int i = 0; i < _config.OverlayLogger.MaxLines; i++)
-                    imGuiSupport.LogWriteLine(nameof(FF16Framework), $"#{i} Overlay logger test!", outputTargetFlags: LoggerOutputTargetFlags.OverlayLogger);
+                    imGuiShell.LogWriteLine("FaithFramework", $"#{i} Overlay logger test!", outputTargetFlags: LoggerOutputTargetFlags.OverlayLogger);
             }
-            imGui.Separator();
+            _imGui.Separator();
 
-            if (imGui.Button("Save"))
+            if (_imGui.Button("Save"))
             {
                 try
                 {
                     _config.Save();
-                    imGuiSupport.LogWriteLine(nameof(FF16Framework), "Framework config saved.", outputTargetFlags: LoggerOutputTargetFlags.All);
+                    imGuiShell.LogWriteLine("FaithFramework", "Framework config saved.", outputTargetFlags: LoggerOutputTargetFlags.All);
                 }
                 catch (Exception ex)
                 {
-                    imGuiSupport.LogWriteLine(nameof(FF16Framework), "Failed to write config.", color: Color.Red, outputTargetFlags: LoggerOutputTargetFlags.All);
+                    imGuiShell.LogWriteLine("FaithFramework", "Failed to write config.", color: Color.Red, outputTargetFlags: LoggerOutputTargetFlags.All);
                 }
             }
 
-            imGui.EndMenu();
+            _imGui.EndMenu();
         }
     }
 
-    public void Render(IImGuiSupport imGuiSupport, IImGui imGui)
+    public void Render(IImGuiShell imGuiShell)
     {
         
     }

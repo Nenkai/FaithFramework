@@ -7,6 +7,9 @@ namespace FF16Framework.Interfaces.Nex;
 /// </summary>
 public unsafe interface INextExcelDBApi
 {
+    /// <summary>
+    /// Whether the database is initialized and ready for use.
+    /// </summary>
     bool Initialized { get; }
 
     /// <summary>

@@ -60,8 +60,7 @@ public unsafe class NexHooks : HookGroupBase
 
     public override void Setup()
     {
-        Project.Scans.AddScanHook(nameof(NexInitialize),
-            (result, hooks) => NexInitializeHook = hooks.CreateHook<NexInitialize>(OnNxlLoadDetour, result).Activate());
+        Project.Scans.AddScanHook(nameof(NexInitialize), (result, hooks) => NexInitializeHook = hooks.CreateHook<NexInitialize>(OnNxlLoadDetour, result).Activate());
         Project.Scans.AddScanHook(nameof(NexGetTable), (result, hooks) => NexGetTableFunction = hooks.CreateWrapper<NexGetTable>(result, out _));
         Project.Scans.AddScanHook(nameof(NexGetSetCount), (result, hooks) => NexGetSetCountFunction = hooks.CreateWrapper<NexGetSetCount>(result, out _));
         Project.Scans.AddScanHook(nameof(NexGetRow1KByIndex), (result, hooks) => NexGetRow1KByIndexFunction = hooks.CreateWrapper<NexGetRow1KByIndex>(result, out _));

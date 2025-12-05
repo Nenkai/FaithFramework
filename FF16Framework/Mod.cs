@@ -1,17 +1,13 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 
-using FF16Framework.ImGui.Hooks;
-using FF16Framework.ImGui.Hooks.DirectX12;
-using FF16Framework.ImGuiManager;
-using FF16Framework.ImGuiManager.Windows;
-using FF16Framework.Interfaces.ImGui;
-using FF16Framework.Interfaces.ImGuiManager;
-using FF16Framework.Interfaces.Nex;
-using FF16Framework.Nex;
-using FF16Framework.Save;
-using FF16Framework.Template;
+using NenTools.ImGui.Hooks;
+using NenTools.ImGui.Hooks.DirectX12;
+using NenTools.ImGui.Interfaces;
+using NenTools.ImGui.Shell;
+using NenTools.ImGui.Shell.Interfaces;
 
 using Reloaded.Hooks.Definitions;
 using Reloaded.Hooks.Definitions.Structs;
@@ -20,10 +16,15 @@ using Reloaded.Mod.Interfaces;
 
 using RyoTune.Reloaded;
 
-using SharpDX;
-using SharpDX.Direct3D12;
-
 using Tomlyn;
+
+using Windows.Win32;
+
+using FF16Framework.Interfaces.Nex;
+using FF16Framework.Nex;
+using FF16Framework.Save;
+using FF16Framework.Template;
+using FF16Framework.ImGuiManager.Windows;
 
 using IReloadedHooks = Reloaded.Hooks.ReloadedII.Interfaces.IReloadedHooks;
 
@@ -39,7 +40,7 @@ public class Mod : ModBase, IExports // <= Do not Remove.
         typeof(INextExcelDBApi),
         typeof(INextExcelDBApiManaged),
         typeof(IImGui),
-        typeof(IImGuiSupport),
+        typeof(IImGuiShell),
         typeof(IImGuiTextureManager),
     ];
 
@@ -80,9 +81,18 @@ public class Mod : ModBase, IExports // <= Do not Remove.
     private NextExcelDBApi _nexApi;
     private NextExcelDBApiManaged _nexApiManaged;
 
-    private ImGuiSupport _imGuiSupport;
+    private ImGuiShell _imGuiShell;
     private ImGuiTextureManager _imGuiTextureManager;
     private ImGuiConfig _imGuiConfig;
+    private IImGui _imGui;
+
+    // Used to enable ImGui when the splash screen is disabled.
+    public delegate bool DestroyWindow(nint hwnd);
+    private IHook<DestroyWindow>? _destroyWindowHook;
+
+    // Used to inject ImGui when the first present occurs.
+    private static IHook<RenderExecCommandListsAndPresent>? RenderExecCommandListsAndPresentHook;
+    private delegate void RenderExecCommandListsAndPresent(nint a1);
 
     public Mod(ModContext context)
     {
@@ -118,8 +128,18 @@ public class Mod : ModBase, IExports // <= Do not Remove.
     }
 
     private bool imguiRenderable = false;
-    private static IHook<RenderExecCommandListsAndPresent>? RenderExecCommandListsAndPresentHook;
-    private delegate void RenderExecCommandListsAndPresent(nint a1);
+
+    // Only allow rendering once the splash screen is gone.
+    private bool DestroyWindowImpl(nint hwnd)
+    {
+        Span<char> name = stackalloc char[256];
+        PInvoke.GetClassName(new global::Windows.Win32.Foundation.HWND(hwnd), name);
+        string trimmed = name.ToString().TrimEnd('\0');
+        if (trimmed == "SplashClass")
+            _imGuiShell.EnableOverlay();
+
+        return _destroyWindowHook!.OriginalFunction(hwnd);
+    }
 
     /// <summary>
     /// Fired when the game is rendering a frame.
@@ -133,32 +153,107 @@ public class Mod : ModBase, IExports // <= Do not Remove.
         {
             if (_configuration.LoadImGuiHook)
             {
-                _imGuiSupport.Start().GetAwaiter().GetResult();
-
-                string logPath = Path.Combine(_modLoader.GetDirectoryForModId(_modConfig.ModId), "framework_log.txt");
-                _imGuiSupport.AddComponent(new LogWindow(_logger, logPath), _imGuiSupport.FileMenuName, nameof(FF16Framework));
-
-                _imGuiSupport.AddMenuSeparator(_imGuiSupport.ToolsMenuName, nameof(FF16Framework), nameof(FF16Framework));
-                _imGuiSupport.AddComponent(new SettingsComponent(_imGuiConfig), _imGuiSupport.ToolsMenuName, nameof(FF16Framework));
-
-                _imGuiSupport.AddComponent(new DemoWindow(), _imGuiSupport.OtherMenuName, nameof(FF16Framework));
-                _imGuiSupport.AddComponent(new AboutWindow(_modConfig, _modLoader, _imGuiTextureManager), _imGuiSupport.OtherMenuName, nameof(FF16Framework));
+                _imGuiShell.Start().GetAwaiter().GetResult();
             }
             else
             {
-                _logger.WriteLine($"[{_modConfig.ModId}] ImGui overlay/hook is currently disabled. You can enable it in the framework's configuration options.", _logger.ColorYellow);
+                _logger.WriteLine($"[{_modConfig.ModId}] ImGui overlay/hook is currently disabled. You can enable it in the framework's configuration options (restart needed).", _logger.ColorYellow);
             }
 
             imguiRenderable = true;
+
+            RenderExecCommandListsAndPresentHook.Disable();
         }
     }
 
+    private void OnFirstImGuiRender()
+    {
+        _imGuiShell.LogWriteLine("FaithFramework", $"FaithFramework {_modConfig.ModVersion} loaded.", loggerTargetFlags: LoggerOutputTargetFlags.All);
+        _imGuiShell.LogWriteLine("FaithFramework", $"ImGui {_imGui.GetVersion()} loaded.", loggerTargetFlags: LoggerOutputTargetFlags.All);
+        _imGuiShell.LogWriteLine("FaithFramework", "https://nenkai.github.io/ffxvi-modding/", loggerTargetFlags: LoggerOutputTargetFlags.All);
+        _imGuiShell.LogWriteLine("FaithFramework", "Press the INSERT key to show the main menu.", loggerTargetFlags: LoggerOutputTargetFlags.All);
+    }
+
+    private readonly static uint[] _emojiRangePtr = [0x100, 0x30000, 0 /* Null termination */];
+    private unsafe void ConfigureImgui()
+    {
+        string modFolder = _modLoader.GetDirectoryForModId(_modConfig.ModId);
+
+        IImGuiIO io = _imGui.GetIO();
+        io.ConfigFlags |= ImGuiConfigFlags.ImGuiConfigFlags_DockingEnable;
+
+        using IDisposableHandle<IImFontConfig> configHandle = _imGui.CreateFontConfig();
+        IImFontConfig config = configHandle.Value;
+
+        // English font
+        string robotoFontPath = Path.Combine(modFolder, "ImGuiManager", "Fonts", "Roboto", "Roboto-Medium.ttf");
+        _imGui.ImFontAtlas_AddFontFromFileTTF(io.Fonts, robotoFontPath, 15.0f, null!, ref Unsafe.AsRef<uint>(_imGui.ImFontAtlas_GetGlyphRangesDefault(io.Fonts)));
+
+        // Emojis
+        string twitterColorEmojiFontPath = Path.Combine(modFolder, "ImGuiManager", "Fonts", "TwitterColorEmoji", "twemoji.ttf");
+        config.FontLoaderFlags |= (uint)(ImGuiFreeTypeLoaderFlags.ImGuiFreeTypeBuilderFlags_LoadColor | ImGuiFreeTypeLoaderFlags.ImGuiFreeTypeBuilderFlags_Bitmap);
+        config.MergeMode = true;
+        _imGui.ImFontAtlas_AddFontFromFileTTF(io.Fonts, twitterColorEmojiFontPath, 14.0f, config, ref _emojiRangePtr[0]);
+
+        // Japanese font
+        string netoSansJpFontPath = Path.Combine(modFolder, "ImGuiManager", "Fonts", "Noto", "NotoSansJP-Medium.ttf");
+        _imGui.ImFontAtlas_AddFontFromFileTTF(io.Fonts, netoSansJpFontPath, 17.0f, config, ref Unsafe.AsRef<uint>(_imGui.ImFontAtlas_GetGlyphRangesJapanese(io.Fonts)));
+
+        var style = _imGui.GetStyle();
+        style.FrameRounding = 4.0f;
+        style.WindowRounding = 4.0f;
+        style.WindowBorderSize = 0.0f;
+        style.PopupBorderSize = 0.0f;
+        style.GrabRounding = 4.0f;
+        style.Colors[(int)ImGuiCol.ImGuiCol_TitleBgActive] = new Vector4(0.7f, 0.3f, 0.3f, 1.00f);
+
+        // Shell components
+        string logPath = Path.Combine(_modLoader.GetDirectoryForModId(_modConfig.ModId), "framework_log.txt");
+        _imGuiShell.AddComponent(new LogWindow(_imGui, _logger, logPath));
+
+        _imGuiShell.AddMenuSeparator("FaithFramework", _imGuiShell.ToolsMenuName, ImGuiShell.SystemPriority, nameof(FF16Framework));
+        _imGuiShell.AddComponent(new SettingsComponent(_imGui, _imGuiConfig));
+        _imGuiShell.AddMenuSeparator(null, _imGuiShell.ToolsMenuName, ImGuiShell.SystemPriority, nameof(FF16Framework));
+
+        _imGuiShell.AddComponent(new AboutWindow(_imGui, _modConfig, _modLoader));
+    }
+
+    private void RenderAnimatedTitle()
+    {
+        uint col1 = 0xAE3E15;
+        uint col2 = 0xF1994B;
+        float durationSec = 3f;
+
+        var newCol = Vector4.Lerp(
+            new Vector4(((col1 >> 16) & 0xFF) / 255.0f, ((col1 >> 8) & 0xFF) / 255.0f, (col1 & 0xFF) / 255.0f, 1.0f),
+            new Vector4(((col2 >> 16) & 0xFF) / 255.0f, ((col2 >> 8) & 0xFF) / 255.0f, (col2 & 0xFF) / 255.0f, 1.0f),
+            PingPong((float)_imGui.GetTime() / durationSec, 1.0f));
+
+        string text = $"FaithFramework v{_modConfig.ModVersion}";
+        Vector2 titleSize = _imGui.CalcTextSize(text);
+        _imGui.SameLineEx(_imGui.GetWindowWidth() - (titleSize.X + 16), 0);
+        _imGui.TextColored(new Vector4(newCol.X, newCol.Y, newCol.Z, 1.0f), text);
+
+        string fpsText = $"{_imGui.GetIO().Framerate:0.00} FPS ({1000.0f / _imGui.GetIO().Framerate:0.00} ms) / ";
+        Vector2 fpsSize = _imGui.CalcTextSize(fpsText);
+        _imGui.SameLineEx(_imGui.GetWindowWidth() - titleSize.X - (fpsSize.X + 16), 0);
+        _imGui.Text(fpsText);
+    }
+
+    public static float Repeat(float t, float length)
+    {
+        return Math.Clamp(t - MathF.Floor(t / length) * length, 0.0f, length);
+    }
+
+    public static float PingPong(float t, float length)
+    {
+        t = Repeat(t, length * 2F);
+        return length - MathF.Abs(t - length);
+    }
+
+
     private void InitImGui()
     {
-        var imgui = new ImGuiManager.ImGui();
-        var imguiHookDx12 = new ImguiHookDx12();
-        _imGuiTextureManager = new ImGuiTextureManager(_logger, imguiHookDx12);
-
         string configPath = Path.Combine(_modLoader.GetDirectoryForModId(_modConfig.ModId), "framework_config.toml");
         if (File.Exists(configPath))
         {
@@ -181,17 +276,28 @@ public class Mod : ModBase, IExports // <= Do not Remove.
             _imGuiConfig.Save();
         }
 
-        ImguiHook.imgui = imgui;
-        _imGuiSupport = new ImGuiSupport(_hooks!, _modConfig, _logger, imguiHookDx12, imgui, _imGuiConfig);
-        _imGuiSupport.SetupHooks(_modLoader.GetDirectoryForModId(_modConfig.ModId));
+
+        _imGui = new NenTools.ImGui.Implementation.ImGui();
+        ImguiHook.imGui = _imGui;
+
+        var imGuiHookDx12 = new ImguiHookDx12();
+        _imGuiShell = new ImGuiShell(_hooks!, imGuiHookDx12, _imGui, _imGuiConfig);
+        _imGuiShell.OnImGuiConfiguration += ConfigureImgui;
+        _imGuiShell.OnEndMainMenuBarRender += RenderAnimatedTitle;
+        _imGuiShell.OnLogMessage += (message, color) => _logger.WriteLine(message, color ?? System.Drawing.Color.White);
+        _imGuiShell.OnFirstRender += OnFirstImGuiRender;
+        _imGuiShell.SetupHooks();
+
+        nint destroyWindowPtr = PInvoke.GetProcAddress(PInvoke.GetModuleHandle("user32.dll"), "DestroyWindow");
+        _destroyWindowHook = _hooks!.CreateHook<DestroyWindow>(DestroyWindowImpl, destroyWindowPtr).Activate();
 
         // We hook the call that performs present (not present itself)
         // We setup our DX12 hooks after the game made the first call.
         Project.Scans.AddScanHook(nameof(RenderExecCommandListsAndPresent),
             (result, hooks) => RenderExecCommandListsAndPresentHook = _hooks.CreateHook<RenderExecCommandListsAndPresent>(RenderExecCommandListsAndPresentImpl, result).Activate());
 
-        _modLoader.AddOrReplaceController<IImGui>(_owner, ImguiHook.imgui);
-        _modLoader.AddOrReplaceController<IImGuiSupport>(_owner, _imGuiSupport);
+        _modLoader.AddOrReplaceController<IImGui>(_owner, _imGui);
+        _modLoader.AddOrReplaceController<IImGuiShell>(_owner, _imGuiShell);
         _modLoader.AddOrReplaceController<IImGuiTextureManager>(_owner, _imGuiTextureManager);
     }
 

@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 
 namespace FF16Framework.Interfaces.Nex.Structures;
 
+#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 public struct NexDataFile3KSetInfo
 {
     public uint Key1;
@@ -15,3 +16,4 @@ public struct NexDataFile3KSetInfo
     public uint UnkOffset;
     public uint UnkAlways0;
 }
+#pragma warning restore CS1591

@@ -4,10 +4,10 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-using FF16Framework.ImGuiManager;
-using FF16Framework.Interfaces.ImGui;
-using FF16Framework.Native;
-using FF16Framework.Native.ImGui;
+using NenTools.ImGui.Shell;
+using NenTools.ImGui.Shell.Interfaces;
+using NenTools.ImGui.Interfaces;
+using NenTools.ImGui.Native;
 
 using Reloaded.Hooks.Definitions;
 using Reloaded.Mod.Interfaces;
@@ -15,6 +15,7 @@ using Reloaded.Mod.Interfaces;
 using RyoTune.Reloaded;
 
 using Windows.Win32;
+using Windows.Win32.Foundation;
 
 namespace FF16Framework.ImGuiManager.Hooks;
 
@@ -41,19 +42,19 @@ public unsafe class ImGuiInputHookManager
     public delegate nuint GetDeviceData(nint this_, nint cbObjectData, nint rgdod, nint pdwInOut, int dwFlags);
     private IHook<GetDeviceData>? _getDeviceDataHook;
 
-    public delegate void GetCursorPos(POINT* a1);
-    private IHook<GetCursorPos>? _getCursorPosHook;
+    //public delegate void GetCursorPos(POINT* a1);
+    //private IHook<GetCursorPos>? _getCursorPosHook;
 
     public delegate nint SetCursor(nint a1);
     private IHook<SetCursor>? _setCursorHook;
 
-    private ImGuiSupport _imguiSupport;
+    private IImGuiShell _imGuiShell;
     private IReloadedHooks _hooks;
     private IModConfig _modConfig;
 
-    public ImGuiInputHookManager(ImGuiSupport imguiSupport, IReloadedHooks hooks, IModConfig modConfig)
+    public ImGuiInputHookManager(IImGuiShell imGuiShell, IReloadedHooks hooks, IModConfig modConfig)
     {
-        _imguiSupport = imguiSupport;
+        _imGuiShell = imGuiShell;
         _hooks = hooks;
         _modConfig = modConfig;
     }
@@ -81,10 +82,10 @@ public unsafe class ImGuiInputHookManager
     private bool hasSetCursor = false;
     private nint SetCursorImpl(nint hCursor)
     {
-        if (hCursor == 0 && _imguiSupport.IsMainMenuBarOpen)
+        if (hCursor == 0 && _imGuiShell.IsMainMenuOpen)
         {
             if (!hasSetCursor)
-                hCursor = NativeMethods.LoadCursor(hCursor, 0x7F00);
+                hCursor = PInvoke.LoadCursor(new HINSTANCE(hCursor), PInvoke.IDC_ARROW);
             else
                 return 0;
         }
@@ -95,9 +96,10 @@ public unsafe class ImGuiInputHookManager
     }
 
     // GetCursorPos is used for UI cursor tracking.
+    /*
     private void GetCursorPosImpl(POINT* a1)
     {
-        if (_imguiSupport.ContextCreated && (ImGuiMethods.GetIO()->WantCaptureMouse || _imguiSupport.IsMainMenuBarOpen && !_imguiSupport.MouseActiveWhileMenuOpen))
+        if (_imguiSupport.ContextCreated && (ImGuiMethods.GetIO()->WantCaptureMouse || _imguiSupport.IsMainMenuOpen && !_imguiSupport.MouseActiveWhileMenuOpen))
         {
             a1->X = 0;
             a1->Y = 0;
@@ -107,12 +109,13 @@ public unsafe class ImGuiInputHookManager
             _getCursorPosHook!.OriginalFunction(a1);
         }
     }
+    */
 
     // This function handles all keyboard events.
     public void KeyboardDeviceWindowMessageIntercepterImpl(nint this_, uint uMsg, nint uMsg_, nint wParam, nuint lParam)
     {
         VirtualKeyStates keyState = (VirtualKeyStates)(uMsg - 0x100);
-        if (_imguiSupport.ContextCreated && ImGuiMethods.GetIO()->WantCaptureKeyboard)
+        if (_imGuiShell.ContextCreated && ImGuiMethods.GetIO()->WantCaptureKeyboard)
             return;
 
         _HOOK_KeyboardDevice_WindowMessageIntercepter!.OriginalFunction(this_, uMsg, uMsg_, wParam, lParam);
@@ -125,11 +128,11 @@ public unsafe class ImGuiInputHookManager
         VirtualKeyStates keyState = (VirtualKeyStates)(key - 0x100);
         if (keyState == VirtualKeyStates.VK_INSERT)
         {
-            _imguiSupport.ToggleMenuState();
+            _imGuiShell.ToggleMenuState();
             return;
         }
 
-        if (_imguiSupport.ContextCreated && ImGuiMethods.GetIO()->WantCaptureKeyboard)
+        if (_imGuiShell.ContextCreated && ImGuiMethods.GetIO()->WantCaptureKeyboard)
             return;
 
         _HOOK_KeyboardManager_HandleWindowKeyboardKeyPressed!.OriginalFunction(dwRefData, key);
@@ -182,7 +185,7 @@ public unsafe class ImGuiInputHookManager
             _getDeviceDataHook = _hooks.CreateHook<GetDeviceData>(GetDeviceDataImpl, getDeviceDataPtr).Activate();
         }
 
-        if (rguid == NativeConstants.SysMouseGuid)
+        if (rguid == PInvoke.GUID_SysMouse)
             _mouseDevice = (nint)instancePtr;
 
         // Game uses SetWindowSubclass callback for keyboard input, so the keyboard device isn't registered
@@ -195,14 +198,14 @@ public unsafe class ImGuiInputHookManager
     {
         if (this_ == _mouseDevice) // ImGui wants input? don't forward to game
         {
-            if (_imguiSupport.ContextCreated && ImGuiMethods.GetIO()->WantCaptureMouse)
-                return 0x8007001E; // DIERR_LOSTINPUT
+            if (_imGuiShell.ContextCreated && ImGuiMethods.GetIO()->WantCaptureMouse)
+                return 0x8007000C; // DIERR_NOTACQUIRED
         }
 
         if (this_ == _mouseDevice)
         {
-            if (_imguiSupport.ContextCreated && _imguiSupport.IsMainMenuBarOpen && !_imguiSupport.MouseActiveWhileMenuOpen)
-                return 0x8007001E; // DIERR_LOSTINPUT
+            if (_imGuiShell.ContextCreated && _imGuiShell.IsMainMenuOpen && !_imGuiShell.MouseActiveWhileMenuOpen)
+                return 0x8007000C; // DIERR_NOTACQUIRED
         }
 
         return _getDeviceDataHook!.OriginalFunction(this_, cbObjectData, rgdod, pdwInOut, dwFlags);
@@ -213,15 +216,15 @@ public unsafe class ImGuiInputHookManager
     {
         if (instance == _mouseDevice) // ImGui wants input? don't forward to game
         {
-            if (_imguiSupport.ContextCreated && ImGuiMethods.GetIO()->WantCaptureMouse)
-                return 0x8007001E; // DIERR_LOSTINPUT
+            if (_imGuiShell.ContextCreated && ImGuiMethods.GetIO()->WantCaptureMouse)
+                return 0x8007000C; // DIERR_NOTACQUIRED
         }
 
         var res = _getDeviceStateHook.OriginalFunction(instance, cbData, lpvData);
         if (instance == _mouseDevice)
         {
-            if (_imguiSupport.ContextCreated && _imguiSupport.IsMainMenuBarOpen && !_imguiSupport.MouseActiveWhileMenuOpen)
-                return 0x8007001E; // DIERR_LOSTINPUT
+            if (_imGuiShell.ContextCreated && _imGuiShell.IsMainMenuOpen && !_imGuiShell.MouseActiveWhileMenuOpen)
+                return 0x8007000C; // DIERR_NOTACQUIRED
         }
 
         return res;

@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 
 namespace FF16Framework.Interfaces.Nex.Structures;
 
+#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 public unsafe struct NexTableInstance
 {
     public nint field_0x00;
@@ -34,3 +35,4 @@ public unsafe struct FileHandle
     public nint field_0x30;
     public byte* Buffer;
 }
+#pragma warning restore CS1591

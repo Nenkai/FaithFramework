@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 
 namespace FF16Framework.Interfaces;
 
+#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 public unsafe struct StdVector
 {
     public void* Myfirst;
@@ -40,3 +41,4 @@ public unsafe struct StdUnorderedMap
     public ulong Mask;
     public ulong MaskIdx;
 };
+#pragma warning restore CS1591

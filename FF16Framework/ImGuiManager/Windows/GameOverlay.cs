@@ -5,9 +5,9 @@ using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 
-using FF16Framework.ImGuiManager;
-using FF16Framework.Interfaces.ImGui;
-using FF16Framework.Interfaces.ImGuiManager;
+using NenTools.ImGui.Interfaces;
+using NenTools.ImGui.Shell;
+using NenTools.ImGui.Shell.Interfaces;
 
 namespace FF16Framework.ImGuiManager.Windows;
 
@@ -17,39 +17,42 @@ public unsafe class GameOverlay : IImGuiComponent
 
     private bool _open = true;
 
-    public GameOverlay()
+    private readonly IImGui _imGui;
+
+    public GameOverlay(IImGui imGui)
     {
+        _imGui = imGui;
     }
 
-    public void RenderMenu(IImGuiSupport imguiSupport, IImGui imgui)
+    public void RenderMenu(IImGuiShell imGuiShell)
     {
-        imgui.MenuItemBoolPtr("Enable Overlay", "", ref _open, true);
+        _imGui.MenuItemBoolPtr("Enable Overlay", "", ref _open, true);
     }
 
-    public void Render(IImGuiSupport imguiSupport, IImGui imgui)
+    public void Render(IImGuiShell imGuiShell)
     {
         if (!_open)
             return;
 
         float barHeight = 0;
-        if (imguiSupport.IsMainMenuBarOpen)
-            barHeight += imgui.GetFrameHeight();
+        if (imGuiShell.IsMainMenuOpen)
+            barHeight += _imGui.GetFrameHeight();
 
-        imgui.SetNextWindowBgAlpha(0.35f);
-        if (imgui.Begin("overlay", ref _open, ImGuiWindowFlags.ImGuiWindowFlags_NoDecoration |
+        _imGui.SetNextWindowBgAlpha(0.35f);
+        if (_imGui.Begin("overlay", ref _open, ImGuiWindowFlags.ImGuiWindowFlags_NoDecoration |
             ImGuiWindowFlags.ImGuiWindowFlags_NoDocking |
             ImGuiWindowFlags.ImGuiWindowFlags_AlwaysAutoResize |
             ImGuiWindowFlags.ImGuiWindowFlags_NoSavedSettings |
             ImGuiWindowFlags.ImGuiWindowFlags_NoFocusOnAppearing |
             ImGuiWindowFlags.ImGuiWindowFlags_NoNav))
         {
-            imgui.SetWindowPos(new Vector2()
+            _imGui.SetWindowPos(new Vector2()
             {
-                X = imgui.GetIO().DisplaySize.X - imgui.GetWindowWidth() - 10,
+                X = _imGui.GetIO().DisplaySize.X - _imGui.GetWindowWidth() - 10,
                 Y = barHeight + 5 /* padding */
             }, ImGuiCond.ImGuiCond_Always);
         }
 
-        imgui.End();
+        _imGui.End();
     }
 }
