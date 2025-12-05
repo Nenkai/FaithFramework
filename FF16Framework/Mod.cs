@@ -27,6 +27,7 @@ using FF16Framework.Template;
 using FF16Framework.ImGuiManager.Windows;
 
 using IReloadedHooks = Reloaded.Hooks.ReloadedII.Interfaces.IReloadedHooks;
+using FF16Framework.ImGuiManager.Hooks;
 
 namespace FF16Framework;
 
@@ -85,6 +86,7 @@ public class Mod : ModBase, IExports // <= Do not Remove.
     private ImGuiTextureManager _imGuiTextureManager;
     private ImGuiConfig _imGuiConfig;
     private IImGui _imGui;
+    private ImGuiInputHookManager _imGuiInputHook;
 
     // Used to enable ImGui when the splash screen is disabled.
     public delegate bool DestroyWindow(nint hwnd);
@@ -282,11 +284,14 @@ public class Mod : ModBase, IExports // <= Do not Remove.
 
         var imGuiHookDx12 = new ImguiHookDx12();
         _imGuiShell = new ImGuiShell(_hooks!, imGuiHookDx12, _imGui, _imGuiConfig);
+        _imGuiInputHook = new ImGuiInputHookManager(_imGuiShell, _hooks, _modConfig);
+
         _imGuiShell.OnImGuiConfiguration += ConfigureImgui;
         _imGuiShell.OnEndMainMenuBarRender += RenderAnimatedTitle;
         _imGuiShell.OnLogMessage += (message, color) => _logger.WriteLine(message, color ?? System.Drawing.Color.White);
         _imGuiShell.OnFirstRender += OnFirstImGuiRender;
         _imGuiShell.SetupHooks();
+        _imGuiInputHook.SetupInputHooks();
 
         nint destroyWindowPtr = PInvoke.GetProcAddress(PInvoke.GetModuleHandle("user32.dll"), "DestroyWindow");
         _destroyWindowHook = _hooks!.CreateHook<DestroyWindow>(DestroyWindowImpl, destroyWindowPtr).Activate();
