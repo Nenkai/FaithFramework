@@ -85,9 +85,12 @@ public unsafe class ImGuiInputHookManager
         if (hCursor == 0 && _imGuiShell.IsMainMenuOpen)
         {
             if (!hasSetCursor)
+            {
                 hCursor = PInvoke.LoadCursor(new HINSTANCE(hCursor), PInvoke.IDC_ARROW);
+                hasSetCursor = true;
+            }
             else
-                return 0;
+                return _setCursorHook!.OriginalFunction(hCursor);
         }
         else
             hasSetCursor = false;
