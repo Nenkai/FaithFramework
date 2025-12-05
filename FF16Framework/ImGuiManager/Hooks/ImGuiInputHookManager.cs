@@ -61,6 +61,9 @@ public unsafe class ImGuiInputHookManager
 
     public void SetupInputHooks()
     {
+        // Mouse input: dinput8 (movement GetDeviceData (ingame)/GetCursorPos (UI), presses: GetDeviceState)
+        // Keyboard input: WndProc messages
+
         Project.Scans.AddScanHook(nameof(KeyboardManager_HandleWindowKeyboardKeyPressed),
             (result, hooks) => _HOOK_KeyboardManager_HandleWindowKeyboardKeyPressed = hooks.CreateHook<KeyboardManager_HandleWindowKeyboardKeyPressed>(HandleWindowKeyboardKeyPressedImpl, result).Activate());
 
@@ -130,10 +133,7 @@ public unsafe class ImGuiInputHookManager
     {
         VirtualKeyStates keyState = (VirtualKeyStates)(key - 0x100);
         if (keyState == VirtualKeyStates.VK_INSERT)
-        {
-            _imGuiShell.ToggleMenuState();
-            return;
-        }
+            _imGuiShell.ToggleMenuState(); // Don't return. otherwise the game gets confused input wise
 
         if (_imGuiShell.ContextCreated && ImGuiMethods.GetIO()->WantCaptureKeyboard)
             return;
@@ -160,8 +160,7 @@ public unsafe class ImGuiInputHookManager
         // Get location of IDirectInput8::CreateDevice and hook it
         long* instancePtr = (long*)*(long*)ppvOut;
         long** vtbl = (long**)*instancePtr;
-        nint createDevicePtr = (nint)vtbl[3];
-        _createDeviceHook = _hooks.CreateHook<CreateDevice>(CreateDeviceImpl, createDevicePtr).Activate();
+        _createDeviceHook = _hooks.CreateHook<CreateDevice>(CreateDeviceImpl, (nint)vtbl[3]).Activate();
         _directInputCreateHook.Disable();
 
         return result;
@@ -223,7 +222,7 @@ public unsafe class ImGuiInputHookManager
                 return 0x8007000C; // DIERR_NOTACQUIRED
         }
 
-        var res = _getDeviceStateHook.OriginalFunction(instance, cbData, lpvData);
+            var res = _getDeviceStateHook.OriginalFunction(instance, cbData, lpvData);
         if (instance == _mouseDevice)
         {
             if (_imGuiShell.ContextCreated && _imGuiShell.IsMainMenuOpen && !_imGuiShell.MouseActiveWhileMenuOpen)
