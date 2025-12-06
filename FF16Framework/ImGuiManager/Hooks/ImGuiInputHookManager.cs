@@ -77,29 +77,8 @@ public unsafe class ImGuiInputHookManager
 
         var user32 = PInvoke.GetModuleHandle("user32.dll");
         //_getCursorPosHook = _hooks.CreateHook<GetCursorPos>(GetCursorPosImpl, PInvoke.GetProcAddress(user32, "GetCursorPos")).Activate();
-
-        _setCursorHook = _hooks.CreateHook<SetCursor>(SetCursorImpl, PInvoke.GetProcAddress(user32, "SetCursor")).Activate();
-
     }
 
-    private bool hasSetCursor = false;
-    private nint SetCursorImpl(nint hCursor)
-    {
-        if (hCursor == 0 && _imGuiShell.IsMainMenuOpen)
-        {
-            if (!hasSetCursor)
-            {
-                hCursor = PInvoke.LoadCursor(new HINSTANCE(hCursor), PInvoke.IDC_ARROW);
-                hasSetCursor = true;
-            }
-            else
-                return _setCursorHook!.OriginalFunction(hCursor);
-        }
-        else
-            hasSetCursor = false;
-
-        return _setCursorHook!.OriginalFunction(hCursor);
-    }
 
     // GetCursorPos is used for UI cursor tracking.
     /*
@@ -222,7 +201,7 @@ public unsafe class ImGuiInputHookManager
                 return 0x8007000C; // DIERR_NOTACQUIRED
         }
 
-            var res = _getDeviceStateHook.OriginalFunction(instance, cbData, lpvData);
+        var res = _getDeviceStateHook.OriginalFunction(instance, cbData, lpvData);
         if (instance == _mouseDevice)
         {
             if (_imGuiShell.ContextCreated && _imGuiShell.IsMainMenuOpen && !_imGuiShell.MouseActiveWhileMenuOpen)
