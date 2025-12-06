@@ -4,9 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-using NenTools.ImGui.Shell;
 using NenTools.ImGui.Shell.Interfaces;
-using NenTools.ImGui.Interfaces;
 using NenTools.ImGui.Native;
 
 using Reloaded.Hooks.Definitions;
@@ -15,7 +13,6 @@ using Reloaded.Mod.Interfaces;
 using RyoTune.Reloaded;
 
 using Windows.Win32;
-using Windows.Win32.Foundation;
 
 namespace FF16Framework.ImGuiManager.Hooks;
 
@@ -44,9 +41,6 @@ public unsafe class ImGuiInputHookManager
 
     //public delegate void GetCursorPos(POINT* a1);
     //private IHook<GetCursorPos>? _getCursorPosHook;
-
-    public delegate nint SetCursor(nint a1);
-    private IHook<SetCursor>? _setCursorHook;
 
     private IImGuiShell _imGuiShell;
     private IReloadedHooks _hooks;
