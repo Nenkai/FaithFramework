@@ -58,7 +58,7 @@ public unsafe class LogWindow : IImGuiComponent
 
     public void RenderMenu(IImGuiShell imguiSupport)
     {
-        if (_imgui.MenuItemEx("Log Window", "", false, true))
+        if (_imgui.MenuItemEx("Log Window"u8, ""u8, false, true))
         {
             IsOpen = true;
         }
@@ -69,18 +69,18 @@ public unsafe class LogWindow : IImGuiComponent
         if (!IsOpen)
             return;
 
-        if (_imgui.Begin("Log Window", ref IsOpen, 0))
+        if (_imgui.Begin("Log Window"u8, ref IsOpen, 0))
         {
-            if (_imgui.SmallButton("Copy"))
+            if (_imgui.SmallButton("Copy"u8))
                 _imgui.SetClipboardText(string.Join("\n", LastLines.Select(e => e.Message)));
             _imgui.SameLineEx(0, 2);
 
-            if (_imgui.SmallButton("Clear"))
+            if (_imgui.SmallButton("Clear"u8))
                 LastLines.Clear();
             _imgui.SameLineEx(0, 2);
-            _imgui.Checkbox("Auto-scroll", ref _autoScroll);
+            _imgui.Checkbox("Auto-scroll"u8, ref _autoScroll);
 
-            _imgui.BeginChild("##log_window_container", new Vector2(), 0, ImGuiWindowFlags.ImGuiWindowFlags_AlwaysVerticalScrollbar | ImGuiWindowFlags.ImGuiWindowFlags_AlwaysHorizontalScrollbar);
+            _imgui.BeginChild("##log_window_container"u8, new Vector2(), 0, ImGuiWindowFlags.ImGuiWindowFlags_AlwaysVerticalScrollbar | ImGuiWindowFlags.ImGuiWindowFlags_AlwaysHorizontalScrollbar);
 
             var greyColor = new Vector4(0.4f, 0.4f, 0.4f, 0.4f);
             var whiteColor = new Vector4(1.0f, 1.0f, 1.0f, 1.0f);

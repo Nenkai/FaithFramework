@@ -28,24 +28,24 @@ public class SettingsComponent : IImGuiComponent
 
     public void RenderMenu(IImGuiShell imGuiShell)
     {
-        if (_imGui.BeginMenu("Configuration"))
+        if (_imGui.BeginMenu("Configuration"u8))
         {
-            _imGui.SeparatorText("Overlay Logger");
-            if (_imGui.MenuItemBoolPtr("Enable Overlay Logger", string.Empty, ref _config.OverlayLogger.EnabledField, true))
+            _imGui.SeparatorText("Overlay Logger"u8);
+            if (_imGui.MenuItemBoolPtr("Enable Overlay Logger"u8, ""u8, ref _config.OverlayLogger.EnabledField, true))
             {
                 if (_config.OverlayLogger.Enabled)
                     imGuiShell.LogWriteLine("FaithFramework", "Overlay logger is now enabled.", outputTargetFlags: LoggerOutputTargetFlags.All);
             }
 
             _imGui.PushItemWidth(100);
-            _imGui.SliderInt("Max lines", ref _config.OverlayLogger.MaxLinesField, 1, 150);
+            _imGui.SliderInt("Max lines"u8, ref _config.OverlayLogger.MaxLinesField, 1, 150);
             _imGui.PopItemWidth();
 
             _imGui.PushItemWidth(100);
-            _imGui.SliderFloat("Fade time", ref _config.OverlayLogger.FadeTimeSecondsField, 1, 20.0f);
+            _imGui.SliderFloat("Fade time"u8, ref _config.OverlayLogger.FadeTimeSecondsField, 1, 20.0f);
             _imGui.PopItemWidth();
 
-            if (_imGui.Button("Test overlay logger"))
+            if (_imGui.Button("Test overlay logger"u8))
             {
                 for (int i = 0; i < _config.OverlayLogger.MaxLines; i++)
                     imGuiShell.LogWriteLine("FaithFramework", $"#{i} Overlay logger test!", outputTargetFlags: LoggerOutputTargetFlags.OverlayLogger);

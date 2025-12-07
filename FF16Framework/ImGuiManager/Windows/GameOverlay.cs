@@ -26,7 +26,7 @@ public unsafe class GameOverlay : IImGuiComponent
 
     public void RenderMenu(IImGuiShell imGuiShell)
     {
-        _imGui.MenuItemBoolPtr("Enable Overlay", "", ref _open, true);
+        _imGui.MenuItemBoolPtr("Enable Overlay"u8, ""u8, ref _open, true);
     }
 
     public void Render(IImGuiShell imGuiShell)
@@ -39,7 +39,7 @@ public unsafe class GameOverlay : IImGuiComponent
             barHeight += _imGui.GetFrameHeight();
 
         _imGui.SetNextWindowBgAlpha(0.35f);
-        if (_imGui.Begin("overlay", ref _open, ImGuiWindowFlags.ImGuiWindowFlags_NoDecoration |
+        if (_imGui.Begin("overlay"u8, ref _open, ImGuiWindowFlags.ImGuiWindowFlags_NoDecoration |
             ImGuiWindowFlags.ImGuiWindowFlags_NoDocking |
             ImGuiWindowFlags.ImGuiWindowFlags_AlwaysAutoResize |
             ImGuiWindowFlags.ImGuiWindowFlags_NoSavedSettings |
