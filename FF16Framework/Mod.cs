@@ -86,6 +86,7 @@ public class Mod : ModBase, IExports // <= Do not Remove.
     private ImGuiTextureManager _imGuiTextureManager;
     private ImGuiConfig _imGuiConfig;
     private IImGui _imGui;
+    private ImguiHookDx12 _imGuiHookDX12;
     private ImGuiInputHookManager _imGuiInputHook;
 
     // Used to enable ImGui when the splash screen is disabled.
@@ -155,7 +156,12 @@ public class Mod : ModBase, IExports // <= Do not Remove.
         {
             if (_configuration.LoadImGuiHook)
             {
-                _imGuiShell.Start().GetAwaiter().GetResult();
+                _imGuiShell.Start(new ImguiHookOptions()
+                {
+                    // TODO: Implement viewports
+                    // EnableViewports = false, Not yet functional with DX12 hooks, it creates a new swapchain that shouldn't be hooked.
+                    Implementations = [_imGuiHookDX12]
+                }).GetAwaiter().GetResult();
             }
             else
             {
@@ -212,11 +218,7 @@ public class Mod : ModBase, IExports // <= Do not Remove.
         // Shell components
         string logPath = Path.Combine(_modLoader.GetDirectoryForModId(_modConfig.ModId), "framework_log.txt");
         _imGuiShell.AddComponent(new LogWindow(_imGui, _logger, logPath));
-
-        _imGuiShell.AddMenuSeparator("FaithFramework", _imGuiShell.ToolsMenuName, ImGuiShell.SystemPriority, nameof(FF16Framework));
         _imGuiShell.AddComponent(new SettingsComponent(_imGui, _imGuiConfig));
-        _imGuiShell.AddMenuSeparator(null, _imGuiShell.ToolsMenuName, ImGuiShell.SystemPriority, nameof(FF16Framework));
-
         _imGuiShell.AddComponent(new AboutWindow(_imGui, _modConfig, _modLoader));
     }
 
@@ -282,8 +284,8 @@ public class Mod : ModBase, IExports // <= Do not Remove.
         _imGui = new NenTools.ImGui.Implementation.ImGui();
         ImguiHook.imGui = _imGui;
 
-        var imGuiHookDx12 = new ImguiHookDx12();
-        _imGuiShell = new ImGuiShell(_hooks!, imGuiHookDx12, _imGui, _imGuiConfig);
+        _imGuiHookDX12 = new ImguiHookDx12();
+        _imGuiShell = new ImGuiShell(_hooks!, _imGuiHookDX12, _imGui, _imGuiConfig);
         _imGuiInputHook = new ImGuiInputHookManager(_imGuiShell, _hooks, _modConfig);
 
         _imGuiShell.OnImGuiConfiguration += ConfigureImgui;
