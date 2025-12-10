@@ -41,4 +41,5 @@ public unsafe struct StdUnorderedMap
     public ulong Mask;
     public ulong MaskIdx;
 };
-#pragma warning restore CS1591
+
+#pragma warning restore CS1591 // Missing XML comment for publicly visible type or member

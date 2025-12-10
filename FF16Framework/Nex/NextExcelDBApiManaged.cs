@@ -1,16 +1,17 @@
 ﻿
+using FF16Framework.Interfaces.Nex;
+using FF16Framework.Interfaces.Nex.Structures;
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection.Emit;
 using System.Text;
 using System.Threading.Tasks;
 
-using FF16Framework.Interfaces.Nex.Structures;
-using FF16Framework.Interfaces.Nex;
-
 namespace FF16Framework.Nex;
 
-public class NextExcelDBApiManaged : INextExcelDBApiManaged
+public class NextExcelDBApiManaged : INextExcelDBApiManagedV2
 {
     private readonly NexHooks _nexHooks;
 
@@ -31,6 +32,18 @@ public class NextExcelDBApiManaged : INextExcelDBApiManaged
     }
 
     public INexTable? GetTable(NexTableIds tableId)
+        => GetTable((uint)tableId);
+
+    public uint GetMainRowCount(NexTableIds table)
+        => _nexHooks.NexGetSetCountFunction.Wrapper((uint)table);
+
+    public uint GetMainRowCount(uint tableId)
+        => _nexHooks.NexGetSetCountFunction.Wrapper(tableId);
+
+    public bool IsTableLoaded(NexTableIds tableId)
+        => IsTableLoaded((uint)tableId);
+
+    public INexTable? GetTable(uint tableId)
     {
         unsafe
         {
@@ -42,10 +55,7 @@ public class NextExcelDBApiManaged : INextExcelDBApiManaged
         }
     }
 
-    public uint GetMainRowCount(NexTableIds table)
-        => _nexHooks.NexGetSetCountFunction(table);
-
-    public bool IsTableLoaded(NexTableIds tableId)
+    public bool IsTableLoaded(uint tableId)
     {
         unsafe
         {

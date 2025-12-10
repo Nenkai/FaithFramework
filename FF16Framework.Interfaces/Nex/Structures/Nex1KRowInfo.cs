@@ -10,7 +10,14 @@ namespace FF16Framework.Interfaces.Nex.Structures;
 #pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 public struct Nex1KRowInfo
 {
+    /// <summary>
+    /// Key.
+    /// </summary>
     public uint Key1;
+
+    /// <summary>
+    /// Offset to the raw data, starting from this struct.
+    /// </summary>
     public int RowDataOffsetRelative;
 }
 #pragma warning restore CS1591

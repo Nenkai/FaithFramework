@@ -6,9 +6,12 @@ using System.Threading.Tasks;
 
 namespace FF16Framework.Interfaces.Nex;
 
-#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
+/// <summary>
+/// FFXVI Nex Table Ids.
+/// </summary>
 public enum NexTableIds
 {
+#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
     scene = 11,
     cameramode = 13,
     charatimeline = 14,
@@ -830,5 +833,6 @@ public enum NexTableIds
     grastreamingcorrectiontype = 1219,
     grasradaptivedr = 1220,
     razerevent = 1222
+#pragma warning restore CS1591 // Missing XML comment for publicly visible type or member
 }
 #pragma warning restore CS1591

@@ -15,6 +15,7 @@ public abstract class HookGroupBase
     protected Config _configuration;
     protected IModConfig _modConfig;
     protected ILogger _logger;
+    protected IModLoader _modLoader;
 
     public HookGroupBase(Config config, IModConfig modConfig, ILogger logger)
     {

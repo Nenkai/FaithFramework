@@ -1,4 +1,4 @@
-# ff16.utility.framework
+# Faith Framework (ff16.utility.framework)
 
 > [!WARNING]
 > This branch adds ImGui + API support for mods.
@@ -22,10 +22,12 @@ Currently only Nex interfaces.
 
 You should grab the [FF16Tools.Files](https://github.com/Nenkai/FF16Tools/) NuGet Package to be able to read rows.
 
-First, grab a `INextExcelDBApiManaged`:
+Then, add the `FF16Framework.Interfaces` NuGet package to your project. 
+
+Once you have it installed, grab a `INextExcelDBApiManagedV2` controller from the Mod Loader:
 ```csharp
-_nexApi = _modLoader.GetController<INextExcelDBApiManaged>();
-if (!_nexApi.TryGetTarget(out INextExcelDBApiManaged nextExcelDBApi))
+_nexApi = _modLoader.GetController<INextExcelDBApiManagedV2>();
+if (!_nexApi.TryGetTarget(out INextExcelDBApiManagedV2 nextExcelDBApi))
 {
     _logger.WriteLine($"[{_modConfig.ModId}] Could not get INextExcelDBApi.");
     return;
@@ -88,7 +90,7 @@ for (uint i = 0; i < numSubSets; i++)
 NexTableLayout layout = TableMappingReader.ReadTableLayout("photocameraparam", ...); // From FF16Tools.Files
 
 float collisionSphereRadius = row.GetSingle((uint)layout.Columns["CollisionSphereRadius"].Offset);
-row.SetSingle((uint)layout.Columns["CollisionSphereRadius"].Offset, 133.7f;
+row.SetSingle((uint)layout.Columns["CollisionSphereRadius"].Offset, 133.7f);
 ```
 
 > [!NOTE]

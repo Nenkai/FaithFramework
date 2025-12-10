@@ -18,7 +18,7 @@ public interface INextExcelDBApiManaged
     /// <summary>
     /// Gets the physical number of rows for a table.
     /// </summary>
-    /// <param name="table"></param>
+    /// <param name="table">Table id.</param>
     /// <returns></returns>
     uint GetMainRowCount(NexTableIds table);
 
@@ -32,7 +32,7 @@ public interface INextExcelDBApiManaged
     /// <summary>
     /// Returns whether the provided table is loaded.
     /// </summary>
-    /// <param name="tableId"></param>
+    /// <param name="tableId">Table id.</param>
     /// <returns></returns>
     bool IsTableLoaded(NexTableIds tableId);
 }

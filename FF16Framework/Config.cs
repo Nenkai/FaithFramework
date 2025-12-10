@@ -13,6 +13,7 @@ namespace FF16Framework
         [DefaultValue(true)]
         public bool LoadImGuiHook { get; set; } = true;
 
+        [Category("FFXVI")]
         [DisplayName("Serialize Saves as XML")]
         [Description("""
             Advanced Users/Save Editors only.

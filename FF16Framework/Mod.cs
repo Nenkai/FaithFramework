@@ -43,6 +43,7 @@ public class Mod : ModBase, IExports // <= Do not Remove.
         typeof(IImGui),
         typeof(IImGuiShell),
         typeof(IImGuiTextureManager),
+        typeof(INextExcelDBApiManagedV2)
     ];
 
     /// <summary>
