@@ -317,6 +317,7 @@ public class Mod : ModBase, IExports // <= Do not Remove.
         _nexApiManaged = new NextExcelDBApiManaged(_nexHooks);
         _modLoader.AddOrReplaceController<INextExcelDBApi>(_owner, _nexApi);
         _modLoader.AddOrReplaceController<INextExcelDBApiManaged>(_owner, _nexApiManaged);
+        _modLoader.AddOrReplaceController<INextExcelDBApiManagedV2>(_owner, _nexApiManaged);
     }
 
     private void InitSaveHooks()
