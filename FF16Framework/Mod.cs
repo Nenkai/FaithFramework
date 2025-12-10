@@ -170,6 +170,7 @@ public class Mod : ModBase, IExports // <= Do not Remove.
 
             imguiRenderable = true;
 
+            // Don't need to hook this anymore. All we wanted is just something to alert us that the game is rendering.
             RenderExecCommandListsAndPresentHook.Disable();
         }
     }
@@ -282,8 +283,6 @@ public class Mod : ModBase, IExports // <= Do not Remove.
 
 
         _imGui = new NenTools.ImGui.Implementation.ImGui();
-        ImguiHook.imGui = _imGui;
-
         _imGuiHookDX12 = new ImguiHookDx12();
         _imGuiShell = new ImGuiShell(_hooks!, _imGuiHookDX12, _imGui, _imGuiConfig);
         _imGuiInputHook = new ImGuiInputHookManager(_imGuiShell, _hooks, _modConfig);

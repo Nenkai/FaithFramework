@@ -1,15 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
-using System.Numerics;
-
-using Reloaded.Mod.Interfaces;
 
 using NenTools.ImGui.Interfaces;
 using NenTools.ImGui.Shell;
 using NenTools.ImGui.Shell.Interfaces;
+
+using Reloaded.Mod.Interfaces;
 
 namespace FF16Framework.ImGuiManager.Windows;
 
@@ -29,10 +29,10 @@ public unsafe class LogWindow : IImGuiComponent
     public List<LogMessage> LastLines = new(MAX_LINES);
     private static object _lock = new object();
 
-    private readonly IImGui _imgui;
+    private readonly IImGui _imGui;
     public LogWindow(IImGui imgui, ILogger logger, string logPath)
     {
-        _imgui = imgui;
+        _imGui = imgui;
         _logger = logger;
         _logger.OnWriteLine += _logger_OnWriteLine;
         _sw = new StreamWriter(logPath);
@@ -56,12 +56,19 @@ public unsafe class LogWindow : IImGuiComponent
         }
     }
 
-    public void RenderMenu(IImGuiShell imguiSupport)
+    public void RenderMenu(IImGuiShell imGuiShell)
     {
-        if (_imgui.MenuItemEx("Log Window"u8, ""u8, false, true))
+        if (_imGui.MenuItemEx("Log Window"u8, ""u8, false, true))
         {
             IsOpen = true;
         }
+
+#if DEBUG
+        if (_imGui.MenuItemEx("Shutdown D3D12/ImGui", "", false, true))
+        {
+            ((ImGuiShell)imGuiShell).Shutdown();
+        }
+#endif
     }
 
     public void Render(IImGuiShell imguiSupport)
@@ -69,18 +76,18 @@ public unsafe class LogWindow : IImGuiComponent
         if (!IsOpen)
             return;
 
-        if (_imgui.Begin("Log Window"u8, ref IsOpen, 0))
+        if (_imGui.Begin("Log Window"u8, ref IsOpen, 0))
         {
-            if (_imgui.SmallButton("Copy"u8))
-                _imgui.SetClipboardText(string.Join("\n", LastLines.Select(e => e.Message)));
-            _imgui.SameLineEx(0, 2);
+            if (_imGui.SmallButton("Copy"u8))
+                _imGui.SetClipboardText(string.Join("\n", LastLines.Select(e => e.Message)));
+            _imGui.SameLineEx(0, 2);
 
-            if (_imgui.SmallButton("Clear"u8))
+            if (_imGui.SmallButton("Clear"u8))
                 LastLines.Clear();
-            _imgui.SameLineEx(0, 2);
-            _imgui.Checkbox("Auto-scroll"u8, ref _autoScroll);
+            _imGui.SameLineEx(0, 2);
+            _imGui.Checkbox("Auto-scroll"u8, ref _autoScroll);
 
-            _imgui.BeginChild("##log_window_container"u8, new Vector2(), 0, ImGuiWindowFlags.ImGuiWindowFlags_AlwaysVerticalScrollbar | ImGuiWindowFlags.ImGuiWindowFlags_AlwaysHorizontalScrollbar);
+            _imGui.BeginChild("##log_window_container"u8, new Vector2(), 0, ImGuiWindowFlags.ImGuiWindowFlags_AlwaysVerticalScrollbar | ImGuiWindowFlags.ImGuiWindowFlags_AlwaysHorizontalScrollbar);
 
             var greyColor = new Vector4(0.4f, 0.4f, 0.4f, 0.4f);
             var whiteColor = new Vector4(1.0f, 1.0f, 1.0f, 1.0f);
@@ -88,19 +95,19 @@ public unsafe class LogWindow : IImGuiComponent
             {
                 for (int i = 0; i < LastLines.Count; i++)
                 {
-                    _imgui.TextColored(greyColor, $"[{LastLines[i].Time:HH:mm:ss.fff}]"); _imgui.SameLineEx(0, 4);
+                    _imGui.TextColored(greyColor, $"[{LastLines[i].Time:HH:mm:ss.fff}]"); _imGui.SameLineEx(0, 4);
                     //ImGui.TextColored(greyColor, $"[{LastLines[i].Handler}]"); ImGui.SameLine(0, 4);
-                    _imgui.TextColored(whiteColor, LastLines[i].Message);
+                    _imGui.TextColored(whiteColor, LastLines[i].Message);
                 }
             }
 
-            if (_autoScroll && _imgui.GetScrollY() >= _imgui.GetScrollMaxY())
-                _imgui.SetScrollHereY(1.0f);
+            if (_autoScroll && _imGui.GetScrollY() >= _imGui.GetScrollMaxY())
+                _imGui.SetScrollHereY(1.0f);
 
-            _imgui.EndChild();
+            _imGui.EndChild();
         }
 
-        _imgui.End();
+        _imGui.End();
     }
 }
 
