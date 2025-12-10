@@ -35,10 +35,10 @@ public class NextExcelDBApiManaged : INextExcelDBApiManagedV2
         => GetTable((uint)tableId);
 
     public uint GetMainRowCount(NexTableIds table)
-        => _nexHooks.NexGetSetCountFunction.Wrapper((uint)table);
+        => _nexHooks.NexGetSetCountFunction((uint)table);
 
     public uint GetMainRowCount(uint tableId)
-        => _nexHooks.NexGetSetCountFunction.Wrapper(tableId);
+        => _nexHooks.NexGetSetCountFunction(tableId);
 
     public bool IsTableLoaded(NexTableIds tableId)
         => IsTableLoaded((uint)tableId);

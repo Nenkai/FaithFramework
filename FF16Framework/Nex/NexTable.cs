@@ -43,7 +43,7 @@ public class NexTable : INexTableV2
     private uint? _cachedMainRowCount;
     public uint GetNumRows()
     { 
-        _cachedMainRowCount ??= _hooks.NexGetSetCountFunction(TableId);
+        _cachedMainRowCount ??= _hooks.NexGetSetCountFunction(TableIdRaw);
         return _cachedMainRowCount.Value;
     }
 
