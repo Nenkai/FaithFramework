@@ -1,12 +1,11 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
+    <TargetFramework>net9.0</TargetFramework>
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
-	<GenerateDocumentationFile>True</GenerateDocumentationFile>
+	<GenerateDocumentationFile>true</GenerateDocumentationFile>
     <Title>FF16Framework.Interfaces</Title>
     <PackageProjectUrl>https://github.com/Nenkai/FaithFramework</PackageProjectUrl>
 	<PackageIconUrl>https://avatars1.githubusercontent.com/u/45473408</PackageIconUrl>

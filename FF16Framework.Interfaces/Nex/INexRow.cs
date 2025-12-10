@@ -1,4 +1,5 @@
-﻿using FF16Framework.Interfaces.Nex.Structures;
+﻿using System;
+using FF16Framework.Interfaces.Nex.Structures;
 
 namespace FF16Framework.Interfaces.Nex;
 
@@ -7,6 +8,9 @@ namespace FF16Framework.Interfaces.Nex;
 /// </summary>
 public interface INexRow
 {
+    /// <summary>
+    /// Main key.
+    /// </summary>
     uint Key1 { get; }
 
     /// <summary>

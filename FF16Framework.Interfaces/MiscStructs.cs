@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace FF16Framework.Structures;
+namespace FF16Framework.Interfaces;
 
 #pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 public unsafe struct StdVector

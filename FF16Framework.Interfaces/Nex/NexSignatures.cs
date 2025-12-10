@@ -8,9 +8,7 @@ using FF16Framework.Interfaces.Nex.Structures;
 
 namespace FF16Framework.Interfaces.Nex;
 
-/// <summary>
-/// Nex game delegates/C signatures.
-/// </summary>
+#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 public unsafe static class NexSignatures
 {
     /// <summary>
@@ -101,3 +99,5 @@ public unsafe static class NexSignatures
     public delegate NexDataFile3KSetInfo* NexDataFileFindK3SetInfo(byte* nxdfFileBuffer, uint key1);
 
 }
+
+#pragma warning restore CS1591

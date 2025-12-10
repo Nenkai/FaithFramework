@@ -43,7 +43,7 @@ public class NexTable : INexTableV2
     private uint? _cachedMainRowCount;
     public uint GetNumRows()
     { 
-        _cachedMainRowCount ??= _hooks.NexGetSetCountFunction.Wrapper((uint)TableId);
+        _cachedMainRowCount ??= _hooks.NexGetSetCountFunction(TableIdRaw);
         return _cachedMainRowCount.Value;
     }
 
@@ -55,7 +55,7 @@ public class NexTable : INexTableV2
         uint count = 0;
         unsafe
         {
-            count = _hooks.NexGetK2CountFunction.Wrapper(_tableInstance, key1);
+            count = _hooks.NexGetK2CountFunction(_tableInstance, key1);
         }
         return count;
     }
@@ -152,7 +152,7 @@ public class NexTable : INexTableV2
         {
             if (Type == NexTableType.DoubleKeyed)
             {
-                NexDataFile2KSetInfo* setInfo = _hooks.NexDataFileFindK2SetInfoFunction.Wrapper(_tableInstance->FileHandle->Buffer + 0x20, key1);
+                NexDataFile2KSetInfo* setInfo = _hooks.NexDataFileFindK2SetInfoFunction(_tableInstance->FileHandle->Buffer + 0x20, key1);
                 if (setInfo is null)
                     return infos;
 
@@ -164,7 +164,7 @@ public class NexTable : INexTableV2
             }
             else if (Type == NexTableType.TripleKeyed)
             {
-                NexDataFile3KSetInfo* setInfo = _hooks.NexDataFileFindK3SetInfoFunction.Wrapper(_tableInstance->FileHandle->Buffer + 0x20, key1);
+                NexDataFile3KSetInfo* setInfo = _hooks.NexDataFileFindK3SetInfoFunction(_tableInstance->FileHandle->Buffer + 0x20, key1);
                 if (setInfo is null)
                     return infos;
 
@@ -188,7 +188,7 @@ public class NexTable : INexTableV2
         {
             if (Type == NexTableType.DoubleKeyed)
             {
-                NexDataFile2KSetInfo* setInfo = _hooks.NexDataFileFindK2SetInfoFunction.Wrapper(_tableInstance->FileHandle->Buffer + 0x20, key1);
+                NexDataFile2KSetInfo* setInfo = _hooks.NexDataFileFindK2SetInfoFunction(_tableInstance->FileHandle->Buffer + 0x20, key1);
                 if (setInfo is null)
                     return null;
 
@@ -200,7 +200,7 @@ public class NexTable : INexTableV2
             }
             else if (Type == NexTableType.TripleKeyed)
             {
-                NexDataFile3KSetInfo* setInfo = _hooks.NexDataFileFindK3SetInfoFunction.Wrapper(_tableInstance->FileHandle->Buffer + 0x20, key1);
+                NexDataFile3KSetInfo* setInfo = _hooks.NexDataFileFindK3SetInfoFunction(_tableInstance->FileHandle->Buffer + 0x20, key1);
                 if (setInfo is null)
                     return null;
 
@@ -224,10 +224,7 @@ public class NexTable : INexTableV2
         NexSetResult setResult = new NexSetResult();
         unsafe
         {
-            if (_hooks.NexGetK3SetCountForType3Function is null)
-                throw new NotSupportedException("GetTripleKeyedSubSetRowInfoByIndex is not supported as no hook for NexGetK3SetCountForType3Function was found.");
-
-            _hooks.NexGetK3SetCountForType3Function.Wrapper(_tableInstance, &setResult, key1, key2);
+            _hooks.NexGetK3SetCountForType3Function(_tableInstance, &setResult, key1, key2);
             if (index > setResult.Count - 1)
                 throw new IndexOutOfRangeException($"GetTripleKeyedSubSetRowInfo: index out of range. num rows: {setResult.Count}, index: {index}");
 
@@ -245,10 +242,7 @@ public class NexTable : INexTableV2
         NexSetResult setResult = new NexSetResult();
         unsafe
         {
-            if (_hooks.NexGetK3SetCountForType3Function is null)
-                throw new NotSupportedException("GetTripleKeyedSubSetRowInfos is not supported as no hook for NexGetK3SetCountForType3Function was found.");
-
-            _hooks.NexGetK3SetCountForType3Function.Wrapper(_tableInstance, &setResult, key1, key2);
+            _hooks.NexGetK3SetCountForType3Function(_tableInstance, &setResult, key1, key2);
             for (int i = 0; i < setResult.Count; i++)
             {
                 Nex3KRowInfo* rowInfo = (Nex3KRowInfo*)(&setResult.Rows[i])->RowInfo;
@@ -268,7 +262,7 @@ public class NexTable : INexTableV2
             {
                 case NexTableType.SingleKeyed:
                     {
-                        NexRowInstance* rowInstance = _hooks.NexSearchRow1KFunction.Wrapper(_tableInstance, key1);
+                        NexRowInstance* rowInstance = _hooks.NexSearchRow1KFunction(_tableInstance, key1);
                         if (rowInstance is null)
                             return null;
 
@@ -277,7 +271,7 @@ public class NexTable : INexTableV2
 
                 case NexTableType.DoubleKeyed:
                     {
-                        NexRowInstance* rowInstance = _hooks.NexSearchRow2KFunction.Wrapper(_tableInstance, key1, key2);
+                        NexRowInstance* rowInstance = _hooks.NexSearchRow2KFunction(_tableInstance, key1, key2);
                         if (rowInstance is null)
                             return null;
 
@@ -286,7 +280,7 @@ public class NexTable : INexTableV2
 
                 case NexTableType.TripleKeyed:
                     {
-                        NexRowInstance* rowInstance = _hooks.NexSearchRow3KFunction.Wrapper(_tableInstance, key1, key2, key3);
+                        NexRowInstance* rowInstance = _hooks.NexSearchRow3KFunction(_tableInstance, key1, key2, key3);
                         if (rowInstance is null)
                             return null;
 
@@ -330,7 +324,7 @@ public class NexTable : INexTableV2
         {
             NexSetResult setResult = new NexSetResult();
 
-            _hooks.NexGetK2SetCountForType2Function.Wrapper(_tableInstance, &setResult, key1);
+            _hooks.NexGetK2SetCountForType2Function(_tableInstance, &setResult, key1);
             if (index > setResult.Count - 1)
                 throw new IndexOutOfRangeException($"GetRowByIndex: index out of range. num rows: {setResult.Count}, index: {index}");
 
@@ -350,7 +344,7 @@ public class NexTable : INexTableV2
                 throw new NotSupportedException("GetRowByIndex(uint key1, uint key2, uint index) is not supported as no hook for NexGetK3SetCountForType3Function was found.");
 
             NexSetResult setResult = new NexSetResult();
-            _hooks.NexGetK3SetCountForType3Function.Wrapper(_tableInstance, &setResult, key1, key2);
+            _hooks.NexGetK3SetCountForType3Function(_tableInstance, &setResult, key1, key2);
 
             if (index > setResult.Count - 1)
                 throw new IndexOutOfRangeException($"GetRowByIndex: index out of range. num rows: {setResult.Count}, index: {index}");
@@ -398,29 +392,29 @@ public class NexTable : INexTableV2
             {
                 case NexTableType.SingleKeyed:
                     {
-                        NexRowInstance* row = _hooks.NexSearchRow1KFunction.Wrapper(_tableInstance, key1);
+                        NexRowInstance* row = _hooks.NexSearchRow1KFunction(_tableInstance, key1);
                         if (row is null)
                             return null;
 
-                        return _hooks.NexGetRowDataFunction.Wrapper(row);
+                        return _hooks.NexGetRowDataFunction(row);
                     }
 
                 case NexTableType.DoubleKeyed:
                     {
-                        NexRowInstance* row = _hooks.NexSearchRow2KFunction.Wrapper(_tableInstance, key1, key2);
+                        NexRowInstance* row = _hooks.NexSearchRow2KFunction(_tableInstance, key1, key2);
                         if (row is null)
                             return null;
 
-                        return _hooks.NexGetRowDataFunction.Wrapper(row);
+                        return _hooks.NexGetRowDataFunction(row);
                     }
 
                 case NexTableType.TripleKeyed:
                     {
-                        NexRowInstance* row = _hooks.NexSearchRow3KFunction.Wrapper(_tableInstance, key1, key2, key3);
+                        NexRowInstance* row = _hooks.NexSearchRow3KFunction(_tableInstance, key1, key2, key3);
                         if (row is null)
                             return null;
 
-                        return _hooks.NexGetRowDataFunction.Wrapper(row);
+                        return _hooks.NexGetRowDataFunction(row);
                     }
 
             }

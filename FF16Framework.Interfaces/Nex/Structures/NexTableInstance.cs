@@ -35,4 +35,4 @@ public unsafe struct FileHandle
     public nint field_0x30;
     public byte* Buffer;
 }
-#pragma warning restore CS1591 // Missing XML comment for publicly visible type or member
+#pragma warning restore CS1591

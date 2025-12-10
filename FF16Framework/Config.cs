@@ -8,6 +8,11 @@ namespace FF16Framework
 {
     public class Config : Configurable<Config>
     {
+        [DisplayName("Load ImGui Overlay/Hook")]
+        [Description("Whether to load and inject ImGui into FFXVI. This may be required by some mods.")]
+        [DefaultValue(true)]
+        public bool LoadImGuiHook { get; set; } = true;
+
         [Category("FFXVI")]
         [DisplayName("Serialize Saves as XML")]
         [Description("""

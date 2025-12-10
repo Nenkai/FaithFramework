@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net8.0-windows7.0</TargetFramework>
+    <TargetFramework>net9.0-windows7.0</TargetFramework>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
     <LangVersion>12.0</LangVersion>
@@ -41,20 +41,56 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Reloaded.Memory" Version="9.4.1" />
+    <PackageReference Include="Microsoft.Windows.CsWin32" Version="0.3.183">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Reloaded.Memory" Version="9.4.3" />
     <PackageReference Include="Reloaded.Memory.Sigscan" Version="3.1.8" />
     <PackageReference Include="Reloaded.Memory.SigScan.ReloadedII.Interfaces" Version="1.2.0" />
     <PackageReference Include="Reloaded.Mod.Interfaces" Version="2.4.0" ExcludeAssets="runtime" />
     <PackageReference Include="Reloaded.SharedLib.Hooks" Version="1.9.0" />
-    <PackageReference Include="SharedScans.Interfaces" Version="1.2.0" />
+    <PackageReference Include="RyoTune.Reloaded" Version="4.2.1" />
+    <PackageReference Include="SharpDX.Direct3D12" Version="4.2.0" />
+    <PackageReference Include="Tomlyn" Version="0.19.0" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\FF16Framework.Interfaces\FF16Framework.Interfaces.csproj" />
+    <ProjectReference Include="..\NenTools.ImGui\NenTools.ImGui.Hooks.DirectX12\NenTools.ImGui.Hooks.DirectX12.csproj" />
+    <ProjectReference Include="..\NenTools.ImGui\NenTools.ImGui.Implementation\NenTools.ImGui.Implementation.csproj" />
+    <ProjectReference Include="..\NenTools.ImGui\NenTools.ImGui.Interfaces\NenTools.ImGui.Interfaces.csproj" />
+    <ProjectReference Include="..\NenTools.ImGui\NenTools.ImGui.Native\NenTools.ImGui.Native.csproj" />
+    <ProjectReference Include="..\NenTools.ImGui\NenTools.ImGui.Shell.Interfaces\NenTools.ImGui.Shell.Interfaces.csproj" />
+    <ProjectReference Include="..\NenTools.ImGui\NenTools.ImGui.Shell\NenTools.ImGui.Shell.csproj" />
   </ItemGroup>
 
   <ItemGroup>
+    <None Update="ImGuiManager\Fonts\Noto\NotoSansJP-Medium.ttf">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="ImGuiManager\Fonts\Noto\README.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="ImGuiManager\Fonts\Roboto\LICENSE.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="ImGuiManager\Fonts\Roboto\Roboto-Medium.ttf">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="ImGuiManager\Fonts\TwitterColorEmoji\LICENSE-CC-BY.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="ImGuiManager\Fonts\TwitterColorEmoji\twemoji.ttf">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Update="Preview.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Project\ff16.utility.framework\FFT_enhanced\scans.ini">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Project\ff16.utility.framework\ffxvi\scans.ini">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>

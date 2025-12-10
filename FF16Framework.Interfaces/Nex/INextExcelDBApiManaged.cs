@@ -6,7 +6,7 @@
 public interface INextExcelDBApiManaged
 {
     /// <summary>
-    /// Whether the API is initialized and ready for use.
+    /// Whether the database is initialized and ready for use.
     /// </summary>
     bool Initialized { get; }
 
@@ -25,7 +25,7 @@ public interface INextExcelDBApiManaged
     /// <summary>
     /// Gets a table.
     /// </summary>
-    /// <param name="tableId">Table id.</param>
+    /// <param name="tableId">Table type.</param>
     /// <returns>Table instance. Returns null if not found.</returns>
     INexTable? GetTable(NexTableIds tableId);
 

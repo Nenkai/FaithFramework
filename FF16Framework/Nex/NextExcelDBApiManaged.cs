@@ -35,10 +35,10 @@ public class NextExcelDBApiManaged : INextExcelDBApiManagedV2
         => GetTable((uint)tableId);
 
     public uint GetMainRowCount(NexTableIds table)
-        => _nexHooks.NexGetSetCountFunction.Wrapper((uint)table);
+        => _nexHooks.NexGetSetCountFunction((uint)table);
 
     public uint GetMainRowCount(uint tableId)
-        => _nexHooks.NexGetSetCountFunction.Wrapper(tableId);
+        => _nexHooks.NexGetSetCountFunction(tableId);
 
     public bool IsTableLoaded(NexTableIds tableId)
         => IsTableLoaded((uint)tableId);
@@ -47,7 +47,7 @@ public class NextExcelDBApiManaged : INextExcelDBApiManagedV2
     {
         unsafe
         {
-            NexTableInstance* tableInstance = _nexHooks.NexGetTableFunction.Wrapper(_nexHooks.Instance, tableId);
+            NexTableInstance* tableInstance = _nexHooks.NexGetTableFunction(_nexHooks.Instance, tableId);
             if (tableInstance is null)
                 return null;
 
@@ -59,11 +59,11 @@ public class NextExcelDBApiManaged : INextExcelDBApiManagedV2
     {
         unsafe
         {
-            NexTableInstance* tableInstance = _nexHooks.NexGetTableFunction.Wrapper(_nexHooks.Instance, tableId);
+            NexTableInstance* tableInstance = _nexHooks.NexGetTableFunction(_nexHooks.Instance, tableId);
             if (tableInstance is null)
                 return false;
 
-            return _nexHooks.NexIsTableLoadedFunction.Wrapper(tableInstance);
+            return _nexHooks.NexIsTableLoadedFunction(tableInstance);
         }
     }
 }

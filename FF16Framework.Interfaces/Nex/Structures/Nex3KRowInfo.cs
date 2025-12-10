@@ -7,9 +7,8 @@ using System.Threading.Tasks;
 
 namespace FF16Framework.Interfaces.Nex.Structures;
 
-/// <summary>
-/// Info for a triple-keyed row.
-/// </summary>
+#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
+
 public struct Nex3KRowInfo
 {
     /// <summary>

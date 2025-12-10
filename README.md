@@ -1,6 +1,20 @@
 # Faith Framework (ff16.utility.framework)
 
-Faith Mod Framework for FFXVI/FFT using Reloaded-II.
+> [!WARNING]
+> This branch adds ImGui + API support for mods.
+>
+> **Unfortunately it is broken currently.**
+>
+> The hook breaks when enabling and disabling FSR Frame Gen multiple times in a row (Race Condition?).
+> Looking for someone fluent in D3D12 rendering to fix it. The same thing happens when going fullscreen -> windowed.
+>
+> Otherwise screen resizes, overlays (ReShade) & DLSS/FSR/XeSS upscalers work. There is only that roadblock left. 
+>
+> Heavy inspiration was taken from REFramework code wise (credits to them!)
+
+---
+
+Mod Framework for FFXVI using Reloaded-II.
 
 Currently only Nex interfaces.
 

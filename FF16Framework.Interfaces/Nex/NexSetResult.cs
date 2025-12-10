@@ -9,17 +9,17 @@ using System.Threading.Tasks;
 namespace FF16Framework.Interfaces.Nex;
 
 /// <summary>
-/// Result for a row set query.
+/// Returns a new row set result.
 /// </summary>
 public unsafe struct NexSetResult
 {
     /// <summary>
-    /// Rows pointer.
+    /// Row instances.
     /// </summary>
     public NexRowInstance* Rows;
 
     /// <summary>
-    /// Number of rows.
+    /// Number of rows returned.
     /// </summary>
     public long Count;
 }

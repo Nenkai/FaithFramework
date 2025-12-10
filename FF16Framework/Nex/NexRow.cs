@@ -267,9 +267,4 @@ public class NexRow : INexRow
         }
     }
     #endregion
-
-    private struct NexArray
-    {
-        public int Length;
-    }
 }
