@@ -64,7 +64,7 @@ public class AboutWindow : IImGuiComponent
                 _imGui.SetCursorPosX((windowWidth - _iconImage.Image.Width) * 0.5f);
 
                 var startPos = _imGui.GetCursorScreenPos();
-                _imGui.ImDrawList_AddImageRounded(_imGui.GetForegroundDrawList(), _imGui.CreateTextureRef(_iconImage.Image.TexId),
+                _imGui.ImDrawList_AddImageRounded(_imGui.GetWindowDrawList(), _imGui.CreateTextureRef(_iconImage.Image.TexId),
                     startPos, startPos + new Vector2(_iconImage.Image.Width, _iconImage.Image.Height),
                     uv_min: Vector2.Zero, uv_max: Vector2.One,
                     col: 0xFFFFFFFF,
