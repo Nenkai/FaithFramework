@@ -5,13 +5,12 @@ using System.Runtime.CompilerServices;
 
 using NenTools.ImGui.Hooks;
 using NenTools.ImGui.Hooks.DirectX12;
+using NenTools.ImGui.Implementation;
 using NenTools.ImGui.Interfaces;
 using NenTools.ImGui.Shell;
-using NenTools.ImGui.Shell.Interfaces;
+using NenTools.ImGui.Abstractions;
 
 using Reloaded.Hooks.Definitions;
-using Reloaded.Hooks.Definitions.Structs;
-using Reloaded.Memory.SigScan.ReloadedII.Interfaces;
 using Reloaded.Mod.Interfaces;
 
 using RyoTune.Reloaded;
@@ -20,14 +19,15 @@ using Tomlyn;
 
 using Windows.Win32;
 
+using FF16Framework.ImGuiManager.Hooks;
+using FF16Framework.ImGuiManager.Windows;
+using FF16Framework.ImGuiManager.Windows.Framework;
 using FF16Framework.Interfaces.Nex;
 using FF16Framework.Nex;
 using FF16Framework.Save;
 using FF16Framework.Template;
-using FF16Framework.ImGuiManager.Windows;
 
-using IReloadedHooks = Reloaded.Hooks.ReloadedII.Interfaces.IReloadedHooks;
-using FF16Framework.ImGuiManager.Hooks;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace FF16Framework;
 
@@ -77,18 +77,16 @@ public class Mod : ModBase, IExports // <= Do not Remove.
     /// </summary>
     private readonly IModConfig _modConfig;
 
+    private IServiceProvider _services;
+
     private NexHooks _nexHooks;
     private SaveHooks _saveHooks;
 
-    private NextExcelDBApi _nexApi;
-    private NextExcelDBApiManaged _nexApiManaged;
-
-    private ImGuiShell _imGuiShell;
+    private IBackendHook _backendHook;
+    private IImGuiShell _imGuiShell;
     private ImGuiTextureManager _imGuiTextureManager;
     private ImGuiConfig _imGuiConfig;
     private IImGui _imGui;
-    private ImguiHookDx12 _imGuiHookDX12;
-    private ImGuiInputHookManager _imGuiInputHook;
 
     // Used to enable ImGui when the splash screen is disabled.
     public delegate bool DestroyWindow(nint hwnd);
@@ -110,6 +108,9 @@ public class Mod : ModBase, IExports // <= Do not Remove.
 #if DEBUG
         Debugger.Launch();
 #endif
+
+        _services = BuildServiceCollection();
+
         // Uncomment this if you need debug logs with DebugView (ensure to also enable debug in DirectX control panel)
         // NOTE: Enabling this will severely impact framerate!
         // NOTE 2: Must be enabled early, before the game itself has initialized D3D12.
@@ -129,6 +130,71 @@ public class Mod : ModBase, IExports // <= Do not Remove.
         InitImGui();
 
         _logger.WriteLine($"[{_modConfig.ModId}] Framework {_modConfig.ModVersion} initted.", _logger.ColorGreen);
+    }
+
+    private ServiceProvider BuildServiceCollection()
+    {
+        ServiceCollection services = new ServiceCollection();
+
+        string configPath = Path.Combine(_modLoader.GetDirectoryForModId(_modConfig.ModId), "framework_config.toml");
+        if (File.Exists(configPath))
+        {
+            try
+            {
+                _imGuiConfig = Toml.ToModel<ImGuiConfig>(File.ReadAllText(configPath));
+                _imGuiConfig.SetPath(configPath);
+            }
+            catch (Exception ex)
+            {
+                _logger.WriteLine($"[{_modConfig.ModId}] Failed to load ImGui config from '{configPath}' - {ex.Message}");
+                _logger.WriteLine("Creating default config...");
+                _imGuiConfig = new ImGuiConfig(configPath);
+                _imGuiConfig.Save();
+            }
+        }
+        else
+        {
+            _imGuiConfig = new ImGuiConfig(configPath);
+            _imGuiConfig.Save();
+        }
+
+        services
+            // R2 Primitives
+            .AddSingleton(_modConfig)
+            .AddSingleton(_modLoader)
+            .AddSingleton(_hooks!)
+            .AddSingleton(_configuration)
+            .AddSingleton(_logger)
+
+            // Hooks
+            .AddSingleton<SaveHooks>()
+            .AddSingleton<NexHooks>()
+
+            .AddSingleton<ImGuiConfig>(_imGuiConfig)
+            .AddSingleton<INextExcelDBApi, NextExcelDBApi>()
+            .AddSingleton<INextExcelDBApiManagedV2, NextExcelDBApiManaged>()
+            .AddSingleton<IImGui, ImGui>()
+            .AddSingleton<IBackendHook, DX12BackendHook>()
+            .AddSingleton<IImGuiShell, ImGuiShell>()
+            .AddSingleton<ImGuiInputHookManager>()
+
+            // ImGui renderable
+            .AddSingleton<LogWindow>(provider =>
+            {
+                var imgui = provider.GetRequiredService<IImGui>();
+                var logger = provider.GetRequiredService<ILogger>();
+
+                var path = Path.Combine(_modLoader.GetDirectoryForModId(_modConfig.ModId), "framework_log.txt");
+                return new LogWindow(imgui, logger, path);
+            })
+
+            .AddSingleton<SettingsComponent>()
+            .AddSingleton<DocumentationComponent>()
+            .AddSingleton<FrameworkToolsComponent>()
+            .AddSingleton<GameOverlay>()
+            .AddSingleton<AboutWindow>();
+
+        return services.BuildServiceProvider();
     }
 
     private bool imguiRenderable = false;
@@ -157,11 +223,11 @@ public class Mod : ModBase, IExports // <= Do not Remove.
         {
             if (_configuration.LoadImGuiHook)
             {
-                _imGuiShell.Start(new ImguiHookOptions()
+                _imGuiShell.Start(new BackendHookOptions()
                 {
                     // TODO: Implement viewports
                     // EnableViewports = false, Not yet functional with DX12 hooks, it creates a new swapchain that shouldn't be hooked.
-                    Implementations = [_imGuiHookDX12]
+                    Implementations = _services.GetServices<IBackendHook>().ToList()
                 }).GetAwaiter().GetResult();
             }
             else
@@ -176,15 +242,45 @@ public class Mod : ModBase, IExports // <= Do not Remove.
         }
     }
 
-    private void OnFirstImGuiRender()
+    public static float Repeat(float t, float length)
     {
-        _imGuiShell.LogWriteLine("FaithFramework", $"FaithFramework {_modConfig.ModVersion} loaded.", loggerTargetFlags: LoggerOutputTargetFlags.All);
-        _imGuiShell.LogWriteLine("FaithFramework", $"ImGui {_imGui.GetVersion()} loaded.", loggerTargetFlags: LoggerOutputTargetFlags.All);
-        _imGuiShell.LogWriteLine("FaithFramework", "https://nenkai.github.io/ffxvi-modding/", loggerTargetFlags: LoggerOutputTargetFlags.All);
-        _imGuiShell.LogWriteLine("FaithFramework", "Press the INSERT key to show the main menu.", loggerTargetFlags: LoggerOutputTargetFlags.All);
+        return Math.Clamp(t - MathF.Floor(t / length) * length, 0.0f, length);
     }
 
-    private readonly static uint[] _emojiRangePtr = [0x100, 0x30000, 0 /* Null termination */];
+    public static float PingPong(float t, float length)
+    {
+        t = Repeat(t, length * 2F);
+        return length - MathF.Abs(t - length);
+    }
+
+
+    private void InitImGui()
+    {
+        _imGui = _services.GetRequiredService<IImGui>();
+
+        _imGuiShell = _services.GetRequiredService<IImGuiShell>();
+        _imGuiShell.OnImGuiConfiguration += ConfigureImgui;
+        _imGuiShell.OnEndMainMenuBarRender += RenderAnimatedTitle;
+        _imGuiShell.OnLogMessage += (message, color) => _logger.WriteLine(message, color ?? System.Drawing.Color.White);
+        _imGuiShell.OnFirstRender += OnFirstImGuiRender;
+
+        var inputHook = _services.GetRequiredService<ImGuiInputHookManager>();
+        inputHook.SetupInputHooks();
+
+        nint destroyWindowPtr = PInvoke.GetProcAddress(PInvoke.GetModuleHandle("user32.dll"), "DestroyWindow");
+        _destroyWindowHook = _hooks!.CreateHook<DestroyWindow>(DestroyWindowImpl, destroyWindowPtr).Activate();
+
+        // We hook the call that performs present (not present itself)
+        // We setup our DX12 hooks after the game made the first call.
+        Project.Scans.AddScanHook(nameof(RenderExecCommandListsAndPresent),
+            (result, hooks) => RenderExecCommandListsAndPresentHook = _hooks.CreateHook<RenderExecCommandListsAndPresent>(RenderExecCommandListsAndPresentImpl, result).Activate());
+
+        _modLoader.AddOrReplaceController<IImGui>(_owner, _imGui);
+        _modLoader.AddOrReplaceController<IImGuiShell>(_owner, _imGuiShell);
+        _modLoader.AddOrReplaceController<IImGuiTextureManager>(_owner, _imGuiTextureManager);
+    }
+
+    private readonly static uint[] _emojiRangePtr = [0x1, 0x1FFFF, 0 /* Null termination */];
     private unsafe void ConfigureImgui()
     {
         string modFolder = _modLoader.GetDirectoryForModId(_modConfig.ModId);
@@ -199,15 +295,16 @@ public class Mod : ModBase, IExports // <= Do not Remove.
         string robotoFontPath = Path.Combine(modFolder, "ImGuiManager", "Fonts", "Roboto", "Roboto-Medium.ttf");
         _imGui.ImFontAtlas_AddFontFromFileTTF(io.Fonts, robotoFontPath, 15.0f, null!, ref Unsafe.AsRef<uint>(_imGui.ImFontAtlas_GetGlyphRangesDefault(io.Fonts)));
 
+        // Japanese font
+        string netoSansJpFontPath = Path.Combine(modFolder, "ImGuiManager", "Fonts", "Noto", "NotoSansJP-Medium.ttf");
+        config.MergeMode = true;
+        _imGui.ImFontAtlas_AddFontFromFileTTF(io.Fonts, netoSansJpFontPath, 17.0f, config, ref Unsafe.AsRef<uint>(_imGui.ImFontAtlas_GetGlyphRangesJapanese(io.Fonts)));
+
         // Emojis
         string twitterColorEmojiFontPath = Path.Combine(modFolder, "ImGuiManager", "Fonts", "TwitterColorEmoji", "twemoji.ttf");
         config.FontLoaderFlags |= (uint)(ImGuiFreeTypeLoaderFlags.ImGuiFreeTypeBuilderFlags_LoadColor | ImGuiFreeTypeLoaderFlags.ImGuiFreeTypeBuilderFlags_Bitmap);
         config.MergeMode = true;
         _imGui.ImFontAtlas_AddFontFromFileTTF(io.Fonts, twitterColorEmojiFontPath, 14.0f, config, ref _emojiRangePtr[0]);
-
-        // Japanese font
-        string netoSansJpFontPath = Path.Combine(modFolder, "ImGuiManager", "Fonts", "Noto", "NotoSansJP-Medium.ttf");
-        _imGui.ImFontAtlas_AddFontFromFileTTF(io.Fonts, netoSansJpFontPath, 17.0f, config, ref Unsafe.AsRef<uint>(_imGui.ImFontAtlas_GetGlyphRangesJapanese(io.Fonts)));
 
         var style = _imGui.GetStyle();
         style.FrameRounding = 4.0f;
@@ -218,10 +315,9 @@ public class Mod : ModBase, IExports // <= Do not Remove.
         style.Colors[(int)ImGuiCol.ImGuiCol_TitleBgActive] = new Vector4(0.7f, 0.3f, 0.3f, 1.00f);
 
         // Shell components
-        string logPath = Path.Combine(_modLoader.GetDirectoryForModId(_modConfig.ModId), "framework_log.txt");
-        _imGuiShell.AddComponent(new LogWindow(_imGui, _logger, logPath));
-        _imGuiShell.AddComponent(new SettingsComponent(_imGui, _imGuiConfig));
-        _imGuiShell.AddComponent(new AboutWindow(_imGui, _modConfig, _modLoader));
+        _imGuiShell.AddComponent(_services.GetRequiredService<LogWindow>());
+        _imGuiShell.AddComponent(_services.GetRequiredService<FrameworkToolsComponent>());
+        _imGuiShell.AddComponent(_services.GetRequiredService<AboutWindow>());
     }
 
     private void RenderAnimatedTitle()
@@ -246,84 +342,29 @@ public class Mod : ModBase, IExports // <= Do not Remove.
         _imGui.Text(fpsText);
     }
 
-    public static float Repeat(float t, float length)
+    private void OnFirstImGuiRender()
     {
-        return Math.Clamp(t - MathF.Floor(t / length) * length, 0.0f, length);
+        _imGuiShell.LogWriteLine("FaithFramework", $"FaithFramework {_modConfig.ModVersion} loaded.", outputTargetFlags: LoggerOutputTargetFlags.All);
+        _imGuiShell.LogWriteLine("FaithFramework", $"ImGui {_imGui.GetVersion()} loaded.", outputTargetFlags: LoggerOutputTargetFlags.All);
+        _imGuiShell.LogWriteLine("FaithFramework", "FFXVI Modding - nenkai.github.io/ffxvi-modding/", outputTargetFlags: LoggerOutputTargetFlags.All);
+        _imGuiShell.LogWriteLine("FaithFramework", "Press the INSERT key to show the main menu.", outputTargetFlags: LoggerOutputTargetFlags.All);
     }
 
-    public static float PingPong(float t, float length)
-    {
-        t = Repeat(t, length * 2F);
-        return length - MathF.Abs(t - length);
-    }
-
-
-    private void InitImGui()
-    {
-        string configPath = Path.Combine(_modLoader.GetDirectoryForModId(_modConfig.ModId), "framework_config.toml");
-        if (File.Exists(configPath))
-        {
-            try
-            {
-                _imGuiConfig = Toml.ToModel<ImGuiConfig>(File.ReadAllText(configPath));
-                _imGuiConfig.SetPath(configPath);
-            }
-            catch (Exception ex)
-            {
-                _logger.WriteLine($"[{_modConfig.ModId}] Failed to load ImGui config from '{configPath}' - {ex.Message}");
-                _logger.WriteLine("Creating default config...");
-                _imGuiConfig = new ImGuiConfig(configPath);
-                _imGuiConfig.Save();
-            }
-        }
-        else
-        {
-            _imGuiConfig = new ImGuiConfig(configPath);
-            _imGuiConfig.Save();
-        }
-
-
-        _imGui = new NenTools.ImGui.Implementation.ImGui();
-        _imGuiHookDX12 = new ImguiHookDx12();
-        _imGuiShell = new ImGuiShell(_hooks!, _imGuiHookDX12, _imGui, _imGuiConfig);
-        _imGuiInputHook = new ImGuiInputHookManager(_imGuiShell, _hooks, _modConfig);
-
-        _imGuiShell.OnImGuiConfiguration += ConfigureImgui;
-        _imGuiShell.OnEndMainMenuBarRender += RenderAnimatedTitle;
-        _imGuiShell.OnLogMessage += (message, color) => _logger.WriteLine(message, color ?? System.Drawing.Color.White);
-        _imGuiShell.OnFirstRender += OnFirstImGuiRender;
-        _imGuiShell.SetupHooks();
-        _imGuiInputHook.SetupInputHooks();
-
-        nint destroyWindowPtr = PInvoke.GetProcAddress(PInvoke.GetModuleHandle("user32.dll"), "DestroyWindow");
-        _destroyWindowHook = _hooks!.CreateHook<DestroyWindow>(DestroyWindowImpl, destroyWindowPtr).Activate();
-
-        // We hook the call that performs present (not present itself)
-        // We setup our DX12 hooks after the game made the first call.
-        Project.Scans.AddScanHook(nameof(RenderExecCommandListsAndPresent),
-            (result, hooks) => RenderExecCommandListsAndPresentHook = _hooks.CreateHook<RenderExecCommandListsAndPresent>(RenderExecCommandListsAndPresentImpl, result).Activate());
-
-        _modLoader.AddOrReplaceController<IImGui>(_owner, _imGui);
-        _modLoader.AddOrReplaceController<IImGuiShell>(_owner, _imGuiShell);
-        _modLoader.AddOrReplaceController<IImGuiTextureManager>(_owner, _imGuiTextureManager);
-    }
 
     private void InitNex()
     {
-        _nexHooks = new NexHooks(_configuration, _modConfig, _logger);
+        _nexHooks = _services.GetRequiredService<NexHooks>();
         _nexHooks.Setup();
 
-        _nexApi = new NextExcelDBApi(_nexHooks);
-        _nexApiManaged = new NextExcelDBApiManaged(_nexHooks);
-        _modLoader.AddOrReplaceController<INextExcelDBApi>(_owner, _nexApi);
-        _modLoader.AddOrReplaceController<INextExcelDBApiManaged>(_owner, _nexApiManaged);
-        _modLoader.AddOrReplaceController<INextExcelDBApiManagedV2>(_owner, _nexApiManaged);
+        _modLoader.AddOrReplaceController<INextExcelDBApi>(_owner, _services.GetRequiredService<INextExcelDBApi>());
+        _modLoader.AddOrReplaceController<INextExcelDBApiManaged>(_owner, _services.GetRequiredService<INextExcelDBApiManagedV2>());
+        _modLoader.AddOrReplaceController<INextExcelDBApiManagedV2>(_owner, _services.GetRequiredService<INextExcelDBApiManagedV2>());
     }
 
     private void InitSaveHooks()
     {
-        _saveHooks = new SaveHooks(_configuration, _modConfig, _logger);
-        _saveHooks.Setup();
+        var hooks = _services.GetRequiredService<SaveHooks>();
+        hooks.Setup();
     }
 
     #region Standard Overrides

@@ -2,12 +2,13 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
+using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 
 using NenTools.ImGui.Interfaces;
 using NenTools.ImGui.Shell;
-using NenTools.ImGui.Shell.Interfaces;
+using NenTools.ImGui.Abstractions;
 
 using Reloaded.Mod.Interfaces;
 
@@ -61,20 +62,30 @@ public class AboutWindow : IImGuiComponent
             if (_iconImage.IsLoaded)
             {
                 _imGui.SetCursorPosX((windowWidth - _iconImage.Image.Width) * 0.5f);
-                _imGui.Image(_imGui.CreateTextureRef(_iconImage.Image.TexId), new System.Numerics.Vector2(_iconImage.Image.Width, _iconImage.Image.Height));
+
+                var startPos = _imGui.GetCursorScreenPos();
+                _imGui.ImDrawList_AddImageRounded(_imGui.GetForegroundDrawList(), _imGui.CreateTextureRef(_iconImage.Image.TexId),
+                    startPos, startPos + new Vector2(_iconImage.Image.Width, _iconImage.Image.Height),
+                    uv_min: Vector2.Zero, uv_max: Vector2.One,
+                    col: 0xFFFFFFFF,
+                    rounding: 
+                    10f, 
+                    (int)ImDrawFlags.ImDrawFlags_None);
+                _imGui.Dummy(new Vector2(_iconImage.Image.Height, _iconImage.Image.Height));
             }
 
-            string mainText = $"{_modConfig.ModId} {_modConfig.ModVersion} by {_modConfig.ModAuthor}";
+            _imGui.PushFontFloat(null, 25.0f);
+            string mainText = $"-- FaithFramework {_modConfig.ModVersion} by {_modConfig.ModAuthor} --";
             _imGui.SetCursorPosX((windowWidth - _imGui.CalcTextSize(mainText).X) * 0.5f);
             _imGui.Text(mainText);
             _imGui.Spacing();
-
-            _imGui.Text("Support Me:"u8); _imGui.SameLine(); _imGui.TextLinkOpenURL("https://ko-fi.com/nenkai"u8);
-            _imGui.Text("Github:"u8); _imGui.SameLine(); _imGui.TextLinkOpenURL("https://github.com/Nenkai/FF16Framework"u8);
-            _imGui.Text("Nexus Mods:"u8); _imGui.SameLine(); _imGui.TextLinkOpenURL("https://www.nexusmods.com/finalfantasy16/mods/138"u8);
+            _imGui.PopFont();
+            _imGui.Text("🔧 Github:"u8); _imGui.SameLine(); _imGui.TextLinkOpenURL("https://github.com/Nenkai/FaithFramework"u8);
+            _imGui.Text("🌐 FFXVI Modding:"u8); _imGui.SameLine(); _imGui.TextLinkOpenURL("https://nenkai.github.io/ffxvi-modding/"u8);
+            _imGui.Text("❤ Support Nenkai:"u8); _imGui.SameLine(); _imGui.TextLinkOpenURL("https://ko-fi.com/nenkai"u8);
             _imGui.Spacing();
 
-            _imGui.Text("Keys:"u8);
+            _imGui.Text("⌨ Keys:"u8);
             _imGui.Text("- INSERT: Show ImGui Menu"u8);
             _imGui.Spacing();
 

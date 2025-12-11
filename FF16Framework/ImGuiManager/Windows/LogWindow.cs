@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 using NenTools.ImGui.Interfaces;
 using NenTools.ImGui.Shell;
-using NenTools.ImGui.Shell.Interfaces;
+using NenTools.ImGui.Abstractions;
 
 using Reloaded.Mod.Interfaces;
 
@@ -66,7 +66,7 @@ public unsafe class LogWindow : IImGuiComponent
 #if DEBUG
         if (_imGui.MenuItemEx("Shutdown D3D12/ImGui", "", false, true))
         {
-            ((ImGuiShell)imGuiShell).Shutdown();
+            imGuiShell.Shutdown();
         }
 #endif
     }

@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-using NenTools.ImGui.Shell.Interfaces;
+using NenTools.ImGui.Abstractions;
 using NenTools.ImGui.Native;
 
 using Reloaded.Hooks.Definitions;
