@@ -3,7 +3,7 @@
   "ModName": "Faith Mod Framework",
   "ModAuthor": "Nenkai",
   "ModVersion": "2.0.0",
-  "ModDescription": "Faith Mod Framework (mod dependency, currently Nex API).",
+  "ModDescription": "Faith Mod Framework (modding framework for FFXVI/FFT:IVC).",
   "ModDll": "FF16Framework.dll",
   "ModIcon": "Preview.png",
   "ModR2RManagedDll32": "x86/FF16Framework.dll",
