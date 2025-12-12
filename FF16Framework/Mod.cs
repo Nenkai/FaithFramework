@@ -369,11 +369,11 @@ public class Mod : ModBase, IExports // <= Do not Remove.
 
     private void InitSaveHooks()
     {
-        var hooks = _services.GetRequiredService<SaveHooks>();
-        hooks.Setup();
+        var saveHooks = _services.GetRequiredService<SaveHooks>();
+        saveHooks.Setup();
 
-        var hookss = _services.GetRequiredService<EntityManagerHooks>();
-        hookss.Setup();
+        //var entityManagerHooks = _services.GetRequiredService<EntityManagerHooks>();
+        //entityManagerHooks.Setup();
     }
 
     #region Standard Overrides
