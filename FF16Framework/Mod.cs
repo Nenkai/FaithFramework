@@ -26,6 +26,7 @@ using FF16Framework.Interfaces.Nex;
 using FF16Framework.Nex;
 using FF16Framework.Save;
 using FF16Framework.Template;
+using FF16Framework.Faith.Hooks;
 
 using Microsoft.Extensions.DependencyInjection;
 
@@ -167,6 +168,7 @@ public class Mod : ModBase, IExports // <= Do not Remove.
             .AddSingleton(_logger)
 
             // Hooks
+            //.AddSingleton<EntityManagerHooks>()
             .AddSingleton<SaveHooks>()
             .AddSingleton<NexHooks>()
 
@@ -318,6 +320,7 @@ public class Mod : ModBase, IExports // <= Do not Remove.
         style.Colors[(int)ImGuiCol.ImGuiCol_TitleBgActive] = new Vector4(0.7f, 0.3f, 0.3f, 1.00f);
 
         // Shell components
+        //_imGuiShell.AddComponent(_services.GetRequiredService<GameOverlay>());
         _imGuiShell.AddComponent(_services.GetRequiredService<LogWindow>());
         _imGuiShell.AddComponent(_services.GetRequiredService<FrameworkToolsComponent>());
         _imGuiShell.AddComponent(_services.GetRequiredService<AboutWindow>());
@@ -368,6 +371,9 @@ public class Mod : ModBase, IExports // <= Do not Remove.
     {
         var hooks = _services.GetRequiredService<SaveHooks>();
         hooks.Setup();
+
+        var hookss = _services.GetRequiredService<EntityManagerHooks>();
+        hookss.Setup();
     }
 
     #region Standard Overrides

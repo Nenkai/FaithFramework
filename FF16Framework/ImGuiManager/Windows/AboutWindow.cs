@@ -80,6 +80,7 @@ public class AboutWindow : IImGuiComponent
             _imGui.Text(mainText);
             _imGui.Spacing();
             _imGui.PopFont();
+
             _imGui.Text("🔧 Github:"u8); _imGui.SameLine(); _imGui.TextLinkOpenURL("https://github.com/Nenkai/FaithFramework"u8);
             _imGui.Text("🌐 FFXVI Modding:"u8); _imGui.SameLine(); _imGui.TextLinkOpenURL("https://nenkai.github.io/ffxvi-modding/"u8);
             _imGui.Text("❤ Support Nenkai:"u8); _imGui.SameLine(); _imGui.TextLinkOpenURL("https://ko-fi.com/nenkai"u8);
