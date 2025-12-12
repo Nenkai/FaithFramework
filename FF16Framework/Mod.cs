@@ -262,6 +262,13 @@ public class Mod : ModBase, IExports // <= Do not Remove.
         _imGui = _services.GetRequiredService<IImGui>();
 
         _imGuiShell = _services.GetRequiredService<IImGuiShell>();
+
+        // Shell components (add these early, so other mods aren't adding components while we haven't populated yet)
+        //_imGuiShell.AddComponent(_services.GetRequiredService<GameOverlay>());
+        _imGuiShell.AddComponent(_services.GetRequiredService<LogWindow>());
+        _imGuiShell.AddComponent(_services.GetRequiredService<FrameworkToolsComponent>());
+        _imGuiShell.AddComponent(_services.GetRequiredService<AboutWindow>());
+
         _imGuiShell.OnImGuiConfiguration += ConfigureImgui;
         _imGuiShell.OnEndMainMenuBarRender += RenderAnimatedTitle;
         _imGuiShell.OnLogMessage += (message, color) => _logger.WriteLine(message, color ?? System.Drawing.Color.White);
@@ -318,11 +325,6 @@ public class Mod : ModBase, IExports // <= Do not Remove.
         style.GrabRounding = 4.0f;
         style.Colors[(int)ImGuiCol.ImGuiCol_TitleBgActive] = new Vector4(0.7f, 0.3f, 0.3f, 1.00f);
 
-        // Shell components
-        //_imGuiShell.AddComponent(_services.GetRequiredService<GameOverlay>());
-        _imGuiShell.AddComponent(_services.GetRequiredService<LogWindow>());
-        _imGuiShell.AddComponent(_services.GetRequiredService<FrameworkToolsComponent>());
-        _imGuiShell.AddComponent(_services.GetRequiredService<AboutWindow>());
     }
 
     private void RenderAnimatedTitle()
