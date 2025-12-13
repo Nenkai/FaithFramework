@@ -74,6 +74,7 @@ public unsafe class NexHooks : HookGroupBase
         Project.Scans.AddScanHook(nameof(NexGetK2SetCount), (result, hooks) => NexGetK2CountFunction = hooks.CreateWrapper<NexGetK2SetCount>(result, out _));
         Project.Scans.AddScanHook(nameof(NexGetRowData), (result, hooks) => NexGetRowDataFunction = hooks.CreateWrapper<NexGetRowData>(result, out _));
         Project.Scans.AddScanHook(nameof(NexGetRowKeys), (result, hooks) => NexGetRowKeysFunction = hooks.CreateWrapper<NexGetRowKeys>(result, out _));
+        Project.Scans.AddScanHook(nameof(NexIsTableLoaded), (result, hooks) => NexIsTableLoadedFunction = hooks.CreateWrapper<NexIsTableLoaded>(result, out _));
         Project.Scans.AddScanHook(nameof(NexDataFileFindK2SetInfo), (result, hooks) => NexDataFileFindK2SetInfoFunction = hooks.CreateWrapper<NexDataFileFindK2SetInfo>(result, out _));
         Project.Scans.AddScanHook(nameof(NexDataFileFindK3SetInfo), (result, hooks) => NexDataFileFindK3SetInfoFunction = hooks.CreateWrapper<NexDataFileFindK3SetInfo>(result, out _));
     }
