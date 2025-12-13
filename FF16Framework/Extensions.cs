@@ -1,4 +1,6 @@
-﻿using Reloaded.Memory.SigScan.ReloadedII.Interfaces;
+﻿using Microsoft.Extensions.DependencyInjection;
+
+using Reloaded.Memory.SigScan.ReloadedII.Interfaces;
 
 using System;
 using System.Collections.Generic;
@@ -39,5 +41,20 @@ public static class Extensions
             }
             action(result.Offset + baseAddress);
         });
+    }
+    
+    /// <summary>
+    /// Registers a service with implementation but also as an interface
+    /// </summary>
+    /// <typeparam name="TService"></typeparam>
+    /// <typeparam name="TImpl"></typeparam>
+    /// <param name="services"></param>
+    /// <returns></returns>
+    public static IServiceCollection AddSingletonAs<TService, TImpl>(this IServiceCollection services) where TImpl : class, TService 
+                                                                                                       where TService : class
+    {
+        services.AddSingleton<TImpl>();
+        services.AddSingleton<TService>(sp => sp.GetRequiredService<TImpl>());
+        return services;
     }
 }

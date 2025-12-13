@@ -20,16 +20,23 @@ public unsafe class GameOverlay : IImGuiComponent
 
     private readonly IImGui _imGui;
     private readonly EntityManagerHooks _entityManager;
+    private readonly MapHooks _mapHooks;
+    private readonly GameContext _gameContext;
+    private readonly FrameworkConfig _frameworkConfig;
 
-    public GameOverlay(IImGui imGui, EntityManagerHooks entityManagerHooks)
+    private bool hasSetPos = false;
+    public GameOverlay(IImGui imGui, GameContext gameContext, EntityManagerHooks entityManagerHooks, MapHooks mapHooks, FrameworkConfig frameworkConfig)
     {
         _imGui = imGui;
+        _gameContext = gameContext;
         _entityManager = entityManagerHooks;
+        _mapHooks = mapHooks;
+        _frameworkConfig = frameworkConfig;
     }
 
     public void RenderMenu(IImGuiShell imGuiShell)
     {
-        _imGui.MenuItemBoolPtr("Enable Overlay"u8, ""u8, ref _open, true);
+
     }
 
     public void Render(IImGuiShell imGuiShell)
@@ -37,52 +44,127 @@ public unsafe class GameOverlay : IImGuiComponent
         if (!_open)
             return;
 
+        if (!ShouldDisplay())
+            return;
+
         float barHeight = 0;
         if (imGuiShell.IsMainMenuOpen)
             barHeight += _imGui.GetFrameHeight();
 
-        _imGui.SetNextWindowBgAlpha(0.35f);
-        if (_imGui.Begin("overlay"u8, ref _open, ImGuiWindowFlags.ImGuiWindowFlags_NoDecoration |
+        ImGuiWindowFlags overlayWindowFlags = ImGuiWindowFlags.ImGuiWindowFlags_NoDecoration |
             ImGuiWindowFlags.ImGuiWindowFlags_NoDocking |
             ImGuiWindowFlags.ImGuiWindowFlags_AlwaysAutoResize |
             ImGuiWindowFlags.ImGuiWindowFlags_NoSavedSettings |
             ImGuiWindowFlags.ImGuiWindowFlags_NoFocusOnAppearing |
-            ImGuiWindowFlags.ImGuiWindowFlags_NoNav))
+            ImGuiWindowFlags.ImGuiWindowFlags_NoNav | 
+            ImGuiWindowFlags.ImGuiWindowFlags_NoMove | 
+            ImGuiWindowFlags.ImGuiWindowFlags_NoMouseInputs;
+
+        // If the shell is open, allow moving it around
+        if (imGuiShell.IsMainMenuOpen)
         {
-            // TODO: Find the current controlling actor id.
-            // TODO: Find camera.
-            if (_entityManager.CliveActorId != 0 && _entityManager.ManagerPointer != 0)
+            overlayWindowFlags &= ~(ImGuiWindowFlags.ImGuiWindowFlags_NoMouseInputs | ImGuiWindowFlags.ImGuiWindowFlags_NoMove | ImGuiWindowFlags.ImGuiWindowFlags_NoResize);
+        }
+
+        IImGuiViewport? viewport = _imGui.GetMainViewport();
+
+        _imGui.SetNextWindowBgAlpha(0.35f);
+        _imGui.SetNextWindowPosEx(
+            pos: new Vector2()
             {
-                nint* staticActorInfo = null;
-                var clive = _entityManager.StaticActorManager_GetOrCreateHook.OriginalFunction(_entityManager.ManagerPointer, &staticActorInfo, _entityManager.CliveActorId);
-                if (_entityManager.HasEntityDataFunction(*staticActorInfo) != 0)
-                {
-                    NodePositionPair position;
-                    _entityManager.GetPositionFunction((nint)staticActorInfo, &position);
+                X = viewport.WorkPos.X + viewport.WorkSize.X - 10,
+                Y = viewport.WorkPos.Y + barHeight + 5 /* padding */
+            }, 
+            cond: ImGuiCond.ImGuiCond_Once,
+            pivot: new Vector2(1.0f, 0.0f)
+        );
 
-                    Vector3 rotation;
-                    _entityManager.GetRotationFunction((nint)staticActorInfo, &rotation);
 
-                    Vector3 fwVector;
-                    _entityManager.GetForwardVectorFunction((nint)staticActorInfo, &fwVector);
+        if (_imGui.Begin("overlay"u8, ref _open, overlayWindowFlags))
+        {
+            RenderContents();
 
-                    Vector3 forwardXZ;
-                    _entityManager.GetForwardXZFunction((nint)staticActorInfo, &forwardXZ);
+            Vector2 windowPos = _imGui.GetWindowPos();
+            Vector2 windowSize = _imGui.GetWindowSize();
 
-                    _imGui.Text($"Pos: {position.Position:F2}");
-                    _imGui.Text($"Rot: {rotation:F2}");
-                    _imGui.Text($"Forward Vec: {fwVector:F2}");
-                    _imGui.Text($"Forward XZ: {forwardXZ:F2}");
-                }
-            }
-            
-            _imGui.SetWindowPos(new Vector2()
-            {
-                X = _imGui.GetIO().DisplaySize.X - _imGui.GetWindowWidth() - 10,
-                Y = barHeight + 5 /* padding */
-            }, ImGuiCond.ImGuiCond_Always);
+            Vector2 minPos = viewport.WorkPos;
+            Vector2 maxPos = viewport.WorkPos + viewport.WorkSize - windowSize;
+            maxPos = Vector2.Max(maxPos, minPos);
+
+            Vector2 clampedPos = Vector2.Clamp(windowPos, minPos, maxPos);
+            if (clampedPos != windowPos)
+                _imGui.SetWindowPos(clampedPos, ImGuiCond.ImGuiCond_Always);
         }
 
         _imGui.End();
+    }
+
+    // TODO: Find a better way to figure out whether to render the window
+    public bool ShouldDisplay()
+    {
+        if (_gameContext.GameType == FaithGameType.FFXVI)
+        {
+            if (_frameworkConfig.GameInfoOverlay.ShowCurrentActorInfo)
+                return true;
+        }
+
+        return false;
+    }
+
+    private void RenderContents()
+    {
+        if (_gameContext.GameType == FaithGameType.FFXVI)
+        {
+            if (_frameworkConfig.GameInfoOverlay.ShowCurrentActorInfo)
+                ShowControllingActorInfo();
+            //ShowMapInfo(); // Do not use. Odd crash when loading into a map (even though it's displayed right for a brief amount of time??)
+        }
+    }
+
+    private void ShowControllingActorInfo()
+    {
+        if (_entityManager.UnkSingletonPlayerOrCameraRelated == 0 ||
+            _entityManager.StaticActorManager == 0 ||
+            _entityManager.ActorManager == 0)
+            return;
+
+        // TODO: Find camera.
+        uint currentActorId = *(uint*)(_entityManager.UnkSingletonPlayerOrCameraRelated + 0xC8);
+        if (currentActorId == 0)
+        {
+            _imGui.Text("[Current Actor Info] None."u8);
+            return;
+        }
+
+        nint* staticActorInfo = null;
+        var actor = _entityManager.StaticActorManager_GetOrCreateHook.OriginalFunction(_entityManager.StaticActorManager, &staticActorInfo, currentActorId);
+        if (_entityManager.HasEntityDataFunction(*staticActorInfo) != 0)
+        {
+            ActorReference* actorRef = _entityManager.ActorManager_GetActorByKeyFunction(_entityManager.ActorManager, currentActorId);
+            _imGui.TextColored(new Vector4(1.0f, 0.7f, 0.7f, 1.0f), $"[Current Actor Info] {(EntityType)(actorRef->EntityID >> 24)} {actorRef->EntityID & 0xFFFFFF} (actor id {currentActorId:X})");
+
+            NodePositionPair position;
+            _entityManager.GetPositionFunction((nint)staticActorInfo, &position);
+
+            Vector3 rotation;
+            _entityManager.GetRotationFunction((nint)staticActorInfo, &rotation);
+
+            Vector3 fwVector;
+            _entityManager.GetForwardVectorFunction((nint)staticActorInfo, &fwVector);
+
+            //Vector3 forwardXZ;
+            //_entityManager.GetForwardXZFunction((nint)staticActorInfo, &forwardXZ);
+
+            _imGui.Text($"Pos: {position.Position:F2}");
+            _imGui.Text($"Rot: {rotation:F2}");
+            _imGui.Text($"Forward Vec: {fwVector:F2}");
+            //_imGui.Text($"Forward XZ: {forwardXZ:F2}");
+        }
+    }
+
+    private void ShowMapInfo()
+    {
+        _imGui.Text("[Map Info]"u8);
+        _imGui.Text($"Current Map Id: {_mapHooks.GameMapId & 0xFFFFFFFF}");
     }
 }

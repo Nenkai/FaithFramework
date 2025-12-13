@@ -20,43 +20,53 @@ namespace FF16Framework.Faith.Hooks;
 
 public unsafe class EntityManagerHooks : HookGroupBase
 {
-    //public delegate ActorReference* ActorListsGlobal_CreateNewActor(nint listsGlobal, EntityBase* entityBase);
-    //private IHook<ActorListsGlobal_CreateNewActor> ActorListsGlobal_CreateNewActorHook;
+    //public delegate ActorReference* ActorManager_CreateNewActor(nint listsGlobal, EntityBase* entityBase);
+    //private IHook<ActorManager_CreateNewActor> ActorManager_CreateNewActorHook;
 
-    public delegate ActorReference* ActorListsGlobal_SetupEntity(nint listsGlobal, Entity* entity);
-    public IHook<ActorListsGlobal_SetupEntity> ActorListsGlobal_SetupEntityHook { get; private set; }
+    public delegate ActorReference* ActorManager_SetupEntity(nint @this, Entity* entity);
+    public IHook<ActorManager_SetupEntity> ActorManager_SetupEntityHook { get; private set; }
 
-    public delegate nint StaticActorManager_GetOrCreate(nint entityManager, nint** outEntityInfo, uint entityId);
+    public delegate nint StaticActorManager_GetOrCreate(nint @this, nint** outEntityInfo, uint entityId);
     public IHook<StaticActorManager_GetOrCreate> StaticActorManager_GetOrCreateHook { get; private set; }
 
+    public ActorManager_GetActorByKey ActorManager_GetActorByKeyFunction { get; private set; }
     public StaticActorInfo_IsValidActor HasEntityDataFunction { get; private set; }
     public StaticActorInfo_GetPosition GetPositionFunction { get; private set; }
     public StaticActorInfo_GetRotation GetRotationFunction { get; private set; }
     public StaticActorInfo_GetForwardVector GetForwardVectorFunction { get; private set; }
     public StaticActorInfo_GetForwardXZ GetForwardXZFunction { get; private set; }
 
+    public delegate ActorReference* ActorManager_GetActorByKey(nint @this, uint actorId);
     public delegate nint StaticActorInfo_IsValidActor(nint pStaticEntityInfo);
     public delegate NodePositionPair* StaticActorInfo_GetPosition(nint pStaticEntityInfo, NodePositionPair* outPair);
     public delegate Vector3* StaticActorInfo_GetRotation(nint pStaticEntityInfo, Vector3* outPair);
     public delegate Vector3* StaticActorInfo_GetForwardVector(nint pStaticEntityInfo, Vector3* outPair);
     public delegate Vector3* StaticActorInfo_GetForwardXZ(nint pStaticEntityInfo, Vector3* outPair);
 
-    public nint ManagerPointer { get; private set; }
-    public uint CliveActorId { get; private set; }
+    public delegate nint UnkSingletonPlayerOrCameraRelated_Ctor(nint @this);
+    public IHook<UnkSingletonPlayerOrCameraRelated_Ctor> UnkSingletonPlayerOrCameraRelated_CtorHook;
+
+    public nint ActorManager { get; private set; }
+    public nint StaticActorManager { get; private set; }
+    public nint UnkSingletonPlayerOrCameraRelated { get; private set; }
 
     public EntityManagerHooks(Config config, IModConfig modConfig, ILogger logger)
     : base(config, modConfig, logger)
     {
     }
 
-    public override void Setup()
+    public override void SetupHooks()
     {
-        //Project.Scans.AddScanHook(nameof(ActorListsGlobal_CreateNewActor), (result, hooks)
-        //    => ActorListsGlobal_CreateNewActorHook = hooks.CreateHook<ActorListsGlobal_CreateNewActor>(ActorListsGlobal_CreateNewActorImpl, result).Activate());
-        Project.Scans.AddScanHook(nameof(ActorListsGlobal_SetupEntity), (result, hooks)
-            => ActorListsGlobal_SetupEntityHook = hooks.CreateHook<ActorListsGlobal_SetupEntity>(ActorListsGlobal_SetupEntityImpl, result).Activate());
+        //Project.Scans.AddScanHook(nameof(ActorManager_CreateNewActor), (result, hooks)
+        //    => ActorManager_CreateNewActorHook = hooks.CreateHook<ActorManager_CreateNewActor>(ActorManager_CreateNewActorImpl, result).Activate());
+        Project.Scans.AddScanHook(nameof(ActorManager_SetupEntity), (result, hooks)
+            => ActorManager_SetupEntityHook = hooks.CreateHook<ActorManager_SetupEntity>(ActorManager_SetupEntityImpl, result).Activate());
         Project.Scans.AddScanHook(nameof(StaticActorManager_GetOrCreate), (result, hooks) 
-            => StaticActorManager_GetOrCreateHook = hooks.CreateHook<StaticActorManager_GetOrCreate>(GetOrCreateImpl, result).Activate());
+            => StaticActorManager_GetOrCreateHook = hooks.CreateHook<StaticActorManager_GetOrCreate>(StaticActorManager_GetOrCreateImpl, result).Activate());
+        Project.Scans.AddScanHook(nameof(UnkSingletonPlayerOrCameraRelated_Ctor), (result, hooks)
+            => UnkSingletonPlayerOrCameraRelated_CtorHook = hooks.CreateHook<UnkSingletonPlayerOrCameraRelated_Ctor>(UnkSingletonPlayerOrCameraRelated_CtorImpl, result).Activate());
+
+        Project.Scans.AddScanHook(nameof(ActorManager_GetActorByKey), (result, hooks) => ActorManager_GetActorByKeyFunction = hooks.CreateWrapper<ActorManager_GetActorByKey>(result, out _));
         Project.Scans.AddScanHook(nameof(StaticActorInfo_IsValidActor), (result, hooks) => HasEntityDataFunction = hooks.CreateWrapper<StaticActorInfo_IsValidActor>(result, out _));
         Project.Scans.AddScanHook(nameof(StaticActorInfo_GetPosition), (result, hooks) => GetPositionFunction = hooks.CreateWrapper<StaticActorInfo_GetPosition>(result, out _));
         Project.Scans.AddScanHook(nameof(StaticActorInfo_GetRotation), (result, hooks) => GetRotationFunction = hooks.CreateWrapper<StaticActorInfo_GetRotation>(result, out _));
@@ -65,28 +75,32 @@ public unsafe class EntityManagerHooks : HookGroupBase
     }
 
     /*
-    private ActorReference* ActorListsGlobal_CreateNewActorImpl(nint listsGlobal, EntityBase* entityBase)
+    private ActorReference* ActorManager_CreateNewActorImpl(nint listsGlobal, EntityBase* entityBase)
     {
-        var res = ActorListsGlobal_CreateNewActorHook.OriginalFunction(listsGlobal, entityBase);
+        var res = ActorManager_CreateNewActorHook.OriginalFunction(listsGlobal, entityBase);
         _logger.WriteLine($"Created {res->EntityID:X} with Id {res->ActorId:X}");
         return res;
     }
     */
 
-    private ActorReference* ActorListsGlobal_SetupEntityImpl(nint listsGlobal, Entity* entity)
+    private ActorReference* ActorManager_SetupEntityImpl(nint @this, Entity* entity)
     {
-        var res = ActorListsGlobal_SetupEntityHook.OriginalFunction(listsGlobal, entity);
-        if (res->EntityID == 0x1000001)
-            CliveActorId = res->ActorId;
-
+        ActorManager = @this;
+        var res = ActorManager_SetupEntityHook.OriginalFunction(@this, entity);
         _logger.WriteLine($"Created entity {res->EntityID:X} (actor id: {res->ActorId:X})");
         return res;
     }
 
-    private nint GetOrCreateImpl(nint entityManager, nint** key, uint entityId)
+    private nint UnkSingletonPlayerOrCameraRelated_CtorImpl(nint @this)
     {
-        ManagerPointer = entityManager;
-        return StaticActorManager_GetOrCreateHook.OriginalFunction(entityManager, key, entityId);
+        UnkSingletonPlayerOrCameraRelated = @this;
+        return UnkSingletonPlayerOrCameraRelated_CtorHook.OriginalFunction(@this);
+    }
+
+    private nint StaticActorManager_GetOrCreateImpl(nint @this, nint** key, uint entityId)
+    {
+        StaticActorManager = @this;
+        return StaticActorManager_GetOrCreateHook.OriginalFunction(@this, key, entityId);
     }
 }
 
@@ -100,7 +114,7 @@ public unsafe struct NodePositionPair // sizeof=0x20
 
 public unsafe struct Entity
 {
-    public nint ActorListsGlobal;
+    public nint ActorManager;
     public EntityBase EntityBase;
     public nint ActorBaseRow;
     public nint BNpcBaseRow;
@@ -211,8 +225,21 @@ public unsafe struct /*faith::*/Node // sizeof=0x70
 };
 
 public unsafe struct Transform // sizeof=0x1C
-{                                       // XREF: faith::Node/r
+{
     public Vector3 Position;
     public Vector3 EulerRotation;
     public float Scale;
 };
+
+public enum EntityType
+{
+    ActorBase = 0,
+    BNpcBase = 1,
+    ENpcBase = 2,
+    WeaponBase = 3,
+    GimmickBase = 4,
+    StageSetBase = 5,
+    NullActorBase = 7,
+    AnimalBase = 8,
+    PropBase = 9,
+}

@@ -36,7 +36,7 @@ public unsafe class SaveHooks : HookGroupBase
 
     }
 
-    public override void Setup()
+    public override void SetupHooks()
     {
         // Initial strategy was to hook the serializers/deserializer to pass saveAsXml as true.
         // https://nenkai.github.io/ffxvi-modding/resources/other/save_files/?h=save

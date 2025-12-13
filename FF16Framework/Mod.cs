@@ -29,6 +29,7 @@ using FF16Framework.Template;
 using FF16Framework.Faith.Hooks;
 
 using Microsoft.Extensions.DependencyInjection;
+using Reloaded.Mod.Interfaces.Internal;
 
 namespace FF16Framework;
 
@@ -86,8 +87,10 @@ public class Mod : ModBase, IExports // <= Do not Remove.
     private IBackendHook _backendHook;
     private IImGuiShell _imGuiShell;
     private ImGuiTextureManager _imGuiTextureManager;
-    private ImGuiConfig _imGuiConfig;
+    private ImGuiShellConfig _imGuiShellConfig;
     private IImGui _imGui;
+
+    private FrameworkConfig _frameworkConfig;
 
     // Used to enable ImGui when the splash screen is disabled.
     public delegate bool DestroyWindow(nint hwnd);
@@ -126,7 +129,19 @@ public class Mod : ModBase, IExports // <= Do not Remove.
             return;
         }
 
-        InitSaveHooks();
+        GameContext gameContext = _services.GetRequiredService<GameContext>();
+        IApplicationConfigV1 appConfig = _modLoader.GetAppConfig();
+        if (appConfig.AppId.Contains("ffxvi"))
+            gameContext.SetGameType(FaithGameType.FFXVI);
+        else if (appConfig.AppId.Contains("fft_"))
+            gameContext.SetGameType(FaithGameType.FFT);
+        else
+            _logger.WriteLine($"[{_modConfig.ModId}] Could not determine game type. Was the executable renamed?", _logger.ColorRed);
+
+        IEnumerable<HookGroupBase> hookGroups = _services.GetServices<HookGroupBase>();
+        foreach (HookGroupBase hookGroup in hookGroups)
+            hookGroup.SetupHooks();
+
         InitNex();
         InitImGui();
 
@@ -137,26 +152,48 @@ public class Mod : ModBase, IExports // <= Do not Remove.
     {
         ServiceCollection services = new ServiceCollection();
 
-        string configPath = Path.Combine(_modLoader.GetDirectoryForModId(_modConfig.ModId), "framework_config.toml");
-        if (File.Exists(configPath))
+        string shellConfigPath = Path.Combine(_modLoader.GetDirectoryForModId(_modConfig.ModId), "shell_config.toml");
+        if (File.Exists(shellConfigPath))
         {
             try
             {
-                _imGuiConfig = Toml.ToModel<ImGuiConfig>(File.ReadAllText(configPath));
-                _imGuiConfig.SetPath(configPath);
+                _imGuiShellConfig = Toml.ToModel<ImGuiShellConfig>(File.ReadAllText(shellConfigPath));
+                _imGuiShellConfig.SetPath(shellConfigPath);
             }
             catch (Exception ex)
             {
-                _logger.WriteLine($"[{_modConfig.ModId}] Failed to load ImGui config from '{configPath}' - {ex.Message}");
+                _logger.WriteLine($"[{_modConfig.ModId}] Failed to load ImGui Shell config from '{shellConfigPath}' - {ex.Message}");
                 _logger.WriteLine("Creating default config...");
-                _imGuiConfig = new ImGuiConfig(configPath);
-                _imGuiConfig.Save();
+                _imGuiShellConfig = new ImGuiShellConfig(shellConfigPath);
+                _imGuiShellConfig.Save();
             }
         }
         else
         {
-            _imGuiConfig = new ImGuiConfig(configPath);
-            _imGuiConfig.Save();
+            _imGuiShellConfig = new ImGuiShellConfig(shellConfigPath);
+            _imGuiShellConfig.Save();
+        }
+
+        string frameworkConfigPath = Path.Combine(_modLoader.GetDirectoryForModId(_modConfig.ModId), "framework_config.toml");
+        if (File.Exists(frameworkConfigPath))
+        {
+            try
+            {
+                _frameworkConfig = Toml.ToModel<FrameworkConfig>(File.ReadAllText(frameworkConfigPath));
+                _frameworkConfig.SetPath(frameworkConfigPath);
+            }
+            catch (Exception ex)
+            {
+                _logger.WriteLine($"[{_modConfig.ModId}] Failed to load framework config from '{frameworkConfigPath}' - {ex.Message}");
+                _logger.WriteLine("Creating default config...");
+                _frameworkConfig = new FrameworkConfig(frameworkConfigPath);
+                _frameworkConfig.Save();
+            }
+        }
+        else
+        {
+            _frameworkConfig = new FrameworkConfig(frameworkConfigPath);
+            _frameworkConfig.Save();
         }
 
         services
@@ -167,12 +204,16 @@ public class Mod : ModBase, IExports // <= Do not Remove.
             .AddSingleton(_configuration)
             .AddSingleton(_logger)
 
-            // Hooks
-            //.AddSingleton<EntityManagerHooks>()
-            .AddSingleton<SaveHooks>()
-            .AddSingleton<NexHooks>()
+            .AddSingleton<GameContext>()
+            .AddSingleton(_frameworkConfig)
 
-            .AddSingleton<ImGuiConfig>(_imGuiConfig)
+            // Hooks
+            .AddSingletonAs<HookGroupBase, EntityManagerHooks>() // FFXVI
+            .AddSingletonAs<HookGroupBase, MapHooks>()  // FFXVI
+            .AddSingletonAs<HookGroupBase, SaveHooks>()  // FFXVI
+            .AddSingletonAs<HookGroupBase, NexHooks>()  // All
+
+            .AddSingleton<ImGuiShellConfig>(_imGuiShellConfig)
             .AddSingleton<INextExcelDBApi, NextExcelDBApi>()
             .AddSingleton<INextExcelDBApiManagedV2, NextExcelDBApiManaged>()
             .AddSingleton<IImGui, ImGui>()
@@ -198,6 +239,7 @@ public class Mod : ModBase, IExports // <= Do not Remove.
 
         return services.BuildServiceProvider();
     }
+
 
     private bool imguiRenderable = false;
 
@@ -260,11 +302,10 @@ public class Mod : ModBase, IExports // <= Do not Remove.
     private void InitImGui()
     {
         _imGui = _services.GetRequiredService<IImGui>();
-
         _imGuiShell = _services.GetRequiredService<IImGuiShell>();
 
         // Shell components (add these early, so other mods aren't adding components while we haven't populated yet)
-        //_imGuiShell.AddComponent(_services.GetRequiredService<GameOverlay>());
+        _imGuiShell.AddComponent(_services.GetRequiredService<GameOverlay>());
         _imGuiShell.AddComponent(_services.GetRequiredService<LogWindow>());
         _imGuiShell.AddComponent(_services.GetRequiredService<FrameworkToolsComponent>());
         _imGuiShell.AddComponent(_services.GetRequiredService<AboutWindow>());
@@ -361,20 +402,10 @@ public class Mod : ModBase, IExports // <= Do not Remove.
     private void InitNex()
     {
         _nexHooks = _services.GetRequiredService<NexHooks>();
-        _nexHooks.Setup();
 
         _modLoader.AddOrReplaceController<INextExcelDBApi>(_owner, _services.GetRequiredService<INextExcelDBApi>());
         _modLoader.AddOrReplaceController<INextExcelDBApiManaged>(_owner, _services.GetRequiredService<INextExcelDBApiManagedV2>());
         _modLoader.AddOrReplaceController<INextExcelDBApiManagedV2>(_owner, _services.GetRequiredService<INextExcelDBApiManagedV2>());
-    }
-
-    private void InitSaveHooks()
-    {
-        var saveHooks = _services.GetRequiredService<SaveHooks>();
-        saveHooks.Setup();
-
-        //var entityManagerHooks = _services.GetRequiredService<EntityManagerHooks>();
-        //entityManagerHooks.Setup();
     }
 
     #region Standard Overrides

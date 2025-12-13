@@ -24,7 +24,7 @@ public abstract class HookGroupBase
         _logger = logger;
     }
 
-    public abstract void Setup();
+    public abstract void SetupHooks();
 
     public virtual void UpdateConfig(Config configuration)
     {

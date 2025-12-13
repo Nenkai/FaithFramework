@@ -36,6 +36,8 @@ public class FrameworkToolsComponent : IImGuiComponent
         {
             _documentation.RenderMenu(imGuiShell);
             _settings.RenderMenu(imGuiShell);
+
+            _imGui.EndMenu();
         }
     }
 
