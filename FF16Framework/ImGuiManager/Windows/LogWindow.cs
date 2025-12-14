@@ -23,24 +23,29 @@ public unsafe class LogWindow : IImGuiComponent
 
     private ILogger _logger;
 
-    private StreamWriter _sw;
+    private StreamWriter? _sw;
 
     private const int MAX_LINES = 5000;
     public List<LogMessage> LastLines = new(MAX_LINES);
     private static object _lock = new object();
 
     private readonly IImGui _imGui;
-    public LogWindow(IImGui imgui, ILogger logger, string logPath)
+    public LogWindow(IImGui imgui, ILogger logger)
     {
         _imGui = imgui;
         _logger = logger;
         _logger.OnWriteLine += _logger_OnWriteLine;
-        _sw = new StreamWriter(logPath);
     }
 
     ~LogWindow()
     {
-        _sw.Flush();
+        _sw?.Flush();
+    }
+
+    public void SetupLogPath(string path)
+    {
+        _sw?.Dispose();
+        _sw = new StreamWriter(path);
     }
 
     private void _logger_OnWriteLine(object sender, (string text, System.Drawing.Color color) e)
@@ -52,7 +57,7 @@ public unsafe class LogWindow : IImGuiComponent
 
             var logMsg = new LogMessage(DateTime.UtcNow, sender.ToString(), e.text);
             LastLines.Add(logMsg);
-            _sw.WriteLine(e.text);
+            _sw?.WriteLine(e.text);
         }
     }
 

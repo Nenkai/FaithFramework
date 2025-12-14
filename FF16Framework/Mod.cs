@@ -228,7 +228,18 @@ public class Mod : ModBase, IExports // <= Do not Remove.
                 var logger = provider.GetRequiredService<ILogger>();
 
                 var path = Path.Combine(_modLoader.GetDirectoryForModId(_modConfig.ModId), "framework_log.txt");
-                return new LogWindow(imgui, logger, path);
+                var window = new LogWindow(imgui, logger);
+
+                try
+                {
+                    window.SetupLogPath(path);
+                }
+                catch (Exception ex)
+                {
+                    _logger.WriteLine($"[{_modConfig.ModId}] Unable to set log path, file is likely already in use. ({ex.Message})", System.Drawing.Color.Red);
+                }
+
+                return window;
             })
 
             .AddSingleton<SettingsComponent>()
