@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 
 using NenTools.ImGui.Abstractions;
+using NenTools.ImGui.Hooks;
 using NenTools.ImGui.Native;
 
 using Reloaded.Hooks.Definitions;
@@ -13,6 +14,7 @@ using Reloaded.Mod.Interfaces;
 using RyoTune.Reloaded;
 
 using Windows.Win32;
+using Windows.Win32.Foundation;
 
 namespace FF16Framework.ImGuiManager.Hooks;
 
@@ -21,7 +23,8 @@ public unsafe class ImGuiInputHookManager
     private IHook<KeyboardManager_HandleWindowKeyboardKeyPressed>? _HOOK_KeyboardManager_HandleWindowKeyboardKeyPressed;
     public delegate void KeyboardManager_HandleWindowKeyboardKeyPressed(nint a1, nint a2);
 
-    //private HookContainer<MouseDevice_WindowMessageIntercepter>? _HOOK_MouseDevice_WindowMessageIntercepter;
+    // Not used.
+    //private IHook<MouseDevice_WindowMessageIntercepter>? _HOOK_MouseDevice_WindowMessageIntercepter;
     //public delegate nint MouseDevice_WindowMessageIntercepter(nint hwnd, uint uMsg, nint wParam, nint lParam, nuint uIdSubClass, nint dwRefData);
 
     private IHook<KeyboardDevice_WindowMessageIntercepter>? _HOOK_KeyboardDevice_WindowMessageIntercepter;
@@ -39,6 +42,7 @@ public unsafe class ImGuiInputHookManager
     public delegate nuint GetDeviceData(nint this_, nint cbObjectData, nint rgdod, nint pdwInOut, int dwFlags);
     private IHook<GetDeviceData>? _getDeviceDataHook;
 
+    // Not used.
     //public delegate void GetCursorPos(POINT* a1);
     //private IHook<GetCursorPos>? _getCursorPosHook;
 
@@ -58,15 +62,22 @@ public unsafe class ImGuiInputHookManager
         // Mouse input: dinput8 (movement GetDeviceData (ingame)/GetCursorPos (UI), presses: GetDeviceState)
         // Keyboard input: WndProc messages
 
+        // Hook keyboard presses so keys don't get passed to the game while ImGui is open.
         Project.Scans.AddScanHook(nameof(KeyboardManager_HandleWindowKeyboardKeyPressed),
             (result, hooks) => _HOOK_KeyboardManager_HandleWindowKeyboardKeyPressed = hooks.CreateHook<KeyboardManager_HandleWindowKeyboardKeyPressed>(HandleWindowKeyboardKeyPressedImpl, result).Activate());
-
-        //_HOOK_MouseDevice_WindowMessageIntercepter = _scans.CreateHook<MouseDevice_WindowMessageIntercepter>(MouseDevice_WindowMessageIntercepterImpl, _modConfig.ModId);
+        //Project.Scans.AddScanHook(nameof(MouseDevice_WindowMessageIntercepter),
+        //    (result, hooks) => _HOOK_MouseDevice_WindowMessageIntercepter = hooks.CreateHook<MouseDevice_WindowMessageIntercepter>(MouseDevice_WindowMessageIntercepterImpl, result).Activate());
+        // Hook keyboard so keys don't get passed to the game while ImGui is open.
         Project.Scans.AddScanHook(nameof(KeyboardDevice_WindowMessageIntercepter),
             (result, hooks) => _HOOK_KeyboardDevice_WindowMessageIntercepter = hooks.CreateHook<KeyboardDevice_WindowMessageIntercepter>(KeyboardDeviceWindowMessageIntercepterImpl, result).Activate());
 
-        // Chain hook direct input so imgui inputs don't also get passed to the game.
-        var handle = PInvoke.GetModuleHandle("dinput8.dll");
+        // Hook DInput8 so that mouse inputs don't also get passed to the game.
+        // Normally we would use GetModuleHandle, but for some strange reason Reloaded.Hooks has trouble hooking DirectInput8Create
+        // when it has already been messed around by Ultimate ASI Loader.
+        // LoadLibray works fine, so we'll use that instead.
+        // var handle = PInvoke.GetModuleHandle("dinput8.dll");
+        using FreeLibrarySafeHandle handle = PInvoke.LoadLibrary("C://Windows/System32/dinput8.dll");
+        FARPROC dinput8Create = PInvoke.GetProcAddress(handle, "DirectInput8Create");
         _directInputCreateHook = _hooks.CreateHook<DirectInput8Create>(DirectInput8CreateImpl, PInvoke.GetProcAddress(handle, "DirectInput8Create")).Activate();
 
         var user32 = PInvoke.GetModuleHandle("user32.dll");
@@ -114,7 +125,7 @@ public unsafe class ImGuiInputHookManager
         _HOOK_KeyboardManager_HandleWindowKeyboardKeyPressed!.OriginalFunction(dwRefData, key);
     }
 
-    // This one handles mouse button presses. (we don't need it)
+    // This one handles mouse button presses. (we don't need it, and aren't using it.)
     /*
     private nint MouseDevice_WindowMessageIntercepterImpl(nint hwnd, uint uMsg, nint wParam, nint lParam, nuint uIdSubClass, nint dwRefData)
     {
