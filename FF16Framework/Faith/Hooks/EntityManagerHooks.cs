@@ -87,7 +87,7 @@ public unsafe class EntityManagerHooks : HookGroupBase
     {
         ActorManager = @this;
         var res = ActorManager_SetupEntityHook.OriginalFunction(@this, entity);
-        _logger.WriteLine($"Created entity {res->EntityID:X} (actor id: {res->ActorId:X})");
+       // _logger.WriteLine($"Created entity {res->EntityID:X} (actor id: {res->ActorId:X})");
         return res;
     }
 
