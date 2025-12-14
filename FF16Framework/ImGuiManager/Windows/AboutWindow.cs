@@ -90,7 +90,7 @@ public class AboutWindow : IImGuiComponent
             _imGui.Text("- INSERT: Show ImGui Menu"u8);
             _imGui.Spacing();
 
-            _imGui.Text("NOTE: Logs are also saved as a file in the game's directory as 'modtools_log.txt'."u8);
+            _imGui.Text("NOTE: Logs are also saved as a file in the framework's mod directory as 'framework_log.txt'."u8);
         }
 
         _imGui.End();
