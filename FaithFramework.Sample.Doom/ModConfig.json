@@ -1,0 +1,26 @@
+{
+  "ModId": "FaithFramework.Sample.Doom",
+  "ModName": "FaithFramework Doom Sample",
+  "ModAuthor": "Dicene, Nenkai",
+  "ModVersion": "1.0.0",
+  "ModDescription": "Sample FaithFramework mod with support for playing Doom through ImGui.",
+  "ModDll": "FaithFramework.Sample.Doom.dll",
+  "ModIcon": "Preview.png",
+  "ModR2RManagedDll32": "x86/FaithFramework.Sample.Doom.dll",
+  "ModR2RManagedDll64": "x64/FaithFramework.Sample.Doom.dll",
+  "ModNativeDll32": "",
+  "ModNativeDll64": "",
+  "IsLibrary": false,
+  "ReleaseMetadataFileName": "FaithFramework.Sample.Doom.ReleaseMetadata.json",
+  "PluginData": {},
+  "IsUniversalMod": false,
+  "ModDependencies": [
+    "Reloaded.Memory.SigScan.ReloadedII",
+    "reloaded.sharedlib.hooks",
+    "SharedScans.Reloaded",
+    "ff16.utility.framework"
+  ],
+  "OptionalDependencies": [],
+  "SupportedAppId": [ "ffxvi.exe", "fft_enhanced.exe", "fft_classic.exe" ],
+  "ProjectUrl": ""
+}
