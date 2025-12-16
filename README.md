@@ -22,4 +22,4 @@ The Nex API/Interface lets you edit nex tables while the game is running.
 
 ## Credits
 
-* [https://github.com/dicene](<https://github.com/dicene>), for the Doom sample.
+* [Dicene](<https://github.com/dicene>), for the Doom sample.
