@@ -13,7 +13,7 @@ using FF16Framework.ImGuiManager.Windows.Framework;
 
 namespace FF16Framework.ImGuiManager.Windows;
 
-[ImGuiMenu(Category = "Tools", Priority = ImGuiShell.SystemPriority, Owner = nameof(FF16Framework))]
+[ImGuiMenu(Category = "Mods", Priority = ImGuiShell.SystemPriority, Owner = nameof(FF16Framework))]
 public class FrameworkToolsComponent : IImGuiComponent
 {
     public bool IsOverlay => false;
