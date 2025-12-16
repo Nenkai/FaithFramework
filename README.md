@@ -7,85 +7,18 @@ Features:
 * ImGui API
 * Nex Runtime Interface API
 
+## ImGui API
+
+Allows creating dev/debug uis.
+
+* [Documentation](<https://nenkai.github.io/ffxvi-modding/modding/framework/imgui_api/>)
+* [Sample](<https://github.com/Nenkai/FaithFramework/tree/master/FaithFramework.Sample.Doom>)
+
 ## Nex Interface
 
-You should grab the [FF16Tools.Files](https://github.com/Nenkai/FF16Tools/) NuGet Package to be able to read rows.
+The Nex API/Interface lets you edit nex tables while the game is running.
 
-Then, add the `FF16Framework.Interfaces` NuGet package to your project. 
-
-Once you have it installed, grab a `INextExcelDBApiManagedV2` controller from the Mod Loader:
-```csharp
-_nexApi = _modLoader.GetController<INextExcelDBApiManagedV2>();
-if (!_nexApi.TryGetTarget(out INextExcelDBApiManagedV2 nextExcelDBApi))
-{
-    _logger.WriteLine($"[{_modConfig.ModId}] Could not get INextExcelDBApi.");
-    return;
-}
-
-```
-
-Then, subscribe to an event when the game has loaded the nex database:
-```csharp
-nextExcelDBApi.OnNexLoaded += NextExcelDBApi_OnNexLoaded;
-```
-
-You can use this to apply nex changes immediately once the event fires.
-
-> [!NOTE]
-> Always ensure that the database is initialized before attempting to do any changes (especially if you are applying changes again from a configuration change through `ConfigurationUpdated`).
-
-```csharp
-if (!nextExcelDBApi.Initialized)
-    return;
-```
-
-### Basic usage
-```csharp
-INexTable? photoTable = nextExcelDBApi.GetTable(NexTableIds.photocameraparam);
-if (photoTable is null)
-{
-    // Handle error
-}
-
-// Get a specific row
-INexRow? row = photoTable.GetRow(7);
-if (row is null)
-{
-    // Handle error
-}
-
-// Iterate through rows/get keys
-uint numSets = photoTable.GetNumSets();
-for (uint i = 0; i < numSets; i++)
-{
-    uint key1 = photoTable.GetMainKeyByIndex(i);
-    // ...
-}
-
-// Double keyed (example)
-INexTable? gamemap = nextExcelDBApi.GetTable(NexTableIds.gamemap);
-uint numSubSets = gamemap.GetSubSetCount(200000);
-IReadOnlyList<NexSubSetInfo> allSubSets = photoTable.GetSubSetInfos(200000);
-for (uint i = 0; i < numSubSets; i++)
-{
-    NexSubSetInfo? subSetInfo = gamemap.GetSubSetInfoByIndex(200000, i);
-    if (subSetInfo is null)
-    {
-        // Handle error
-    }
-}
-
-// Manipulate/Fetch row
-NexTableLayout layout = TableMappingReader.ReadTableLayout("photocameraparam", ...); // From FF16Tools.Files
-
-float collisionSphereRadius = row.GetSingle((uint)layout.Columns["CollisionSphereRadius"].Offset);
-row.SetSingle((uint)layout.Columns["CollisionSphereRadius"].Offset, 133.7f);
-```
-
-> [!NOTE]
-> It is not yet possible to add/remove rows, access/manipulate structure arrays or edit strings.
-> 
-> `INextExcelDBApi` is still supported, but you should use the managed api instead to avoid dealing with pointers/unsafe code.
+* [Documentation](<https://nenkai.github.io/ffxvi-modding/modding/framework/nex_api/>)
 
 ## Credits
 
