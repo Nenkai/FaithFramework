@@ -12,7 +12,7 @@ Features:
 Allows creating dev/debug uis.
 
 * [Documentation](<https://nenkai.github.io/ffxvi-modding/modding/framework/imgui_api/>)
-* [Sample](<https://github.com/Nenkai/FaithFramework/tree/master/FaithFramework.Sample.Doom>)
+* [Sample](<https://github.com/Nenkai/FaithFramework/tree/master/FaithFramework.Sample.Doom>) (Running Doom as a ImGui window within FFXVI/FFTIVC)
 
 ## Nex Interface
 
