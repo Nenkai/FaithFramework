@@ -14,6 +14,8 @@ using System;
 using System.Diagnostics;
 using System.Drawing;
 
+using RyoTune.Reloaded;
+
 #if DEBUG
 using System.Diagnostics;
 using System.Drawing;
@@ -57,26 +59,14 @@ public class Mod : ModBase // <= Do not Remove.
     /// </summary>
     private readonly IModConfig _modConfig;
 
-    public bool BlockInput { get; set; }
-
-    private readonly string ReadKeys_Pattern = "48 89 5C 24 ?? 48 89 6C 24 ?? 56 57 41 56 48 83 EC ?? 48 8B 01 4C 8B F1 0F 29 74 24 ?? 0F 28 F1 FF 50";
-    private long ReadKeys_Address = 0;
-
-    [Function(CallingConventions.Microsoft)]
-    private delegate nint ReadKeys(nint inputManager, float arg2);
-    private IHook<ReadKeys> ReadKeys_Hook;
-
-    private nint ReadKeys_Replacement(nint inputManager, float arg2)
-    {
-        if (_doomComponent?.BlockInput == true)
-            return 0;
-
-        return ReadKeys_Hook.OriginalFunction(inputManager, arg2);
-    }
-
     private readonly IImGui _imGui;
     private readonly IImGuiShell _imGuiShell;
     private readonly DoomGameComponent _doomComponent;
+
+    [Function(CallingConventions.Microsoft)]
+    private delegate nint faith_Input_InputManager_Update(nint inputManager, float arg2);
+    private IHook<faith_Input_InputManager_Update> HOOK_InputManagerUpdate;
+    public bool BlockInput { get; set; }
 
     public Mod(ModContext context)
     {
@@ -92,26 +82,11 @@ public class Mod : ModBase // <= Do not Remove.
         Debugger.Launch();
 #endif
 
-        var startupScannerController = _modLoader.GetController<IStartupScanner>();
-        if (startupScannerController == null || !startupScannerController.TryGetTarget(out var startupScanner))
-        {
-            _logger.WriteLineAsync($"[{_modConfig.ModId}] Unable to find startupScanner. Ensure Reloaded.Memory.SigScan is installed.", Color.OrangeRed);
-            return;
-        }
+        Project.Initialize(_modConfig, _modLoader, _logger);
 
-        startupScanner.AddMainModuleScan(ReadKeys_Pattern, result =>
-        {
-            if (!result.Found)
-            {
-                _logger.WriteLineAsync($"[{_modConfig.ModId}] Failed to find AoB pattern for ReadKeys function!", Color.OrangeRed);
-                return;
-            }
-
-            ReadKeys_Address = Process.GetCurrentProcess().MainModule!.BaseAddress + result.Offset;
-
-            _logger.WriteLineAsync($"[{_modConfig.ModId}] ReadKeys function found at 0x{ReadKeys_Address:X}.", Color.LimeGreen);
-            ReadKeys_Hook = _hooks!.CreateHook<ReadKeys>(ReadKeys_Replacement, ReadKeys_Address).Activate();
-        });
+        Project.Scans.AddScanHook(nameof(faith_Input_InputManager_Update),
+            (result, hooks) => HOOK_InputManagerUpdate = hooks.CreateHook<faith_Input_InputManager_Update>(ReadKeys_Replacement, result).Activate(), 
+            () => _logger.WriteLineAsync($"[{_modConfig.ModId}] Failed to find AoB pattern for ReadKeys function!", Color.OrangeRed));
 
         _logger.WriteLineAsync($"[{_modConfig.ModId}] Mod initialized.");
 
@@ -137,6 +112,14 @@ public class Mod : ModBase // <= Do not Remove.
 
         _doomComponent = new DoomGameComponent(_imGui, _configuration);
         imGuiShell.AddComponent(_doomComponent);
+    }
+
+    private nint ReadKeys_Replacement(nint inputManager, float arg2)
+    {
+        if (_doomComponent?.BlockInput == true)
+            return 0;
+
+        return HOOK_InputManagerUpdate.OriginalFunction(inputManager, arg2);
     }
 
     #region Standard Overrides

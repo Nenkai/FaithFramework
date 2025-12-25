@@ -84,10 +84,21 @@ public class DoomGameComponent : IImGuiComponent
                 return;
             }
 
-            if (_doom is null && !string.IsNullOrWhiteSpace(WadPath) && imGui.Button("Start"u8))
+            if (_doom is null && !string.IsNullOrWhiteSpace(WadPath))
             {
-                SetupDoom();
-                _doom!.NewGame(GameSkill.Medium, 0, 0);
+                if (imGui.Button("Start"u8))
+                {
+                    if (!File.Exists(WadPath))
+                    {
+                        imGuiShell.LogWriteLine("FaithFramework.Sample.Doom", $"WAD file not found in {WadPath}! " +
+                            $"(Change path in 'Configure' after right-clicking on the mod in Reloaded-II)", outputTargetFlags: LoggerOutputTargetFlags.OverlayLogger);
+                    }
+                    else
+                    {
+                        SetupDoom();
+                        _doom!.NewGame(GameSkill.Medium, 0, 0);
+                    }
+                }
             }
 
             if (_doom is not null)

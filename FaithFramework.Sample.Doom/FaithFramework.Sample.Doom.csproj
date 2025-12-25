@@ -40,6 +40,15 @@
     <None Update="Preview.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Update="Project\FaithFramework.Sample.Doom\FFT_classic\scans.ini">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Project\FaithFramework.Sample.Doom\FFT_enhanced\scans.ini">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Project\FaithFramework.Sample.Doom\ffxvi\scans.ini">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
   <ItemGroup>
@@ -50,5 +59,6 @@
     <PackageReference Include="Reloaded.SharedLib.Hooks" Version="1.9.0" />
 	<PackageReference Include="NenTools.ImGui.Interfaces" Version="1.0.1" />
 	<PackageReference Include="NenTools.ImGui.Abstractions" Version="1.0.1" />
+	<PackageReference Include="RyoTune.Reloaded" Version="4.2.1" />
   </ItemGroup>
 </Project>
