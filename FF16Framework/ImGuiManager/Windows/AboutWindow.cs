@@ -6,11 +6,13 @@ using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 
-using NenTools.ImGui.Interfaces;
 using NenTools.ImGui.Shell;
-using NenTools.ImGui.Abstractions;
+using NenTools.ImGui.Interfaces;
+using NenTools.ImGui.Interfaces.Shell;
+using NenTools.ImGui.Interfaces.Shell.Textures;
 
 using Reloaded.Mod.Interfaces;
+
 
 namespace FF16Framework.ImGuiManager.Windows;
 
@@ -91,6 +93,16 @@ public class AboutWindow : IImGuiComponent
             _imGui.Spacing();
 
             _imGui.Text("NOTE: Logs are also saved as a file in the framework's mod directory as 'framework_log.txt'."u8);
+
+            foreach (var font in imGuiShell.FontManager.Fonts)
+            {
+                _imGui.Text($"Loaded Font: {font.Key} by {font.Value.Owner}");
+            }
+
+            if (_imGui.Button("Close"))
+            {
+                imGuiShell.FontManager.RemoveFont("twemoji");
+            }
         }
 
         _imGui.End();

@@ -6,9 +6,10 @@ using System.Threading.Tasks;
 using System.Numerics;
 using System.Drawing;
 
-using NenTools.ImGui.Interfaces;
 using NenTools.ImGui.Shell;
-using NenTools.ImGui.Abstractions;
+using NenTools.ImGui.Interfaces;
+using NenTools.ImGui.Interfaces.Shell;
+
 using FF16Framework.ImGuiManager.Windows.Framework;
 
 namespace FF16Framework.ImGuiManager.Windows;

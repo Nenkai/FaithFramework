@@ -3,15 +3,18 @@ using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 
-using NenTools.ImGui.Hooks;
 using NenTools.ImGui.Hooks.DirectX12;
 using NenTools.ImGui.Implementation;
 using NenTools.ImGui.Interfaces;
+using NenTools.ImGui.Interfaces.Backend;
+using NenTools.ImGui.Interfaces.Shell;
+using NenTools.ImGui.Interfaces.Shell.Textures;
+using NenTools.ImGui.Interfaces.Shell.Fonts;
 using NenTools.ImGui.Shell;
-using NenTools.ImGui.Abstractions;
 
 using Reloaded.Hooks.Definitions;
 using Reloaded.Mod.Interfaces;
+using Reloaded.Mod.Interfaces.Internal;
 
 using RyoTune.Reloaded;
 
@@ -23,13 +26,14 @@ using FF16Framework.ImGuiManager.Hooks;
 using FF16Framework.ImGuiManager.Windows;
 using FF16Framework.ImGuiManager.Windows.Framework;
 using FF16Framework.Interfaces.Nex;
+using FF16Framework.Logging;
 using FF16Framework.Nex;
 using FF16Framework.Save;
 using FF16Framework.Template;
 using FF16Framework.Faith.Hooks;
 
 using Microsoft.Extensions.DependencyInjection;
-using Reloaded.Mod.Interfaces.Internal;
+using Microsoft.Extensions.Logging;
 
 namespace FF16Framework;
 
@@ -62,7 +66,7 @@ public class Mod : ModBase, IExports // <= Do not Remove.
     /// <summary>
     /// Provides access to the Reloaded logger.
     /// </summary>
-    private readonly ILogger _logger;
+    private readonly Reloaded.Mod.Interfaces.ILogger _logger;
 
     /// <summary>
     /// Entry point into the mod, instance that created this class.
@@ -86,7 +90,6 @@ public class Mod : ModBase, IExports // <= Do not Remove.
 
     private IBackendHook _backendHook;
     private IImGuiShell _imGuiShell;
-    private ImGuiTextureManager _imGuiTextureManager;
     private ImGuiShellConfig _imGuiShellConfig;
     private IImGui _imGui;
 
@@ -203,6 +206,7 @@ public class Mod : ModBase, IExports // <= Do not Remove.
             .AddSingleton(_hooks!)
             .AddSingleton(_configuration)
             .AddSingleton(_logger)
+            .AddSingleton(LoggerFactory.Create(e => e.AddProvider(new R2LoggerToMSLoggerAdapterProvider(_logger))))
 
             .AddSingleton<GameContext>()
             .AddSingleton(_frameworkConfig)
@@ -225,7 +229,7 @@ public class Mod : ModBase, IExports // <= Do not Remove.
             .AddSingleton<LogWindow>(provider =>
             {
                 var imgui = provider.GetRequiredService<IImGui>();
-                var logger = provider.GetRequiredService<ILogger>();
+                var logger = provider.GetRequiredService<Reloaded.Mod.Interfaces.ILogger>();
 
                 var path = Path.Combine(_modLoader.GetDirectoryForModId(_modConfig.ModId), "framework_log.txt");
                 var window = new LogWindow(imgui, logger);
@@ -343,7 +347,6 @@ public class Mod : ModBase, IExports // <= Do not Remove.
         _modLoader.AddOrReplaceController<IImGuiShell>(_owner, _imGuiShell);
     }
 
-    private readonly static uint[] _emojiRangePtr = [0x1, 0x1FFFF, 0 /* Null termination */];
     private unsafe void ConfigureImgui()
     {
         string modFolder = _modLoader.GetDirectoryForModId(_modConfig.ModId);
@@ -351,23 +354,21 @@ public class Mod : ModBase, IExports // <= Do not Remove.
         IImGuiIO io = _imGui.GetIO();
         io.ConfigFlags |= ImGuiConfigFlags.ImGuiConfigFlags_DockingEnable;
 
-        using IDisposableHandle<IImFontConfig> configHandle = _imGui.CreateFontConfig();
-        IImFontConfig config = configHandle.Value;
-
         // English font
         string robotoFontPath = Path.Combine(modFolder, "ImGuiManager", "Fonts", "Roboto", "Roboto-Medium.ttf");
-        _imGui.ImFontAtlas_AddFontFromFileTTF(io.Fonts, robotoFontPath, 15.0f, null!, ref Unsafe.AsRef<uint>(_imGui.ImFontAtlas_GetGlyphRangesDefault(io.Fonts)));
+        _imGuiShell.FontManager.AddFontTTF(_modConfig.ModId, "Roboto-Medium", robotoFontPath, 15.0f, _imGui.ImFontAtlas_GetGlyphRangesDefault(io.Fonts), null!);
 
         // Japanese font
         string netoSansJpFontPath = Path.Combine(modFolder, "ImGuiManager", "Fonts", "Noto", "NotoSansJP-Medium.ttf");
-        config.MergeMode = true;
-        _imGui.ImFontAtlas_AddFontFromFileTTF(io.Fonts, netoSansJpFontPath, 17.0f, config, ref Unsafe.AsRef<uint>(_imGui.ImFontAtlas_GetGlyphRangesJapanese(io.Fonts)));
+        _imGuiShell.FontManager.AddFontTTF(_modConfig.ModId, "NotoSansJP-Medium", netoSansJpFontPath, 17.0f, _imGui.ImFontAtlas_GetGlyphRangesJapanese(io.Fonts), new ImFontOptions { MergeMode = true });
 
         // Emojis
         string twitterColorEmojiFontPath = Path.Combine(modFolder, "ImGuiManager", "Fonts", "TwitterColorEmoji", "twemoji.ttf");
-        config.FontLoaderFlags |= (uint)(ImGuiFreeTypeLoaderFlags.ImGuiFreeTypeBuilderFlags_LoadColor | ImGuiFreeTypeLoaderFlags.ImGuiFreeTypeBuilderFlags_Bitmap);
-        config.MergeMode = true;
-        _imGui.ImFontAtlas_AddFontFromFileTTF(io.Fonts, twitterColorEmojiFontPath, 14.0f, config, ref _emojiRangePtr[0]);
+        _imGuiShell.FontManager.AddFontTTF(_modConfig.ModId, "twemoji", twitterColorEmojiFontPath, 14.0f, [0x1, 0x1FFFF], new ImFontOptions()
+        {
+            FontLoaderFlags = (uint)(ImGuiFreeTypeLoaderFlags.ImGuiFreeTypeBuilderFlags_LoadColor | ImGuiFreeTypeLoaderFlags.ImGuiFreeTypeBuilderFlags_Bitmap),
+            MergeMode = true
+        });
 
         var style = _imGui.GetStyle();
         style.FrameRounding = 4.0f;
@@ -376,7 +377,6 @@ public class Mod : ModBase, IExports // <= Do not Remove.
         style.PopupBorderSize = 0.0f;
         style.GrabRounding = 4.0f;
         style.Colors[(int)ImGuiCol.ImGuiCol_TitleBgActive] = new Vector4(0.7f, 0.3f, 0.3f, 1.00f);
-
     }
 
     private void RenderAnimatedTitle()

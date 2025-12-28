@@ -21,8 +21,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NenTools.ImGui.Shell", "Nen
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NenTools.ImGui.Generator", "NenTools.ImGui\NenTools.ImGui.Generator\NenTools.ImGui.Generator.csproj", "{62167621-AA9C-9E29-7CBF-BE5A84DDDF84}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NenTools.ImGui.Abstractions", "NenTools.ImGui\NenTools.ImGui.Abstractions\NenTools.ImGui.Abstractions.csproj", "{6F1778DC-1892-6656-1AA2-AE37B34C1120}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FaithFramework.Sample.Doom", "FaithFramework.Sample.Doom\FaithFramework.Sample.Doom.csproj", "{9DDECD3D-BB5D-1C63-6822-6178D5E8C44F}"
 EndProject
 Global
@@ -86,12 +84,6 @@ Global
 		{62167621-AA9C-9E29-7CBF-BE5A84DDDF84}.Release|Any CPU.Build.0 = Release|Any CPU
 		{62167621-AA9C-9E29-7CBF-BE5A84DDDF84}.Test|Any CPU.ActiveCfg = Debug|Any CPU
 		{62167621-AA9C-9E29-7CBF-BE5A84DDDF84}.Test|Any CPU.Build.0 = Debug|Any CPU
-		{6F1778DC-1892-6656-1AA2-AE37B34C1120}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{6F1778DC-1892-6656-1AA2-AE37B34C1120}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{6F1778DC-1892-6656-1AA2-AE37B34C1120}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{6F1778DC-1892-6656-1AA2-AE37B34C1120}.Release|Any CPU.Build.0 = Release|Any CPU
-		{6F1778DC-1892-6656-1AA2-AE37B34C1120}.Test|Any CPU.ActiveCfg = Debug|Any CPU
-		{6F1778DC-1892-6656-1AA2-AE37B34C1120}.Test|Any CPU.Build.0 = Debug|Any CPU
 		{9DDECD3D-BB5D-1C63-6822-6178D5E8C44F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{9DDECD3D-BB5D-1C63-6822-6178D5E8C44F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9DDECD3D-BB5D-1C63-6822-6178D5E8C44F}.Release|Any CPU.ActiveCfg = Release|Any CPU

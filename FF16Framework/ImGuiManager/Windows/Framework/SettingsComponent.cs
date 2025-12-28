@@ -1,13 +1,13 @@
-﻿using NenTools.ImGui.Interfaces;
-using NenTools.ImGui.Shell;
-using NenTools.ImGui.Abstractions;
-
+﻿
 using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using NenTools.ImGui.Interfaces.Shell;
+using NenTools.ImGui.Interfaces;
+using NenTools.ImGui.Shell;
 
 namespace FF16Framework.ImGuiManager.Windows.Framework;
 

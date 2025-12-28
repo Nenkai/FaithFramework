@@ -58,13 +58,10 @@
 
   <ItemGroup>
     <ProjectReference Include="..\FF16Framework.Interfaces\FF16Framework.Interfaces.csproj" />
-    <ProjectReference Include="..\NenTools.ImGui\NenTools.ImGui.Abstractions\NenTools.ImGui.Abstractions.csproj" />
     <ProjectReference Include="..\NenTools.ImGui\NenTools.ImGui.Hooks.DirectX12\NenTools.ImGui.Hooks.DirectX12.csproj" />
-    <ProjectReference Include="..\NenTools.ImGui\NenTools.ImGui.Hooks.Interfaces\NenTools.ImGui.Abstractions.csproj" />
     <ProjectReference Include="..\NenTools.ImGui\NenTools.ImGui.Implementation\NenTools.ImGui.Implementation.csproj" />
     <ProjectReference Include="..\NenTools.ImGui\NenTools.ImGui.Interfaces\NenTools.ImGui.Interfaces.csproj" />
     <ProjectReference Include="..\NenTools.ImGui\NenTools.ImGui.Native\NenTools.ImGui.Native.csproj" />
-    <ProjectReference Include="..\NenTools.ImGui\NenTools.ImGui.Abstractions\NenTools.ImGui.Abstractions.csproj" />
     <ProjectReference Include="..\NenTools.ImGui\NenTools.ImGui.Shell\NenTools.ImGui.Shell.csproj" />
   </ItemGroup>
 

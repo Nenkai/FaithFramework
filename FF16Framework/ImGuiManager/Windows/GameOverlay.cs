@@ -7,7 +7,8 @@ using System.Threading.Tasks;
 
 using NenTools.ImGui.Interfaces;
 using NenTools.ImGui.Shell;
-using NenTools.ImGui.Abstractions;
+using NenTools.ImGui.Interfaces.Shell;
+
 using FF16Framework.Faith.Hooks;
 
 namespace FF16Framework.ImGuiManager.Windows;

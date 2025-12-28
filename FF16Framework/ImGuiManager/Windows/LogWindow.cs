@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 using NenTools.ImGui.Interfaces;
 using NenTools.ImGui.Shell;
-using NenTools.ImGui.Abstractions;
+using NenTools.ImGui.Interfaces.Shell;
 
 using Reloaded.Mod.Interfaces;
 
