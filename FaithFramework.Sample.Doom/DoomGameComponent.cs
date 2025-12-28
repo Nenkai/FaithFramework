@@ -4,9 +4,9 @@ using DoomNetFrameworkEngine.DoomEntity.Game;
 using DoomNetFrameworkEngine.DoomEntity.MathUtils;
 using DoomNetFrameworkEngine.Video;
 
-using NenTools.ImGui.Abstractions;
 using NenTools.ImGui.Interfaces;
-using FaithFramework.Sample.Doom.Configuration;
+using NenTools.ImGui.Interfaces.Shell;
+using NenTools.ImGui.Interfaces.Shell.Textures;
 
 using System;
 using System.Buffers;
