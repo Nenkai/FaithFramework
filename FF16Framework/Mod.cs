@@ -25,6 +25,7 @@ using Windows.Win32;
 using FF16Framework.ImGuiManager.Hooks;
 using FF16Framework.ImGuiManager.Windows;
 using FF16Framework.ImGuiManager.Windows.Framework;
+using FF16Framework.ImGuiManager.Windows.Faith;
 using FF16Framework.Interfaces.Nex;
 using FF16Framework.Logging;
 using FF16Framework.Nex;
@@ -214,6 +215,7 @@ public class Mod : ModBase, IExports // <= Do not Remove.
             // Hooks
             .AddSingletonAs<HookGroupBase, EntityManagerHooks>() // FFXVI
             .AddSingletonAs<HookGroupBase, MapHooks>()  // FFXVI
+            .AddSingletonAs<HookGroupBase, CachedResourceManagerHooks>()  // FFXVI
             .AddSingletonAs<HookGroupBase, SaveHooks>()  // FFXVI
             .AddSingletonAs<HookGroupBase, NexHooks>()  // All
 
@@ -249,6 +251,7 @@ public class Mod : ModBase, IExports // <= Do not Remove.
             .AddSingleton<SettingsComponent>()
             .AddSingleton<DocumentationComponent>()
             .AddSingleton<FrameworkToolsComponent>()
+            .AddSingleton<CachedResourceManagerWindow>()
             .AddSingleton<GameOverlay>()
             .AddSingleton<AboutWindow>();
 
@@ -323,6 +326,7 @@ public class Mod : ModBase, IExports // <= Do not Remove.
         _imGuiShell.AddComponent(_services.GetRequiredService<GameOverlay>());
         _imGuiShell.AddComponent(_services.GetRequiredService<LogWindow>());
         _imGuiShell.AddComponent(_services.GetRequiredService<FrameworkToolsComponent>());
+        _imGuiShell.AddComponent(_services.GetRequiredService<CachedResourceManagerWindow>());
         _imGuiShell.AddComponent(_services.GetRequiredService<AboutWindow>());
 
         _imGuiShell.OnImGuiConfiguration += ConfigureImgui;
