@@ -53,7 +53,7 @@ public class MagicEditor
                     Resource.ReplaceBuffer(data);
                 }
 
-                shell.LogWriteLine(nameof(MagicEditor), "Saved!", outputTargetFlags: LoggerOutputTargetFlags.All);
+                shell.LogWriteLine(nameof(MagicEditor), "Saved!");
             }
             imgui.PopStyleColorEx(2);
             
@@ -247,7 +247,7 @@ public class MagicEditor
                         {
                             var defaultProperty = MagicPropertyFactory.Create(prop);
                             if (defaultProperty is null)
-                                shell.LogWriteLine(nameof(MagicEditor), $"Property {prop}'s value type is not supported!", color: System.Drawing.Color.Red, outputTargetFlags: LoggerOutputTargetFlags.All);
+                                shell.LogWriteLine(nameof(MagicEditor), $"Property {prop}'s value type is not supported!", color: System.Drawing.Color.Red);
                             else
                                 op.Properties.Add(defaultProperty);
                         }

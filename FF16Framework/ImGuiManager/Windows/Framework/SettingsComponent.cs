@@ -37,7 +37,7 @@ public class SettingsComponent(IImGui imGui, GameContext gameContext, ImGuiShell
             if (_imGui.MenuItemBoolPtr("Enable Logger Overlay"u8, ""u8, ref _shellConfig.OverlayLogger.EnabledField, true))
             {
                 if (_shellConfig.OverlayLogger.Enabled)
-                    imGuiShell.LogWriteLine("FaithFramework", "Overlay logger is now enabled.", outputTargetFlags: LoggerOutputTargetFlags.All);
+                    imGuiShell.LogWriteLine("FaithFramework", "Overlay logger is now enabled.");
             }
 
             _imGui.PushItemWidth(100);
@@ -51,7 +51,7 @@ public class SettingsComponent(IImGui imGui, GameContext gameContext, ImGuiShell
             if (_imGui.Button("Test overlay logger"u8))
             {
                 for (int i = 0; i < _shellConfig.OverlayLogger.MaxLines; i++)
-                    imGuiShell.LogWriteLine("FaithFramework", $"#{i} Overlay logger test!", outputTargetFlags: LoggerOutputTargetFlags.OverlayLogger);
+                    imGuiShell.LogWriteLine("FaithFramework", $"#{i} Overlay logger test!");
             }
             _imGui.EndMenu();
         }
@@ -62,11 +62,11 @@ public class SettingsComponent(IImGui imGui, GameContext gameContext, ImGuiShell
             {
                 _shellConfig.Save();
                 _frameworkConfig.Save();
-                imGuiShell.LogWriteLine("FaithFramework", "Framework config saved.", outputTargetFlags: LoggerOutputTargetFlags.All);
+                imGuiShell.LogWriteLine("FaithFramework", "Framework config saved.");
             }
             catch (Exception ex)
             {
-                imGuiShell.LogWriteLine("FaithFramework", "Failed to write config.", color: Color.Red, outputTargetFlags: LoggerOutputTargetFlags.All);
+                imGuiShell.LogWriteLine("FaithFramework", "Failed to write config.", color: Color.Red);
             }
         }
     }

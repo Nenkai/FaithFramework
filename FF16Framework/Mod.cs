@@ -408,10 +408,10 @@ public class Mod : ModBase, IExports // <= Do not Remove.
 
     private void OnFirstImGuiRender()
     {
-        _imGuiShell.LogWriteLine("FaithFramework", $"FaithFramework {_modConfig.ModVersion} by Nenkai loaded.", outputTargetFlags: LoggerOutputTargetFlags.All);
-        _imGuiShell.LogWriteLine("FaithFramework", $"ImGui {_imGui.GetVersion()} loaded.", outputTargetFlags: LoggerOutputTargetFlags.All);
-        _imGuiShell.LogWriteLine("FaithFramework", "FFXVI Modding - nenkai.github.io/ffxvi-modding/", outputTargetFlags: LoggerOutputTargetFlags.All);
-        _imGuiShell.LogWriteLine("FaithFramework", "Press the INSERT key to show the main menu.", outputTargetFlags: LoggerOutputTargetFlags.All);
+        _imGuiShell.LogWriteLine("FaithFramework", $"FaithFramework {_modConfig.ModVersion} by Nenkai loaded.");
+        _imGuiShell.LogWriteLine("FaithFramework", $"ImGui {_imGui.GetVersion()} loaded.");
+        _imGuiShell.LogWriteLine("FaithFramework", "FFXVI Modding - nenkai.github.io/ffxvi-modding/");
+        _imGuiShell.LogWriteLine("FaithFramework", "Press the INSERT key to show the main menu.");
     }
 
 
