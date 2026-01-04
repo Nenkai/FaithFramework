@@ -12,7 +12,7 @@ using FF16Framework.Interfaces.Nex;
 
 using RyoTune.Reloaded;
 
-namespace FF16Framework.Save;
+namespace FF16Framework.Faith.Hooks;
 
 public unsafe class SaveHooks : HookGroupBase
 {
