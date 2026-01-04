@@ -52,11 +52,13 @@ public class ResourceManagerService
             string? fileName = Marshal.PtrToStringAnsi((nint)resourcePtr->FileName)!;
             string extension = Path.GetExtension(fileName).ToLowerInvariant();
 
-            ConcurrentSortedDictionary<string, ResourceHandle> group = SortedHandles[extension];
-            group.TryRemove(fileName);
+            if (SortedHandles.TryGetValue(extension, out ConcurrentSortedDictionary<string, ResourceHandle> group))
+            {
+                group.TryRemove(fileName);
 
-            if (group.Count == 0)
-                SortedHandles.TryRemove(extension);
+                if (group.Count == 0)
+                    SortedHandles.TryRemove(extension);
+            }
         }
     }
 }

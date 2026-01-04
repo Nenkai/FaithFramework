@@ -329,7 +329,6 @@ public class Mod : ModBase, IExports // <= Do not Remove.
         _imGuiShell.AddComponent(_services.GetRequiredService<GameOverlay>());
         _imGuiShell.AddComponent(_services.GetRequiredService<LogWindow>());
         _imGuiShell.AddComponent(_services.GetRequiredService<FrameworkToolsComponent>());
-        _imGuiShell.AddComponent(_services.GetRequiredService<ResourceManagerWindow>());
         _imGuiShell.AddComponent(_services.GetRequiredService<AboutWindow>());
 
         _imGuiShell.OnImGuiConfiguration += ConfigureImgui;

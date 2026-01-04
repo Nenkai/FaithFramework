@@ -21,7 +21,6 @@ using Reloaded.Mod.Interfaces;
 
 namespace FF16Framework.ImGuiManager.Windows.Resources;
 
-[ImGuiMenu(Category = "Mods", Priority = ImGuiShell.SystemPriority, Owner = nameof(FF16Framework))]
 public class ResourceManagerWindow : IImGuiComponent
 {
     private readonly IImGui _imGui;
