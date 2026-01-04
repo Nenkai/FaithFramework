@@ -25,16 +25,16 @@ using Windows.Win32;
 using FF16Framework.ImGuiManager.Hooks;
 using FF16Framework.ImGuiManager.Windows;
 using FF16Framework.ImGuiManager.Windows.Framework;
-using FF16Framework.ImGuiManager.Windows.Faith;
 using FF16Framework.Interfaces.Nex;
 using FF16Framework.Logging;
 using FF16Framework.Nex;
-using FF16Framework.Save;
 using FF16Framework.Template;
 using FF16Framework.Faith.Hooks;
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using FF16Framework.Services.ResourceManager;
+using FF16Framework.ImGuiManager.Windows.Resources;
 
 namespace FF16Framework;
 
@@ -215,13 +215,14 @@ public class Mod : ModBase, IExports // <= Do not Remove.
             // Hooks
             .AddSingletonAs<HookGroupBase, EntityManagerHooks>() // FFXVI
             .AddSingletonAs<HookGroupBase, MapHooks>()  // FFXVI
-            .AddSingletonAs<HookGroupBase, CachedResourceManagerHooks>()  // FFXVI
             .AddSingletonAs<HookGroupBase, SaveHooks>()  // FFXVI
             .AddSingletonAs<HookGroupBase, NexHooks>()  // All
+            .AddSingletonAs<HookGroupBase, ResourceManagerHooks>()  // All
 
             .AddSingleton<ImGuiShellConfig>(_imGuiShellConfig)
             .AddSingleton<INextExcelDBApi, NextExcelDBApi>()
             .AddSingleton<INextExcelDBApiManagedV2, NextExcelDBApiManaged>()
+            .AddSingleton<ResourceManagerService>()
             .AddSingleton<IImGui, ImGui>()
             .AddSingleton<IBackendHook, DX12BackendHook>()
             .AddSingleton<IImGuiShell, ImGuiShell>()
@@ -251,7 +252,7 @@ public class Mod : ModBase, IExports // <= Do not Remove.
             .AddSingleton<SettingsComponent>()
             .AddSingleton<DocumentationComponent>()
             .AddSingleton<FrameworkToolsComponent>()
-            .AddSingleton<CachedResourceManagerWindow>()
+            .AddSingleton<ResourceManagerWindow>()
             .AddSingleton<GameOverlay>()
             .AddSingleton<AboutWindow>();
 
@@ -326,7 +327,7 @@ public class Mod : ModBase, IExports // <= Do not Remove.
         _imGuiShell.AddComponent(_services.GetRequiredService<GameOverlay>());
         _imGuiShell.AddComponent(_services.GetRequiredService<LogWindow>());
         _imGuiShell.AddComponent(_services.GetRequiredService<FrameworkToolsComponent>());
-        _imGuiShell.AddComponent(_services.GetRequiredService<CachedResourceManagerWindow>());
+        _imGuiShell.AddComponent(_services.GetRequiredService<ResourceManagerWindow>());
         _imGuiShell.AddComponent(_services.GetRequiredService<AboutWindow>());
 
         _imGuiShell.OnImGuiConfiguration += ConfigureImgui;

@@ -98,11 +98,6 @@ public class AboutWindow : IImGuiComponent
             {
                 _imGui.Text($"Loaded Font: {font.Key} by {font.Value.Owner}");
             }
-
-            if (_imGui.Button("Close"))
-            {
-                imGuiShell.FontManager.RemoveFont("twemoji");
-            }
         }
 
         _imGui.End();

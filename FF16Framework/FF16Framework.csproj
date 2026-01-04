@@ -57,6 +57,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\FF16Tools\FF16Tools.Files\FF16Tools.Files.csproj" />
     <ProjectReference Include="..\FF16Framework.Interfaces\FF16Framework.Interfaces.csproj" />
     <ProjectReference Include="..\NenTools.ImGui\NenTools.ImGui.Hooks.DirectX12\NenTools.ImGui.Hooks.DirectX12.csproj" />
     <ProjectReference Include="..\NenTools.ImGui\NenTools.ImGui.Implementation\NenTools.ImGui.Implementation.csproj" />

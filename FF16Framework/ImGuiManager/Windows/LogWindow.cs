@@ -92,22 +92,23 @@ public unsafe class LogWindow : IImGuiComponent
             _imGui.SameLineEx(0, 2);
             _imGui.Checkbox("Auto-scroll"u8, ref _autoScroll);
 
-            _imGui.BeginChild("##log_window_container"u8, new Vector2(), 0, ImGuiWindowFlags.ImGuiWindowFlags_AlwaysVerticalScrollbar | ImGuiWindowFlags.ImGuiWindowFlags_AlwaysHorizontalScrollbar);
-
-            var greyColor = new Vector4(0.4f, 0.4f, 0.4f, 0.4f);
-            var whiteColor = new Vector4(1.0f, 1.0f, 1.0f, 1.0f);
-            lock (_lock)
+            if (_imGui.BeginChild("##log_window_container"u8, new Vector2(), 0, ImGuiWindowFlags.ImGuiWindowFlags_AlwaysVerticalScrollbar | ImGuiWindowFlags.ImGuiWindowFlags_AlwaysHorizontalScrollbar))
             {
-                for (int i = 0; i < LastLines.Count; i++)
+                var greyColor = new Vector4(0.4f, 0.4f, 0.4f, 0.4f);
+                var whiteColor = new Vector4(1.0f, 1.0f, 1.0f, 1.0f);
+                lock (_lock)
                 {
-                    _imGui.TextColored(greyColor, $"[{LastLines[i].Time:HH:mm:ss.fff}]"); _imGui.SameLineEx(0, 4);
-                    //ImGui.TextColored(greyColor, $"[{LastLines[i].Handler}]"); ImGui.SameLine(0, 4);
-                    _imGui.TextColored(whiteColor, LastLines[i].Message);
+                    for (int i = 0; i < LastLines.Count; i++)
+                    {
+                        _imGui.TextColored(greyColor, $"[{LastLines[i].Time:HH:mm:ss.fff}]"); _imGui.SameLineEx(0, 4);
+                        //ImGui.TextColored(greyColor, $"[{LastLines[i].Handler}]"); ImGui.SameLine(0, 4);
+                        _imGui.TextColored(whiteColor, LastLines[i].Message);
+                    }
                 }
-            }
 
-            if (_autoScroll && _imGui.GetScrollY() >= _imGui.GetScrollMaxY())
-                _imGui.SetScrollHereY(1.0f);
+                if (_autoScroll && _imGui.GetScrollY() >= _imGui.GetScrollMaxY())
+                    _imGui.SetScrollHereY(1.0f);
+            }
 
             _imGui.EndChild();
         }
