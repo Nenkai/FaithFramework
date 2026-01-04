@@ -292,7 +292,9 @@ public class Mod : ModBase, IExports // <= Do not Remove.
                     // EnableViewports = false, Not yet functional with DX12 hooks, it creates a new swapchain that shouldn't be hooked.
                     Implementations = _services.GetServices<IBackendHook>().ToList()
                 }).GetAwaiter().GetResult();
-                _imGuiShell.EnableOverlay();
+
+                // Moved to DestroyWindow.
+                // _imGuiShell.EnableOverlay();
             }
             else
             {
@@ -338,10 +340,12 @@ public class Mod : ModBase, IExports // <= Do not Remove.
         var inputHook = _services.GetRequiredService<ImGuiInputHookManager>();
         inputHook.SetupInputHooks();
 
-        // Not needed anymore. This was to enable ImGui as soon as the splash screen is up.
-        // Nowadays we hook ImGui when we get the first rendered frame.
-        //nint destroyWindowPtr = PInvoke.GetProcAddress(PInvoke.GetModuleHandle("user32.dll"), "DestroyWindow");
-        //_destroyWindowHook = _hooks!.CreateHook<DestroyWindow>(DestroyWindowImpl, destroyWindowPtr).Activate();
+        // Hook the splash screen window destroy.
+        // Present is technically called before the main viewport is shown to the user, so to make sure that the 
+        // initial overlay messages are displayed, enable ImGui rendering once the splash screen is gone.
+        // Otherwise the messages may fade before the main window is even shown.
+        nint destroyWindowPtr = PInvoke.GetProcAddress(PInvoke.GetModuleHandle("user32.dll"), "DestroyWindow");
+        _destroyWindowHook = _hooks!.CreateHook<DestroyWindow>(DestroyWindowImpl, destroyWindowPtr).Activate();
 
         // We hook the call that performs present (not present itself)
         // We setup our DX12 hooks after the game made the first call.
