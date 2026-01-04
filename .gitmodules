@@ -1,3 +1,6 @@
 [submodule "NenTools.ImGui"]
 	path = NenTools.ImGui
 	url = https://github.com/Nenkai/NenTools.ImGui
+[submodule "FF16Tools"]
+	path = FF16Tools
+	url = https://github.com/Nenkai/FF16Tools
