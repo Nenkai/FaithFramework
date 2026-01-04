@@ -23,7 +23,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NenTools.ImGui.Generator", 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FaithFramework.Sample.Doom", "FaithFramework.Sample.Doom\FaithFramework.Sample.Doom.csproj", "{9DDECD3D-BB5D-1C63-6822-6178D5E8C44F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FF16Tools.Files", "..\FF16Tools\FF16Tools.Files\FF16Tools.Files.csproj", "{094AC2EA-0C71-4C73-EBD9-BDE9F2C55B07}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FF16Tools.Files", "FF16Tools\FF16Tools.Files\FF16Tools.Files.csproj", "{46C06E52-0C9A-864D-BFB8-19527364B42E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -92,12 +92,12 @@ Global
 		{9DDECD3D-BB5D-1C63-6822-6178D5E8C44F}.Release|Any CPU.Build.0 = Release|Any CPU
 		{9DDECD3D-BB5D-1C63-6822-6178D5E8C44F}.Test|Any CPU.ActiveCfg = Debug|Any CPU
 		{9DDECD3D-BB5D-1C63-6822-6178D5E8C44F}.Test|Any CPU.Build.0 = Debug|Any CPU
-		{094AC2EA-0C71-4C73-EBD9-BDE9F2C55B07}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{094AC2EA-0C71-4C73-EBD9-BDE9F2C55B07}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{094AC2EA-0C71-4C73-EBD9-BDE9F2C55B07}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{094AC2EA-0C71-4C73-EBD9-BDE9F2C55B07}.Release|Any CPU.Build.0 = Release|Any CPU
-		{094AC2EA-0C71-4C73-EBD9-BDE9F2C55B07}.Test|Any CPU.ActiveCfg = Debug|Any CPU
-		{094AC2EA-0C71-4C73-EBD9-BDE9F2C55B07}.Test|Any CPU.Build.0 = Debug|Any CPU
+		{46C06E52-0C9A-864D-BFB8-19527364B42E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{46C06E52-0C9A-864D-BFB8-19527364B42E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{46C06E52-0C9A-864D-BFB8-19527364B42E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{46C06E52-0C9A-864D-BFB8-19527364B42E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{46C06E52-0C9A-864D-BFB8-19527364B42E}.Test|Any CPU.ActiveCfg = Debug|Any CPU
+		{46C06E52-0C9A-864D-BFB8-19527364B42E}.Test|Any CPU.Build.0 = Debug|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
