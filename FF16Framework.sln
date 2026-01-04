@@ -25,6 +25,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FaithFramework.Sample.Doom"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FF16Tools.Files", "FF16Tools\FF16Tools.Files\FF16Tools.Files.csproj", "{46C06E52-0C9A-864D-BFB8-19527364B42E}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FF16Tools.Shared", "FF16Tools\FF16Tools.Shared\FF16Tools.Shared.csproj", "{9522BA4D-1091-F366-3DAF-A63BCB1CAEEC}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -98,6 +100,12 @@ Global
 		{46C06E52-0C9A-864D-BFB8-19527364B42E}.Release|Any CPU.Build.0 = Release|Any CPU
 		{46C06E52-0C9A-864D-BFB8-19527364B42E}.Test|Any CPU.ActiveCfg = Debug|Any CPU
 		{46C06E52-0C9A-864D-BFB8-19527364B42E}.Test|Any CPU.Build.0 = Debug|Any CPU
+		{9522BA4D-1091-F366-3DAF-A63BCB1CAEEC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9522BA4D-1091-F366-3DAF-A63BCB1CAEEC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9522BA4D-1091-F366-3DAF-A63BCB1CAEEC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9522BA4D-1091-F366-3DAF-A63BCB1CAEEC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9522BA4D-1091-F366-3DAF-A63BCB1CAEEC}.Test|Any CPU.ActiveCfg = Debug|Any CPU
+		{9522BA4D-1091-F366-3DAF-A63BCB1CAEEC}.Test|Any CPU.Build.0 = Debug|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
