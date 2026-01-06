@@ -216,6 +216,7 @@ public class Mod : ModBase, IExports // <= Do not Remove.
             .AddSingletonAs<HookGroupBase, EntityManagerHooks>() // FFXVI
             .AddSingletonAs<HookGroupBase, MapHooks>()  // FFXVI
             .AddSingletonAs<HookGroupBase, SaveHooks>()  // FFXVI
+            .AddSingletonAs<HookGroupBase, CameraHooks>() // FFXVI
             .AddSingletonAs<HookGroupBase, NexHooks>()  // All
             .AddSingletonAs<HookGroupBase, ResourceManagerHooks>()  // All
 

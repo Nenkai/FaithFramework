@@ -7,6 +7,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 
+using FF16Framework.Faith.Structs;
 using FF16Framework.Faith.Hooks;
 
 namespace FF16Framework.Services.ResourceManager;

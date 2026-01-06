@@ -1,4 +1,11 @@
-﻿using FF16Framework.Interfaces.Nex.Structures;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Numerics;
+using System.Text;
+using System.Threading.Tasks;
+
+using FF16Framework.Faith.Structs;
 
 using Reloaded.Hooks.Definitions;
 using Reloaded.Hooks.Definitions.Structs;
@@ -6,15 +13,6 @@ using Reloaded.Memory.SigScan.ReloadedII.Interfaces;
 using Reloaded.Mod.Interfaces;
 
 using RyoTune.Reloaded;
-
-using SixLabors.ImageSharp.PixelFormats;
-
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Numerics;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace FF16Framework.Faith.Hooks;
 
@@ -213,23 +211,6 @@ public unsafe struct ActorReference
     public Vector3 UnkVec;
     public int field_8C;
 }
-
-public unsafe struct /*faith::*/Node // sizeof=0x70
-{
-    public nint vtable;
-    public int field_8;
-    public int field_C;
-    public Matrix4x4 Matrix;
-    public uint Flags;
-    public Transform Transform_;
-};
-
-public unsafe struct Transform // sizeof=0x1C
-{
-    public Vector3 Position;
-    public Vector3 EulerRotation;
-    public float Scale;
-};
 
 public enum EntityType
 {

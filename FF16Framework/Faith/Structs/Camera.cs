@@ -1,0 +1,215 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Numerics;
+using System.Text;
+using System.Threading.Tasks;
+
+using FF16Framework.Faith.Hooks;
+
+namespace FF16Framework.Faith.Structs;
+
+public unsafe struct Camera
+{
+    // faith::ReferencedObject
+    public nint vtable;
+    public uint Field_0x08;
+    public uint RefCount;
+    public nint Field_0x10;
+
+    // faith::Graphics::Object::Camera
+    public Node* CameraTransformNode;
+    public byte field_18;
+    public byte field_19;
+    public fixed byte gap1A[22];
+    public Matrix4x4 ViewMatrix;
+    public Matrix4x4 ViewProjectionMatrix;
+    public Matrix4x4 WorldViewProjectionMatrix;
+    public Matrix4x4 CameraWorldMatrix;
+    public Matrix4x4 InverseViewProjectionMatrix;
+    public Matrix4x4 InverseViewMatrix;
+    public CameraFrustumPlanes FrustumPlanes;
+    public Matrix4x4 CurrentViewTransformMatrix;
+    public Matrix4x4 WVPMatrix;
+    public Matrix4x4 InvCurrentViewTransformMatrix;
+    public Matrix4x4 PrevCameraWorldMatrix;
+    public float float390;
+    public float float394;
+    public float float398;
+    public Vector4 vec33A0;
+    public Vector4 vec33B0;
+    public Vector4 vec33C0;
+    public Matrix4x4 m2563D0;
+    public Matrix4x4 m256410;
+    public Matrix4x4 m256450;
+    public Matrix4x4 ViewProjectionMatrix2;
+    public Matrix4x4 m2564D0;
+    public Matrix4x4 m256510;
+    public Matrix4x4 ProjectionMatrix;
+    public Matrix4x4 CachedProjectionMatrix;
+    public Matrix4x4 m2565D0;
+    public fixed byte i[2048];
+    public nint ConstantBuffer1;
+    public nint ConstantBuffer2;
+    public Node* LookAtTargetNode;
+    public nint qwordE28;
+    public Vector3 UpVector;
+    public float FOV;
+    public float AspectRatio;
+    public float NearClipPlane;
+    public float FarClipPlane;
+    public float OrthographicSize;
+    public float qwordE50;
+    public float field_E54;
+    public float dwordE58;
+    public int dwordE5C;
+    public int dwordE60;
+    public int dwordE64;
+    public int _XMM1;
+    public byte UseReverseZ;
+    public byte IsOrthographic; // Otherwise perspective
+    public byte field_E6E;
+    public byte field_E6F;
+    public byte field_E70;
+    public byte field_E71;
+    public byte field_E72;
+    public byte field_E73;
+    public byte field_E74;
+    public byte field_E75;
+    public byte field_E76;
+    public byte IsDirty;
+    public short wordE78;
+    public byte InfiniteFarPlane;
+    public fixed byte gapE7B[5];
+    public byte charE80;
+    public fixed byte gapE81[63];
+    public Matrix4x4 m256EC0;
+    public byte charF00;
+    public fixed byte gapF01[251];
+    public short wordFFC;
+    public short wordFFE;
+    public nint qword1000;
+};
+
+public struct CameraFrustumPlanes
+{
+    public Vector4 planeNear;
+    public Vector4 planeFar;
+    public Vector4 planeLeft;
+    public Vector4 planeRight;
+    public Vector4 planeTop;
+    public Vector4 planeBottom;
+    public float CornerX000;
+    public float CornerX100;
+    public float CornerX110;
+    public float CornerX010;
+    public float CornerX011;
+    public float CornerX111;
+    public float CornerX001;
+    public float CornerX101;
+    public float CornerZ000;
+    public float CornerZ100;
+    public float CornerZ110;
+    public float CornerZ010;
+    public float CornerZ111;
+    public float CornerZ001;
+    public float CornerZ101;
+    public float CornerZ011;
+    public Matrix4x4 UnverseMatrix;
+};
+
+// The following structs only available in FFXVI
+public unsafe struct CameraObjectWrapper
+{
+    public nint vtable;
+    public Camera* CameraObject;
+    public Node* qword10;
+    public Node* qword18;
+    public Node* ForwardReferenceNode;
+    public float ForwardOffset;
+};
+
+public unsafe struct CameraManagerEntry
+{
+    public nint qword0;
+    public CameraObjectWrapper* ObjWrapper;
+    public nint qword10;
+    public nint qword18;
+    public nint qword20;
+    public nint qword28;
+    public nint qword30;
+    public nint qword38;
+    public nint qword40;
+    public int dword48;
+    public int gap4C;
+    public nint qword50;
+    public NodePositionPair Source;
+    public NodePositionPair TargetLookAt;
+    public float field_98;
+    public float field_9C;
+    public float field_A0;
+    public float FOV;
+    public float NearClipPlane;
+    public int field_AC;
+    public nint qwordB0;
+    public nint qwordB8;
+    public Vector3 vec3C0;
+    public int field_CC;
+    public nint qwordD0;
+    public nint qwordD8;
+    public Vector3 vec3E0;
+    public int gapEC;
+    public int field_F0;
+    public int field_F4;
+    public int field_f8;
+    public float field_fc;
+    public float field_100;
+    public float field_104;
+    public float field_108;
+    public float field_10C;
+    public byte byte110;
+    public fixed byte gap111[39];
+    public nint qword138;
+    public nint qword140;
+    public short word148;
+    public fixed byte gap14A[1342];
+    public int dword688;
+    public int gap68C;
+    public Vector3 vec3690;
+    public Vector3 vec369C;
+    public nint qword6A8;
+    public nint qword6B0;
+    public nint qword6B8;
+    public int dword6C0;
+    public int gap6C4;
+    public nint qword6C8;
+    public nint qword6D0;
+    public Vector3 vec36D8;
+    public int gap6E4;
+    public nint qword6E8;
+    public nint qword6F0;
+    public Vector3 vec36F8;
+    public int gap704;
+    public nint qword708;
+    public nint qword710;
+    public Vector3 vec3718;
+    public byte field_72C;
+    public byte field_72D;
+    public byte field_72E;
+    public byte Index;
+    public int dword728;
+    public byte byte72C;
+    public byte gap72D;
+    public short word72E;
+    public int field_738;
+    public int field_73C;
+    public nint field_740;
+    public nint field_748;
+    public nint field_750;
+    public nint field_758;
+    public nint field_760;
+    public nint field_768;
+    public nint field_770;
+    public nint field_778;
+};
+

@@ -24,16 +24,21 @@ public unsafe class GameOverlay : IImGuiComponent
     private readonly MapHooks _mapHooks;
     private readonly GameContext _gameContext;
     private readonly FrameworkConfig _frameworkConfig;
+    private readonly CameraHooks _uiControllerHooks;
 
     private bool hasSetPos = false;
-    public GameOverlay(IImGui imGui, GameContext gameContext, EntityManagerHooks entityManagerHooks, MapHooks mapHooks, FrameworkConfig frameworkConfig)
+    public GameOverlay(IImGui imGui, GameContext gameContext, EntityManagerHooks entityManagerHooks, MapHooks mapHooks, FrameworkConfig frameworkConfig,
+        CameraHooks uiControllerHooks )
     {
         _imGui = imGui;
         _gameContext = gameContext;
         _entityManager = entityManagerHooks;
         _mapHooks = mapHooks;
         _frameworkConfig = frameworkConfig;
+        _uiControllerHooks = uiControllerHooks;
     }
+
+    private Vector2? PositionToRender = null;
 
     public void RenderMenu(IImGuiShell imGuiShell)
     {
@@ -129,7 +134,16 @@ public unsafe class GameOverlay : IImGuiComponent
             _entityManager.ActorManager == 0)
             return;
 
-        // TODO: Find camera.
+
+        Vector3? camSrcPos = _uiControllerHooks.GetCameraSourcePos();
+        Vector3? camTgtPos = _uiControllerHooks.GetCameraTargetPos();
+        if (camSrcPos is not null)
+        {
+            _imGui.Text($"Cam Source XYZ: {camSrcPos:F2}");
+            _imGui.Text($"Cam Target XYZ: {camTgtPos:F2}");
+            _imGui.Separator();
+        }
+
         uint currentActorId = *(uint*)(_entityManager.UnkSingletonPlayerOrCameraRelated + 0xC8);
         if (currentActorId == 0)
         {
