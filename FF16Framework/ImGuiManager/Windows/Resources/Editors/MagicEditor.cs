@@ -56,7 +56,38 @@ public class MagicEditor
                 shell.LogWriteLine(nameof(MagicEditor), "Saved!");
             }
             imgui.PopStyleColorEx(2);
-            
+
+            imgui.SameLine();
+            if (imgui.Button("📂 Load from file"u8))
+            {
+                OpenFileDialog dialog = new OpenFileDialog();
+                dialog.Filter = "Magic File (*.magic)|*.magic";
+                dialog.CheckFileExists = true;
+
+                if (dialog.ShowDialog() == DialogResult.OK)
+                {
+                    try
+                    {
+                        var fileInfo = new FileInfo(dialog.FileName);
+                        if (fileInfo.Length > 0x10_0000 * 10) // 10 mb
+                            shell.LogWriteLine(nameof(MagicEditor), $"File is too large!", Color.Red);
+                        else
+                        {
+                            MagicFile = MagicFile.Open(dialog.FileName);
+
+                            byte[] bytes = File.ReadAllBytes(dialog.FileName);
+                            Resource.ReplaceBuffer(bytes);
+                            CurrentEntry = null;
+
+                            shell.LogWriteLine(nameof(MagicEditor), $"Magic file loaded.");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        shell.LogWriteLine(nameof(MagicEditor), $"Failed to load: {ex.Message}", Color.Red);
+                    }
+                }
+            }
 
             imgui.SameLine();
             if (imgui.Button("💾 Save as..."u8))
@@ -76,13 +107,17 @@ public class MagicEditor
                     }
                     catch (Exception ex)
                     {
-                        shell.LogWriteLine(nameof(MagicEditor), $"SFailed to save: {ex.Message}", Color.Red);
+                        shell.LogWriteLine(nameof(MagicEditor), $"Failed to save: {ex.Message}", Color.Red);
                     }
                 }
             }
 
             imgui.SameLine();
-            if (imgui.Button("🔄 Reload property value types"u8))
+            var reloadPropertyValueTypes = imgui.Button("🔄 Reload property value types"u8);
+            if (imgui.IsItemHovered(ImGuiHoveredFlags.ImGuiHoveredFlags_None))
+                imgui.SetTooltip("Reload from Magic/MagicPropertyValueTypes.txt"u8);
+
+            if (reloadPropertyValueTypes)
             {
                 try
                 {

@@ -10,6 +10,7 @@ using NenTools.ImGui.Shell;
 using NenTools.ImGui.Interfaces.Shell;
 
 using FF16Framework.Faith.Hooks;
+using FF16Framework.Faith.Structs;
 
 namespace FF16Framework.ImGuiManager.Windows;
 
@@ -134,20 +135,20 @@ public unsafe class GameOverlay : IImGuiComponent
             _entityManager.ActorManager == 0)
             return;
 
-
+        _imGui.SeparatorText("Camera"u8);
         Vector3? camSrcPos = _uiControllerHooks.GetCameraSourcePos();
         Vector3? camTgtPos = _uiControllerHooks.GetCameraTargetPos();
         if (camSrcPos is not null)
         {
             _imGui.Text($"Cam Source XYZ: {camSrcPos:F2}");
             _imGui.Text($"Cam Target XYZ: {camTgtPos:F2}");
-            _imGui.Separator();
         }
 
+        _imGui.SeparatorText("Actor"u8);
         uint currentActorId = *(uint*)(_entityManager.UnkSingletonPlayerOrCameraRelated + 0xC8);
         if (currentActorId == 0)
         {
-            _imGui.Text("[Current Actor Info] None."u8);
+            _imGui.Text("(No current actor)"u8);
             return;
         }
 
@@ -156,7 +157,7 @@ public unsafe class GameOverlay : IImGuiComponent
         if (_entityManager.HasEntityDataFunction(*staticActorInfo) != 0)
         {
             ActorReference* actorRef = _entityManager.ActorManager_GetActorByKeyFunction(_entityManager.ActorManager, currentActorId);
-            _imGui.TextColored(new Vector4(1.0f, 0.7f, 0.7f, 1.0f), $"[Current Actor Info] {(EntityType)(actorRef->EntityID >> 24)} {actorRef->EntityID & 0xFFFFFF} (actor id {currentActorId:X})");
+            _imGui.TextColored(new Vector4(1.0f, 0.7f, 0.7f, 1.0f), $"Current: {(EntityType)(actorRef->EntityID >> 24)} {actorRef->EntityID & 0xFFFFFF} (actor id {currentActorId:X})");
 
             NodePositionPair position;
             _entityManager.GetPositionFunction((nint)staticActorInfo, &position);

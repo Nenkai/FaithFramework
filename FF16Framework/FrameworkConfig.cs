@@ -13,6 +13,8 @@ public class FrameworkConfig
     private string _configPath;
 
     public GameInfoOverlayConfig GameInfoOverlay { get; set; } = new();
+    public EntityManagerConfig EntityManager { get; set; } = new();
+    public MagicSystemConfig MagicSystem { get; set; } = new();
 
     public FrameworkConfig()
     {
@@ -39,5 +41,17 @@ public class FrameworkConfig
     {
         public bool ShowActorInfoField = false;
         public bool ShowCurrentActorInfo { get => ShowActorInfoField; set => ShowActorInfoField = value; }
+    }
+
+    public class EntityManagerConfig
+    {
+        public bool PrintEntityLoadsField = false;
+        public bool PrintEntityLoads { get => PrintEntityLoadsField; set => PrintEntityLoadsField = value; }
+    }
+
+    public class MagicSystemConfig
+    {
+        public bool PrintMagicCastsField = false;
+        public bool PrintMagicCasts { get => PrintMagicCastsField; set => PrintMagicCastsField = value; }
     }
 }

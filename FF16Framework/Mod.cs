@@ -212,14 +212,6 @@ public class Mod : ModBase, IExports // <= Do not Remove.
             .AddSingleton<GameContext>()
             .AddSingleton(_frameworkConfig)
 
-            // Hooks
-            .AddSingletonAs<HookGroupBase, EntityManagerHooks>() // FFXVI
-            .AddSingletonAs<HookGroupBase, MapHooks>()  // FFXVI
-            .AddSingletonAs<HookGroupBase, SaveHooks>()  // FFXVI
-            .AddSingletonAs<HookGroupBase, CameraHooks>() // FFXVI
-            .AddSingletonAs<HookGroupBase, NexHooks>()  // All
-            .AddSingletonAs<HookGroupBase, ResourceManagerHooks>()  // All
-
             .AddSingleton<ImGuiShellConfig>(_imGuiShellConfig)
             .AddSingleton<INextExcelDBApi, NextExcelDBApi>()
             .AddSingleton<INextExcelDBApiManagedV2, NextExcelDBApiManaged>()
@@ -228,6 +220,15 @@ public class Mod : ModBase, IExports // <= Do not Remove.
             .AddSingleton<IBackendHook, DX12BackendHook>()
             .AddSingleton<IImGuiShell, ImGuiShell>()
             .AddSingleton<ImGuiInputHookManager>()
+
+            // Hooks
+            .AddSingletonAs<HookGroupBase, EntityManagerHooks>() // FFXVI
+            .AddSingletonAs<HookGroupBase, MapHooks>()  // FFXVI
+            .AddSingletonAs<HookGroupBase, SaveHooks>()  // FFXVI
+            .AddSingletonAs<HookGroupBase, CameraHooks>() // FFXVI
+            .AddSingletonAs<HookGroupBase, MagicHooks>() // FFXVI
+            .AddSingletonAs<HookGroupBase, NexHooks>()  // All
+            .AddSingletonAs<HookGroupBase, ResourceManagerHooks>()  // All
 
             // ImGui renderable
             .AddSingleton<LogWindow>(provider =>

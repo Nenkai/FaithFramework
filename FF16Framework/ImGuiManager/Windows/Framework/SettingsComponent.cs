@@ -23,15 +23,8 @@ public class SettingsComponent(IImGui imGui, GameContext gameContext, ImGuiShell
     public void RenderMenu(IImGuiShell imGuiShell)
     {
         _imGui.SeparatorText("🔧 Settings"u8);
-        if (gameContext.GameType == FaithGameType.FFXVI)
-        {
-            if (_imGui.BeginMenu("Info Overlay"u8))
-            {
-                _imGui.MenuItemBoolPtr("Show current actor info"u8, ""u8, ref _frameworkConfig.GameInfoOverlay.ShowActorInfoField, true);
-                _imGui.EndMenu();
-            }
-        }
 
+        _imGui.PushItemFlag(ImGuiItemFlags.ImGuiItemFlags_AutoClosePopups, false);
         if (_imGui.BeginMenu("Logger Overlay"u8))
         {
             if (_imGui.MenuItemBoolPtr("Enable Logger Overlay"u8, ""u8, ref _shellConfig.OverlayLogger.EnabledField, true))
@@ -56,7 +49,29 @@ public class SettingsComponent(IImGui imGui, GameContext gameContext, ImGuiShell
             _imGui.EndMenu();
         }
 
-        if (_imGui.Button("Save"))
+        if (gameContext.GameType == FaithGameType.FFXVI)
+        {
+            if (_imGui.BeginMenu("Entity Manager"u8))
+            {
+                _imGui.MenuItemBoolPtr("Print entity loads"u8, ""u8, ref _frameworkConfig.EntityManager.PrintEntityLoadsField, true);
+                _imGui.EndMenu();
+            }
+
+            if (_imGui.BeginMenu("Info Overlay"u8))
+            {
+                _imGui.MenuItemBoolPtr("Show current actor & camera"u8, ""u8, ref _frameworkConfig.GameInfoOverlay.ShowActorInfoField, true);
+                _imGui.EndMenu();
+            }
+
+            if (_imGui.BeginMenu("Magic System"u8))
+            {
+                _imGui.MenuItemBoolPtr("Print magic casts"u8, ""u8, ref _frameworkConfig.MagicSystem.PrintMagicCastsField, true);
+                _imGui.EndMenu();
+            }
+        }
+        _imGui.PopItemFlag();
+
+        if (_imGui.Button("Save config"))
         {
             try
             {
