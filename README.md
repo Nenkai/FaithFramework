@@ -6,6 +6,8 @@ Features:
 
 * ImGui API
 * Nex Runtime Interface API
+* Resource Manager (API TODO)
+* Camera Manager (WorldToScreen/Camera Pos) (FFXVI, API TODO)
 
 ## ImGui API
 
