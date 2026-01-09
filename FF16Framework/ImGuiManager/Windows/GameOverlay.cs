@@ -26,10 +26,12 @@ public unsafe class GameOverlay : IImGuiComponent
     private readonly GameContext _gameContext;
     private readonly FrameworkConfig _frameworkConfig;
     private readonly CameraHooks _uiControllerHooks;
+    private readonly UnkList34Hooks _unkList34Hooks;
 
     private bool hasSetPos = false;
-    public GameOverlay(IImGui imGui, GameContext gameContext, EntityManagerHooks entityManagerHooks, MapHooks mapHooks, FrameworkConfig frameworkConfig,
-        CameraHooks uiControllerHooks )
+    public GameOverlay(IImGui imGui, FrameworkConfig frameworkConfig, 
+        GameContext gameContext, 
+        EntityManagerHooks entityManagerHooks, MapHooks mapHooks, CameraHooks uiControllerHooks, UnkList34Hooks unkList34Hooks )
     {
         _imGui = imGui;
         _gameContext = gameContext;
@@ -37,6 +39,7 @@ public unsafe class GameOverlay : IImGuiComponent
         _mapHooks = mapHooks;
         _frameworkConfig = frameworkConfig;
         _uiControllerHooks = uiControllerHooks;
+        _unkList34Hooks = unkList34Hooks;
     }
 
     private Vector2? PositionToRender = null;
@@ -175,6 +178,14 @@ public unsafe class GameOverlay : IImGuiComponent
             _imGui.Text($"Rot: {rotation:F2}");
             _imGui.Text($"Forward Vec: {fwVector:F2}");
             //_imGui.Text($"Forward XZ: {forwardXZ:F2}");
+        }
+
+        var target = _unkList34Hooks.GetTargettedEnemy();
+        if (target is not null)
+        {
+            _imGui.SeparatorText("Target"u8);
+            _imGui.Text($"Actor Id: {target->ActorId:X}");
+            _imGui.Text($"Pos: {target->Position:F2}");
         }
     }
 

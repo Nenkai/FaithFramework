@@ -221,14 +221,17 @@ public class Mod : ModBase, IExports // <= Do not Remove.
             .AddSingleton<IImGuiShell, ImGuiShell>()
             .AddSingleton<ImGuiInputHookManager>()
 
-            // Hooks
-            .AddSingletonAs<HookGroupBase, EntityManagerHooks>() // FFXVI
-            .AddSingletonAs<HookGroupBase, MapHooks>()  // FFXVI
-            .AddSingletonAs<HookGroupBase, SaveHooks>()  // FFXVI
-            .AddSingletonAs<HookGroupBase, CameraHooks>() // FFXVI
-            .AddSingletonAs<HookGroupBase, MagicHooks>() // FFXVI
-            .AddSingletonAs<HookGroupBase, NexHooks>()  // All
-            .AddSingletonAs<HookGroupBase, ResourceManagerHooks>()  // All
+            // Hooks (Any)
+            .AddSingletonAs<HookGroupBase, NexHooks>()
+            .AddSingletonAs<HookGroupBase, ResourceManagerHooks>()
+
+            // Hooks (FFXVI)
+            .AddSingletonAs<HookGroupBase, EntityManagerHooks>() 
+            .AddSingletonAs<HookGroupBase, MapHooks>()
+            .AddSingletonAs<HookGroupBase, SaveHooks>()
+            .AddSingletonAs<HookGroupBase, CameraHooks>()
+            .AddSingletonAs<HookGroupBase, MagicHooks>()
+            .AddSingletonAs<HookGroupBase, UnkList34Hooks>()
 
             // ImGui renderable
             .AddSingleton<LogWindow>(provider =>

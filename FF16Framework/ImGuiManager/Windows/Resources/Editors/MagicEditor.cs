@@ -133,7 +133,10 @@ public class MagicEditor
             {
                 foreach (KeyValuePair<uint, MagicEntry> elem in MagicFile.MagicEntries)
                 {
-                    if (imgui.Selectable($"ID {elem.Key}"))
+                    if (!MagicIdsMapping.IdToName.TryGetValue(elem.Key, out string? name))
+                        name = "Unknown";
+
+                    if (imgui.Selectable($"{name} ({elem.Key})"))
                         CurrentEntry = elem.Value;
 
                     if (elem.Value == CurrentEntry)
