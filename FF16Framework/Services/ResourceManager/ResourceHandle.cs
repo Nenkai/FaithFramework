@@ -37,6 +37,7 @@ public unsafe class ResourceHandle
     private nint _originalBufferAddress;
     private long _originalFileSize;
 
+    public nint FileNamePointer => (nint)NativeStruct->FileName;
     public ReadOnlySpan<byte> FileNameSpan => MemoryMarshal.CreateReadOnlySpanFromNullTerminated(NativeStruct->FileName);
 
     public ResourceHandle(ResourceHandleStruct* @struct)

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Text;
 
 using FF16Framework.Services.ResourceManager;
@@ -21,7 +22,9 @@ public class MagicEditor
     public ResourceHandle Resource;
     public MagicFile MagicFile;
     public bool IsOpen = true;
-    private MagicEntry? CurrentEntry;
+
+    private MagicEntry? _currentEntry;
+    private string _selectedName;
 
     private MagicOperationGroup? _pendingGroupDelete;
     private MagicOperationProperty? _pendingPropertyDelete;
@@ -40,8 +43,10 @@ public class MagicEditor
 
     public unsafe void Render(IImGuiShell shell, IImGui imgui)
     {
-        if (imgui.Begin("Magic Editor"u8, ref IsOpen, ImGuiWindowFlags.ImGuiWindowFlags_None))
+        if (imgui.Begin($"Magic Editor ({Marshal.PtrToStringAnsi(Resource.FileNamePointer)})", ref IsOpen, ImGuiWindowFlags.ImGuiWindowFlags_None))
         {
+            imgui.SeparatorText(Resource.FileNameSpan);
+
             imgui.PushStyleColor(ImGuiCol.ImGuiCol_Button, ColorUtils.RGBA(0, 156, 65, 255));
             imgui.PushStyleColor(ImGuiCol.ImGuiCol_ButtonHovered, ColorUtils.RGBA(13, 172, 80, 255));
             if (imgui.Button("📤 Apply to game!"u8))
@@ -78,7 +83,7 @@ public class MagicEditor
 
                             byte[] bytes = File.ReadAllBytes(dialog.FileName);
                             Resource.ReplaceBuffer(bytes);
-                            CurrentEntry = null;
+                            _currentEntry = null;
 
                             shell.LogWriteLine(nameof(MagicEditor), $"Magic file loaded.");
                         }
@@ -136,7 +141,7 @@ public class MagicEditor
                 IImGuiTextFilter filter = _magicFilterHandle.Value;
 
                 imgui.SetNextItemWidth(-1.0f);
-                if (imgui.InputTextWithHint("##MagicFilter"u8, "Filter magics..."u8, filter.InputBuf.AsSpan(), ImGuiInputTextFlags.ImGuiInputTextFlags_None))
+                if (imgui.InputTextWithHint("##MagicFilter"u8, "🔍 Filter magics..."u8, filter.InputBuf.AsSpan(), ImGuiInputTextFlags.ImGuiInputTextFlags_None))
                     imgui.ImGuiTextFilter_Build(filter);
 
                 if (imgui.IsWindowAppearing())
@@ -144,6 +149,8 @@ public class MagicEditor
                     imgui.SetKeyboardFocusHere();
                     imgui.ImGuiTextFilter_Clear(filter);
                 }
+
+                imgui.Separator();
 
                 foreach (KeyValuePair<uint, MagicEntry> elem in MagicFile.MagicEntries)
                 {
@@ -154,20 +161,23 @@ public class MagicEditor
                     if (imgui.ImGuiTextFilter_PassFilter(filter, item, null))
                     {
                         if (imgui.Selectable(item))
-                            CurrentEntry = elem.Value;
+                        {
+                            _currentEntry = elem.Value;
+                            _selectedName = item;
+                        }
                     }
 
-                    if (elem.Value == CurrentEntry)
+                    if (elem.Value == _currentEntry)
                         imgui.SetItemDefaultFocus();
                 }
 
                 imgui.EndCombo();
             }
 
-            if (CurrentEntry is not null)
+            if (_currentEntry is not null)
             {
-                imgui.SeparatorText($"Magic: {CurrentEntry.Id}");
-                if (imgui.BeginChild($"##magicchild_{CurrentEntry.Id}", Vector2.Zero, ImGuiChildFlags.ImGuiChildFlags_None, ImGuiWindowFlags.ImGuiWindowFlags_None))
+                imgui.SeparatorText($"Magic: {_selectedName}");
+                if (imgui.BeginChild($"##magicchild_{_currentEntry.Id}", Vector2.Zero, ImGuiChildFlags.ImGuiChildFlags_None, ImGuiWindowFlags.ImGuiWindowFlags_None))
                     RenderCurrentMagicEntry(shell, imgui);
 
                 imgui.EndChild();
@@ -180,7 +190,7 @@ public class MagicEditor
 
     private unsafe void RenderCurrentMagicEntry(IImGuiShell shell, IImGui imgui)
     {
-        foreach (MagicOperationGroup group in CurrentEntry!.OperationGroupList.OperationGroups)
+        foreach (MagicOperationGroup group in _currentEntry!.OperationGroupList.OperationGroups)
         {
             bool visible = true;
             if (imgui.CollapsingHeaderBoolPtr($"Group {group.Id}", ref visible, ImGuiTreeNodeFlags.ImGuiTreeNodeFlags_DefaultOpen))
@@ -219,13 +229,13 @@ public class MagicEditor
                 }
 
                 imgui.SetNextItemWidth(-1.0f);
-                if (imgui.BeginCombo($"##op_picker{group.Id}", "➕ Add operation...", ImGuiComboFlags.ImGuiComboFlags_None))
+                if (imgui.BeginCombo($"##op_picker{group.Id}", "➕ Add operation...", ImGuiComboFlags.ImGuiComboFlags_HeightLarge))
                 {
-                    _magicFilterHandle ??= imgui.CreateTextFilter();
-                    IImGuiTextFilter filter = _magicFilterHandle.Value;
+                    _operationFilterHandle ??= imgui.CreateTextFilter();
+                    IImGuiTextFilter filter = _operationFilterHandle.Value;
 
                     imgui.SetNextItemWidth(-1.0f);
-                    if (imgui.InputTextWithHint("##OperationFilter"u8, "Filter operations..."u8, filter.InputBuf.AsSpan(), ImGuiInputTextFlags.ImGuiInputTextFlags_None))
+                    if (imgui.InputTextWithHint("##OperationFilter"u8, "🔍 Filter operations..."u8, filter.InputBuf.AsSpan(), ImGuiInputTextFlags.ImGuiInputTextFlags_None))
                         imgui.ImGuiTextFilter_Build(filter);
 
                     if (imgui.IsWindowAppearing())
@@ -233,6 +243,8 @@ public class MagicEditor
                         imgui.SetKeyboardFocusHere();
                         imgui.ImGuiTextFilter_Clear(filter);
                     }
+
+                    imgui.Separator();
 
                     foreach (MagicOperationType op in Enum.GetValues<MagicOperationType>())
                     {
@@ -261,14 +273,14 @@ public class MagicEditor
 
         if (_pendingGroupDelete is not null)
         {
-            CurrentEntry!.OperationGroupList.OperationGroups.Remove(_pendingGroupDelete);
+            _currentEntry!.OperationGroupList.OperationGroups.Remove(_pendingGroupDelete);
             _pendingGroupDelete = null;
         }
     }
 
     private unsafe void RenderOperation(IImGuiShell shell, IImGui imgui, MagicOperationGroup group, IOperation op)
     {
-        string operationId = $"{CurrentEntry!.Id}-{group.Id}-{op.Type}";
+        string operationId = $"{_currentEntry!.Id}-{group.Id}-{op.Type}";
 
         if (_addedOperation == op)
         {
@@ -286,7 +298,7 @@ public class MagicEditor
 
         if (isExpanded)
         {
-            if (imgui.BeginTable($"##proptable_{operationId}", 3, ImGuiTableFlags.ImGuiTableFlags_Borders))
+            if (imgui.BeginTable($"##proptable_{operationId}", 2, ImGuiTableFlags.ImGuiTableFlags_Borders | ImGuiTableFlags.ImGuiTableFlags_Resizable | ImGuiTableFlags.ImGuiTableFlags_RowBg))
             {
                 imgui.TableSetupColumn("Type"u8, ImGuiTableColumnFlags.ImGuiTableColumnFlags_None);
                 imgui.TableSetupColumn("Value"u8, ImGuiTableColumnFlags.ImGuiTableColumnFlags_None);
@@ -299,7 +311,7 @@ public class MagicEditor
                 imgui.TableSetColumnIndex(0);
 
                 imgui.SetNextItemWidth(-1.0f);
-                if (imgui.BeginCombo($"##prop_picker{operationId}", "➕ Add property...", ImGuiComboFlags.ImGuiComboFlags_None))
+                if (imgui.BeginCombo($"##prop_picker{operationId}", "➕ Add property...", ImGuiComboFlags.ImGuiComboFlags_HeightLarge))
                 {
                     if (!_propertyFilters.TryGetValue(op.Type, out IDisposableHandle<IImGuiTextFilter>? filterHandle))
                         filterHandle = imgui.CreateTextFilter();
@@ -307,7 +319,7 @@ public class MagicEditor
                     IImGuiTextFilter filter = filterHandle.Value;
 
                     imgui.SetNextItemWidth(-1.0f);
-                    if (imgui.InputTextWithHint("##PropertyFilter"u8, "Filter property..."u8, filter.InputBuf.AsSpan(), ImGuiInputTextFlags.ImGuiInputTextFlags_None))
+                    if (imgui.InputTextWithHint("##PropertyFilter"u8, "🔍 Filter property..."u8, filter.InputBuf.AsSpan(), ImGuiInputTextFlags.ImGuiInputTextFlags_None))
                         imgui.ImGuiTextFilter_Build(filter);
 
                     if (imgui.IsWindowAppearing())
@@ -315,6 +327,8 @@ public class MagicEditor
                         imgui.SetKeyboardFocusHere();
                         imgui.ImGuiTextFilter_Clear(filter);
                     }
+
+                    imgui.Separator();
 
                     foreach (MagicPropertyType prop in op.SupportedProperties)
                     {
@@ -416,8 +430,9 @@ public class MagicEditor
                     break;
             }
         }
-
-        imgui.TableSetColumnIndex(2);
-        imgui.Text($"Value: {string.Join(" ", property.Data.Select(e => e.ToString("X2")))}");
+        else
+        {
+            imgui.Text($"Bytes: {string.Join(" ", property.Data.Select(e => e.ToString("X2")))}");
+        }
     }
 }

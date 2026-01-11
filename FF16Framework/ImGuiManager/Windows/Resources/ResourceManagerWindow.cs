@@ -116,7 +116,7 @@ public class ResourceManagerWindow : IImGuiComponent
         int countInvalid = 0;
         foreach (var magicEditor in _magicEditors.Values)
         {
-            if (magicEditor.Resource.IsValid)
+            if (magicEditor.Resource.IsValid && magicEditor.IsOpen)
                 magicEditor.Render(imGuiShell, _imGui);
             else
                 countInvalid++;
@@ -127,7 +127,7 @@ public class ResourceManagerWindow : IImGuiComponent
             List<MagicEditor> oldEditors = new List<MagicEditor>(countInvalid);
             foreach (var magicEditor in _magicEditors.Values)
             {
-                if (!magicEditor.Resource.IsValid)
+                if (!magicEditor.Resource.IsValid || !magicEditor.IsOpen)
                     oldEditors.Add(magicEditor);
             }
 
