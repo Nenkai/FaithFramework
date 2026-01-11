@@ -373,7 +373,19 @@ public class MagicEditor
             _pendingPropertyDelete = property;
         imgui.SameLine();
 
+        bool pushedColor = false;
+        if (!MagicPropertyValueTypeMapping.TypeToValueType.TryGetValue(property.Type, out MagicPropertyValueType valueType))
+        {
+            imgui.PushStyleColor(ImGuiCol.ImGuiCol_Text, ColorUtils.RGBA(255, 0, 0, 255));
+            pushedColor = true;
+        }
+
         imgui.Text(property.Type.ToString());
+        if (pushedColor)
+            imgui.PopStyleColor();
+
+        if (valueType != MagicPropertyValueType.Unknown && imgui.IsItemHovered(ImGuiHoveredFlags.ImGuiHoveredFlags_None))
+            imgui.SetTooltip(valueType.ToString());
 
         imgui.TableSetColumnIndex(1);
         if (property.Value is not null)
