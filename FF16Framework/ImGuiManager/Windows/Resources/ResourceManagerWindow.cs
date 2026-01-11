@@ -6,6 +6,8 @@ using System.Linq;
 using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
+using System.Collections.Concurrent;
+using System.Runtime.InteropServices;
 
 using FF16Framework.Faith.Hooks;
 using FF16Framework.Services.ResourceManager;
@@ -18,7 +20,7 @@ using NenTools.ImGui.Interfaces.Shell;
 using NenTools.ImGui.Shell;
 
 using Reloaded.Mod.Interfaces;
-using System.Collections.Concurrent;
+
 
 namespace FF16Framework.ImGuiManager.Windows.Resources;
 
@@ -96,8 +98,15 @@ public class ResourceManagerWindow : IImGuiComponent
                                 {
                                     if (!_magicEditors.ContainsKey(resource.BufferAddress))
                                     {
-                                        var magic = MagicFile.Open(resource.BufferAddress, resource.FileSize);
-                                        _magicEditors.TryAdd(resource.HandleAddress, new MagicEditor(resource, magic));
+                                        try
+                                        {
+                                            var magic = MagicFile.Open(resource.BufferAddress, resource.FileSize);
+                                            _magicEditors.TryAdd(resource.HandleAddress, new MagicEditor(resource, magic));
+                                        }
+                                        catch (Exception ex)
+                                        {
+                                            imGuiShell.LogWriteLine(nameof(MagicEditor), $"Failed to read {Marshal.PtrToStringAnsi(resource.FileNamePointer)}: {ex.Message}", Color.Red);
+                                        }
                                     }
                                 }
                             }
