@@ -2,7 +2,7 @@
   "ModId": "ff16.utility.framework",
   "ModName": "Faith Framework",
   "ModAuthor": "Nenkai",
-  "ModVersion": "2.1.1",
+  "ModVersion": "2.1.2",
   "ModDescription": "Faith Framework (modding framework for FFXVI/FFT:IVC).",
   "ModDll": "FF16Framework.dll",
   "ModIcon": "Preview.png",

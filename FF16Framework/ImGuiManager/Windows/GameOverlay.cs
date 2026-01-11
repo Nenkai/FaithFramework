@@ -11,6 +11,7 @@ using NenTools.ImGui.Interfaces.Shell;
 
 using FF16Framework.Faith.Hooks;
 using FF16Framework.Faith.Structs;
+using FF16Framework.Utils;
 
 namespace FF16Framework.ImGuiManager.Windows;
 
@@ -25,21 +26,23 @@ public unsafe class GameOverlay : IImGuiComponent
     private readonly MapHooks _mapHooks;
     private readonly GameContext _gameContext;
     private readonly FrameworkConfig _frameworkConfig;
-    private readonly CameraHooks _uiControllerHooks;
-    private readonly UnkList34Hooks _unkList34Hooks;
+    private readonly CameraHooks _cameraHooks;
+    private readonly UnkList35Hooks _unkList34Hooks;
+    private readonly EidHooks _eidHooks;
 
     private bool hasSetPos = false;
     public GameOverlay(IImGui imGui, FrameworkConfig frameworkConfig, 
         GameContext gameContext, 
-        EntityManagerHooks entityManagerHooks, MapHooks mapHooks, CameraHooks uiControllerHooks, UnkList34Hooks unkList34Hooks )
+        EntityManagerHooks entityManagerHooks, MapHooks mapHooks, CameraHooks cameraHooks, UnkList35Hooks unkList35Hooks, EidHooks eidHooks)
     {
         _imGui = imGui;
         _gameContext = gameContext;
         _entityManager = entityManagerHooks;
         _mapHooks = mapHooks;
         _frameworkConfig = frameworkConfig;
-        _uiControllerHooks = uiControllerHooks;
-        _unkList34Hooks = unkList34Hooks;
+        _cameraHooks = cameraHooks;
+        _unkList34Hooks = unkList35Hooks;
+        _eidHooks = eidHooks;
     }
 
     private Vector2? PositionToRender = null;
@@ -135,12 +138,12 @@ public unsafe class GameOverlay : IImGuiComponent
     {
         if (_entityManager.UnkSingletonPlayerOrCameraRelated == 0 ||
             _entityManager.StaticActorManager == 0 ||
-            _entityManager.ActorManager == 0)
+            _entityManager.ActorManager == null)
             return;
 
         _imGui.SeparatorText("Camera"u8);
-        Vector3? camSrcPos = _uiControllerHooks.GetCameraSourcePos();
-        Vector3? camTgtPos = _uiControllerHooks.GetCameraTargetPos();
+        Vector3? camSrcPos = _cameraHooks.GetCameraSourcePos();
+        Vector3? camTgtPos = _cameraHooks.GetCameraTargetPos();
         if (camSrcPos is not null)
         {
             _imGui.Text($"Cam Source XYZ: {camSrcPos:F2}");
@@ -164,6 +167,7 @@ public unsafe class GameOverlay : IImGuiComponent
 
             NodePositionPair position;
             _entityManager.GetPositionFunction((nint)staticActorInfo, &position);
+            Vector3 worldPos = _mapHooks.ComputeWorldPosition(&position); // Grid Position -> World
 
             Vector3 rotation;
             _entityManager.GetRotationFunction((nint)staticActorInfo, &rotation);
@@ -174,7 +178,7 @@ public unsafe class GameOverlay : IImGuiComponent
             //Vector3 forwardXZ;
             //_entityManager.GetForwardXZFunction((nint)staticActorInfo, &forwardXZ);
 
-            _imGui.Text($"Pos: {position.Position:F2}");
+            _imGui.Text($"Pos: {worldPos:F2}");
             _imGui.Text($"Rot: {rotation:F2}");
             _imGui.Text($"Forward Vec: {fwVector:F2}");
             //_imGui.Text($"Forward XZ: {forwardXZ:F2}");

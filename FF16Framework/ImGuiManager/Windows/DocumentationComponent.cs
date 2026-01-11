@@ -8,7 +8,7 @@ using NenTools.ImGui.Interfaces;
 using NenTools.ImGui.Shell;
 using NenTools.ImGui.Interfaces.Shell;
 
-namespace FF16Framework.ImGuiManager.Windows.Framework;
+namespace FF16Framework.ImGuiManager.Windows;
 
 public class DocumentationComponent : IImGuiComponent
 {

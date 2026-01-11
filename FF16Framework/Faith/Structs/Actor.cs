@@ -45,6 +45,143 @@ public unsafe struct Entity
     public nint field_170;
 };
 
+public unsafe struct ActorManager
+{
+    public nint __vftable;
+    public nint field_8;
+    public nint ListManager;
+    public nint MemAllocatorUnk;
+    public nint field_20;
+    public nint field_28;
+    public void* field_30;
+    public nint lpVtbl;
+    public nint field_40;
+    public fixed byte gap48[142];
+    public fixed byte rtl_critical_sectionD6[0x28];
+    public fixed byte gapFE[34];
+    public fixed byte rtl_critical_section120[0x28];
+    public fixed byte gap148[192];
+    public fixed byte Map[0x48];
+    public nint Field_250;
+    public nint field_258;
+    public nint Field_260;
+    public nint Field_268;
+    public int field_270;
+    public int gap274;
+    public int dword278;
+    public int field_27C;
+    public nint p_MainAllocator;
+    public nint field_288;
+    public nint field_290;
+    public nint field_298;
+    public int field_2A0;
+    public int field_2A4;
+    public nint MaxActorIndex;
+    public ActorListBaseList Types;
+    public fixed byte gap5B0[16];
+    public nint field_5C0;
+    public nint field_5C8;
+    public nint field_5D0;
+    public nint field_5D8;
+    public nint field_5E0;
+    public fixed byte gap5E8[192];
+    public int NumEntities;
+    public short word6AC;
+    public fixed byte gap6AE[122];
+    public fixed ulong UnkCounters[3];
+    public nint ActorListsManager;
+    public nint ActorListsManager2;
+    public nint UnkLinkedList;
+    public nint p_UnkLinkedList;
+    public short word760;
+    public fixed byte gap762[70];
+    public short word7A8;
+    public fixed byte gap7AA[6];
+    public nint rtl_srwlock7B0;
+    public fixed byte field_0x7B8[704];
+    public short wordA78;
+
+    [System.Runtime.CompilerServices.InlineArray(96)]
+    public struct ActorListBaseList
+    {
+        private nint Element;
+    }
+};
+
+public unsafe struct ActorListBase
+{
+    public ActorListBase_vt* vtable;
+    public int Allocator_2;
+    public int field_C;
+    public fixed byte Allocator[0x38];
+    public nint field_48;
+    public nint g_off_7FF630620528;
+    public nint field_58;
+    public nint Allocator_1;
+    public nint field_68;
+    public nint field_70;
+    public nint field_78;
+    public nint field_80;
+    public nint field_88;
+    public nint field_90;
+    public nint field_98;
+    public nint field_A0;
+    public nint field_A8;
+    public nint field_B0;
+    public nint field_B8;
+    public nint field_C0;
+    public nint field_C8;
+    public nint field_D0;
+    public nint field_D8;
+    public nint field_E0;
+    public nint field_E8;
+    public nint field_F0;
+    public nint field_F8;
+    public nint field_100;
+    public nint field_108;
+    public nint field_110;
+    public nint field_118;
+    public nint field_120;
+    public nint field_128;
+    public nint field_130;
+    public nint field_138;
+    public nint field_140;
+    public nint field_148;
+    public nint field_150;
+    public nint field_158;
+    public nint field_160;
+    public nint field_168;
+    public nint field_170;
+    public nint field_178;
+    public nint field_180;
+    public nint field_188;
+    public nint field_200;
+    public nint field_198;
+    public nint field_210;
+    public nint _field_218;
+
+    public struct ActorListBase_vt
+    {
+        public nint field_0;
+        public nint field_8;
+        public nint field_10;
+        public nint field_18;
+        public nint field_20;
+        public nint field_28;
+        public nint field_30;
+        public nint field_38;
+        public nint field_40;
+        public nint field_48;
+        public nint field_50;
+        public nint field_58;
+        public nint field_60;
+        public nint GetOrCreate;
+        public nint field_70;
+        public delegate* unmanaged[Cdecl]<ActorListBase*, uint, nint> GetByActorId;
+    };
+};
+
+
 public unsafe struct EntityBase
 {
     public uint EntityBaseId;

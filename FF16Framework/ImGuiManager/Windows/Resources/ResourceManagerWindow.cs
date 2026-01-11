@@ -18,6 +18,7 @@ using NenTools.ImGui.Interfaces.Shell;
 using NenTools.ImGui.Shell;
 
 using Reloaded.Mod.Interfaces;
+using System.Collections.Concurrent;
 
 namespace FF16Framework.ImGuiManager.Windows.Resources;
 
@@ -31,7 +32,7 @@ public class ResourceManagerWindow : IImGuiComponent
     public bool IsOverlay => false;
     public bool IsOpen = false;
 
-    private Dictionary<nint, MagicEditor> _magicEditors = [];
+    private ConcurrentDictionary<nint, MagicEditor> _magicEditors = [];
 
     public ResourceManagerWindow(IImGui imgui, IModConfig modConfig, IModLoader modLoader, ResourceManagerService resourceManagerService)
     {
@@ -96,7 +97,7 @@ public class ResourceManagerWindow : IImGuiComponent
                                     if (!_magicEditors.ContainsKey(resource.BufferAddress))
                                     {
                                         var magic = MagicFile.Open(resource.BufferAddress, resource.FileSize);
-                                        _magicEditors.Add(resource.HandleAddress, new MagicEditor(resource, magic));
+                                        _magicEditors.TryAdd(resource.HandleAddress, new MagicEditor(resource, magic));
                                     }
                                 }
                             }
@@ -131,7 +132,7 @@ public class ResourceManagerWindow : IImGuiComponent
             }
 
             foreach (MagicEditor oldEditor in oldEditors)
-                _magicEditors.Remove(oldEditor.Resource.HandleAddress);
+                _magicEditors.Remove(oldEditor.Resource.HandleAddress, out _);
         }
     }
 }

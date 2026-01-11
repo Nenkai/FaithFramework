@@ -15,30 +15,30 @@ using RyoTune.Reloaded;
 
 namespace FF16Framework.Faith.Hooks;
 
-public unsafe class UnkList34Hooks : HookGroupBase
+public unsafe class UnkList35Hooks : HookGroupBase
 {
-    public delegate nint UnkSingletonPlayer_GetList34Entry(UnkSingletonPlayer* @this);
-    public UnkSingletonPlayer_GetList34Entry UnkSingletonPlayer_GetList34EntryFunction { get; private set; }
+    public delegate nint UnkSingletonPlayer_GetList35Entry(UnkSingletonPlayer* @this);
+    public UnkSingletonPlayer_GetList35Entry UnkSingletonPlayer_GetList35EntryFunction { get; private set; }
 
-    public delegate UnkTargetStruct* UnkList34Entry_GetCurrentTargettedEnemy(nint @this, byte forceUnk);
-    public UnkList34Entry_GetCurrentTargettedEnemy UnkList34Entry_GetCurrentTargettedEnemyFunction { get; private set; }
+    public delegate UnkTargetStruct* UnkList35Entry_GetCurrentTargettedEnemy(nint @this, byte forceUnk);
+    public UnkList35Entry_GetCurrentTargettedEnemy UnkList35Entry_GetCurrentTargettedEnemyFunction { get; private set; }
 
     public delegate UnkSingletonPlayer* UnkSingletonPlayer_UnkSingletonPlayer(UnkSingletonPlayer* @this);
     public IHook<UnkSingletonPlayer_UnkSingletonPlayer> UnkSingletonPlayer_UnkSingletonPlayerHook { get; private set; }
 
     private UnkSingletonPlayer* SingletonPtr;
 
-    public UnkList34Hooks(Config config, IModConfig modConfig, ILogger logger)
+    public UnkList35Hooks(Config config, IModConfig modConfig, ILogger logger)
     : base(config, modConfig, logger)
     {
     }
 
     public override void SetupHooks()
     {
-        Project.Scans.AddScanHook(nameof(UnkSingletonPlayer_GetList34Entry), (result, hooks)
-            => UnkSingletonPlayer_GetList34EntryFunction = hooks.CreateWrapper<UnkSingletonPlayer_GetList34Entry>(result, out _));
-        Project.Scans.AddScanHook(nameof(UnkList34Entry_GetCurrentTargettedEnemy), (result, hooks)
-            => UnkList34Entry_GetCurrentTargettedEnemyFunction = hooks.CreateWrapper<UnkList34Entry_GetCurrentTargettedEnemy>(result, out _));
+        Project.Scans.AddScanHook(nameof(UnkSingletonPlayer_GetList35Entry), (result, hooks)
+            => UnkSingletonPlayer_GetList35EntryFunction = hooks.CreateWrapper<UnkSingletonPlayer_GetList35Entry>(result, out _));
+        Project.Scans.AddScanHook(nameof(UnkList35Entry_GetCurrentTargettedEnemy), (result, hooks)
+            => UnkList35Entry_GetCurrentTargettedEnemyFunction = hooks.CreateWrapper<UnkList35Entry_GetCurrentTargettedEnemy>(result, out _));
         Project.Scans.AddScanHook(nameof(UnkSingletonPlayer_UnkSingletonPlayer), (result, hooks)
             => UnkSingletonPlayer_UnkSingletonPlayerHook = hooks.CreateHook<UnkSingletonPlayer_UnkSingletonPlayer>(UnkSingletonPlayer_UnkSingletonPlayerImpl, result).Activate());
 
@@ -60,11 +60,11 @@ public unsafe class UnkList34Hooks : HookGroupBase
         if (SingletonPtr->ControllingActorId == 0)
             return null;
 
-        nint list34Entry = UnkSingletonPlayer_GetList34EntryFunction(SingletonPtr);
-        if (list34Entry == nint.Zero)
+        nint list35Entry = UnkSingletonPlayer_GetList35EntryFunction(SingletonPtr);
+        if (list35Entry == nint.Zero)
             return null;
 
-        return UnkList34Entry_GetCurrentTargettedEnemyFunction(list34Entry, 0);
+        return UnkList35Entry_GetCurrentTargettedEnemyFunction(list35Entry, 0);
     }
 }
 

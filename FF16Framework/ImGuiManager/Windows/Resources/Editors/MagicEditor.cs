@@ -4,9 +4,6 @@ using System.Linq;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Text;
-using System.Threading.Tasks;
-
-using System.Windows.Forms;
 
 using FF16Framework.Services.ResourceManager;
 using FF16Framework.Utils;
@@ -29,6 +26,10 @@ public class MagicEditor
     private MagicOperationGroup? _pendingGroupDelete;
     private MagicOperationProperty? _pendingPropertyDelete;
     private IOperation? _pendingOperationDelete;
+
+    private IDisposableHandle<IImGuiTextFilter> _magicFilterHandle;
+    private IDisposableHandle<IImGuiTextFilter> _operationFilterHandle;
+    private Dictionary<MagicOperationType, IDisposableHandle<IImGuiTextFilter>> _propertyFilters = [];
 
     private IOperation? _addedOperation;
     public MagicEditor(ResourceHandle resource, MagicFile magicFile)
@@ -131,13 +132,30 @@ public class MagicEditor
 
             if (imgui.BeginCombo("Magics"u8, "Select magic..."u8, ImGuiComboFlags.ImGuiComboFlags_HeightLarge))
             {
+                _magicFilterHandle ??= imgui.CreateTextFilter();
+                IImGuiTextFilter filter = _magicFilterHandle.Value;
+
+                imgui.SetNextItemWidth(-1.0f);
+                if (imgui.InputTextWithHint("##MagicFilter"u8, "Filter magics..."u8, filter.InputBuf.AsSpan(), ImGuiInputTextFlags.ImGuiInputTextFlags_None))
+                    imgui.ImGuiTextFilter_Build(filter);
+
+                if (imgui.IsWindowAppearing())
+                {
+                    imgui.SetKeyboardFocusHere();
+                    imgui.ImGuiTextFilter_Clear(filter);
+                }
+
                 foreach (KeyValuePair<uint, MagicEntry> elem in MagicFile.MagicEntries)
                 {
                     if (!MagicIdsMapping.IdToName.TryGetValue(elem.Key, out string? name))
                         name = "Unknown";
 
-                    if (imgui.Selectable($"{name} ({elem.Key})"))
-                        CurrentEntry = elem.Value;
+                    string item = $"{name} ({elem.Key})";
+                    if (imgui.ImGuiTextFilter_PassFilter(filter, item, null))
+                    {
+                        if (imgui.Selectable(item))
+                            CurrentEntry = elem.Value;
+                    }
 
                     if (elem.Value == CurrentEntry)
                         imgui.SetItemDefaultFocus();
@@ -203,13 +221,30 @@ public class MagicEditor
                 imgui.SetNextItemWidth(-1.0f);
                 if (imgui.BeginCombo($"##op_picker{group.Id}", "➕ Add operation...", ImGuiComboFlags.ImGuiComboFlags_None))
                 {
+                    _magicFilterHandle ??= imgui.CreateTextFilter();
+                    IImGuiTextFilter filter = _magicFilterHandle.Value;
+
+                    imgui.SetNextItemWidth(-1.0f);
+                    if (imgui.InputTextWithHint("##OperationFilter"u8, "Filter operations..."u8, filter.InputBuf.AsSpan(), ImGuiInputTextFlags.ImGuiInputTextFlags_None))
+                        imgui.ImGuiTextFilter_Build(filter);
+
+                    if (imgui.IsWindowAppearing())
+                    {
+                        imgui.SetKeyboardFocusHere();
+                        imgui.ImGuiTextFilter_Clear(filter);
+                    }
+
                     foreach (MagicOperationType op in Enum.GetValues<MagicOperationType>())
                     {
-                        if (imgui.Selectable(op.ToString()))
+                        string name = op.ToString();
+                        if (imgui.ImGuiTextFilter_PassFilter(filter, name, null))
                         {
-                            IOperation operation = MagicOperationFactory.Create(op);
-                            group.OperationList.Operations.Add(operation);
-                            _addedOperation = operation;
+                            if (imgui.Selectable(op.ToString()))
+                            {
+                                IOperation operation = MagicOperationFactory.Create(op);
+                                group.OperationList.Operations.Add(operation);
+                                _addedOperation = operation;
+                            }
                         }
                     }
 
@@ -266,6 +301,21 @@ public class MagicEditor
                 imgui.SetNextItemWidth(-1.0f);
                 if (imgui.BeginCombo($"##prop_picker{operationId}", "➕ Add property...", ImGuiComboFlags.ImGuiComboFlags_None))
                 {
+                    if (!_propertyFilters.TryGetValue(op.Type, out IDisposableHandle<IImGuiTextFilter>? filterHandle))
+                        filterHandle = imgui.CreateTextFilter();
+
+                    IImGuiTextFilter filter = filterHandle.Value;
+
+                    imgui.SetNextItemWidth(-1.0f);
+                    if (imgui.InputTextWithHint("##PropertyFilter"u8, "Filter property..."u8, filter.InputBuf.AsSpan(), ImGuiInputTextFlags.ImGuiInputTextFlags_None))
+                        imgui.ImGuiTextFilter_Build(filter);
+
+                    if (imgui.IsWindowAppearing())
+                    {
+                        imgui.SetKeyboardFocusHere();
+                        imgui.ImGuiTextFilter_Clear(filter);
+                    }
+
                     foreach (MagicPropertyType prop in op.SupportedProperties)
                     {
                         bool pushedColor = false;
@@ -281,13 +331,17 @@ public class MagicEditor
                         }
 
                         string name = valueType != 0 ? $"{prop} ({valueType})" : prop.ToString();
-                        if (imgui.Selectable(name))
+
+                        if (imgui.ImGuiTextFilter_PassFilter(filter, name, null))
                         {
-                            var defaultProperty = MagicPropertyFactory.Create(prop);
-                            if (defaultProperty is null)
-                                shell.LogWriteLine(nameof(MagicEditor), $"Property {prop}'s value type is not supported!", color: System.Drawing.Color.Red);
-                            else
-                                op.Properties.Add(defaultProperty);
+                            if (imgui.Selectable(name))
+                            {
+                                var defaultProperty = MagicPropertyFactory.Create(prop);
+                                if (defaultProperty is null)
+                                    shell.LogWriteLine(nameof(MagicEditor), $"Property {prop}'s value type is not supported!", color: System.Drawing.Color.Red);
+                                else
+                                    op.Properties.Add(defaultProperty);
+                            }
                         }
 
                         if (pushedColor)

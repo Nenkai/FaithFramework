@@ -35,6 +35,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using FF16Framework.Services.ResourceManager;
 using FF16Framework.ImGuiManager.Windows.Resources;
+using FF16Framework.ImGuiManager.Windows.Visualizers;
 
 namespace FF16Framework;
 
@@ -231,7 +232,8 @@ public class Mod : ModBase, IExports // <= Do not Remove.
             .AddSingletonAs<HookGroupBase, SaveHooks>()
             .AddSingletonAs<HookGroupBase, CameraHooks>()
             .AddSingletonAs<HookGroupBase, MagicHooks>()
-            .AddSingletonAs<HookGroupBase, UnkList34Hooks>()
+            .AddSingletonAs<HookGroupBase, UnkList35Hooks>()
+            .AddSingletonAs<HookGroupBase, EidHooks>()
 
             // ImGui renderable
             .AddSingleton<LogWindow>(provider =>
@@ -259,6 +261,8 @@ public class Mod : ModBase, IExports // <= Do not Remove.
             .AddSingleton<FrameworkToolsComponent>()
             .AddSingleton<ResourceManagerWindow>()
             .AddSingleton<GameOverlay>()
+            .AddSingleton<EidVisualizerComponent>()
+            .AddSingleton<MainVisualizerComponent>()
             .AddSingleton<AboutWindow>();
 
         return services.BuildServiceProvider();

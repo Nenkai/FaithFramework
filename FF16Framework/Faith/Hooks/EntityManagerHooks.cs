@@ -26,7 +26,7 @@ public unsafe class EntityManagerHooks : HookGroupBase
     //public delegate ActorReference* ActorManager_CreateNewActor(nint listsGlobal, EntityBase* entityBase);
     //private IHook<ActorManager_CreateNewActor> ActorManager_CreateNewActorHook;
 
-    public delegate ActorReference* ActorManager_SetupEntity(nint @this, Entity* entity);
+    public delegate ActorReference* ActorManager_SetupEntity(ActorManager* @this, Entity* entity);
     public IHook<ActorManager_SetupEntity> ActorManager_SetupEntityHook { get; private set; }
 
     public delegate nint StaticActorManager_GetOrCreate(nint @this, nint** outEntityInfo, uint entityId);
@@ -39,7 +39,7 @@ public unsafe class EntityManagerHooks : HookGroupBase
     public StaticActorInfo_GetForwardVector GetForwardVectorFunction { get; private set; }
     public StaticActorInfo_GetForwardXZ GetForwardXZFunction { get; private set; }
 
-    public delegate ActorReference* ActorManager_GetActorByKey(nint @this, uint actorId);
+    public delegate ActorReference* ActorManager_GetActorByKey(ActorManager* @this, uint actorId);
     public delegate nint StaticActorInfo_IsValidActor(nint pStaticEntityInfo);
     public delegate NodePositionPair* StaticActorInfo_GetPosition(nint pStaticEntityInfo, NodePositionPair* outPair);
     public delegate Vector3* StaticActorInfo_GetRotation(nint pStaticEntityInfo, Vector3* outPair);
@@ -49,7 +49,7 @@ public unsafe class EntityManagerHooks : HookGroupBase
     public delegate nint UnkSingletonPlayerOrCameraRelated_Ctor(nint @this);
     public IHook<UnkSingletonPlayerOrCameraRelated_Ctor> UnkSingletonPlayerOrCameraRelated_CtorHook;
 
-    public nint ActorManager { get; private set; }
+    public ActorManager* ActorManager { get; private set; }
     public nint StaticActorManager { get; private set; }
     public nint UnkSingletonPlayerOrCameraRelated { get; private set; }
 
@@ -88,7 +88,7 @@ public unsafe class EntityManagerHooks : HookGroupBase
     }
     */
 
-    private ActorReference* ActorManager_SetupEntityImpl(nint @this, Entity* entity)
+    private ActorReference* ActorManager_SetupEntityImpl(ActorManager* @this, Entity* entity)
     {
         ActorManager = @this;
         var res = ActorManager_SetupEntityHook.OriginalFunction(@this, entity);

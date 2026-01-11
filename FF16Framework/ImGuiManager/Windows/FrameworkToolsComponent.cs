@@ -21,13 +21,19 @@ public class FrameworkToolsComponent : IImGuiComponent
     private readonly IImGui _imGui;
 
     private readonly ResourceManagerWindow _resourceManagerComponent;
+    private readonly MainVisualizerComponent _visualizerComponent;
     private readonly DocumentationComponent _documentation;
     private readonly SettingsComponent _settings;
 
-    public FrameworkToolsComponent(IImGui imGui, ResourceManagerWindow resourceManagerWindow, DocumentationComponent documentationComponent, SettingsComponent settingsComponent)
+    public FrameworkToolsComponent(IImGui imGui, 
+        ResourceManagerWindow resourceManagerWindow,
+        MainVisualizerComponent visualizerComponent,
+        DocumentationComponent documentationComponent, 
+        SettingsComponent settingsComponent)
     {
         _imGui = imGui;
         _resourceManagerComponent = resourceManagerWindow;
+        _visualizerComponent = visualizerComponent;
         _documentation = documentationComponent;
         _settings = settingsComponent;
     }
@@ -37,6 +43,7 @@ public class FrameworkToolsComponent : IImGuiComponent
         if (_imGui.BeginMenu("Faith Framework"u8))
         {
             _resourceManagerComponent.RenderMenu(imGuiShell);
+            _visualizerComponent.RenderMenu(imGuiShell);
             _imGui.Separator();
             _documentation.RenderMenu(imGuiShell);
             _settings.RenderMenu(imGuiShell);
@@ -48,5 +55,6 @@ public class FrameworkToolsComponent : IImGuiComponent
     public void Render(IImGuiShell imGuiShell)
     {
         _resourceManagerComponent.Render(imGuiShell);
+        _visualizerComponent.Render(imGuiShell);
     }
 }
