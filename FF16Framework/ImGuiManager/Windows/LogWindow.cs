@@ -5,11 +5,13 @@ using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 
+using Reloaded.Mod.Interfaces;
+
 using NenTools.ImGui.Interfaces;
 using NenTools.ImGui.Shell;
 using NenTools.ImGui.Interfaces.Shell;
 
-using Reloaded.Mod.Interfaces;
+using FF16Framework.Utils;
 
 namespace FF16Framework.ImGuiManager.Windows;
 
@@ -48,16 +50,16 @@ public unsafe class LogWindow : IImGuiComponent
         _sw = new StreamWriter(path);
     }
 
-    private void _logger_OnWriteLine(object sender, (string text, System.Drawing.Color color) e)
+    private void _logger_OnWriteLine(object sender, (string Text, Color Color) e)
     {
         lock (_lock)
         {
             if (LastLines.Count >= MAX_LINES)
                 LastLines.Remove(LastLines[0]);
 
-            var logMsg = new LogMessage(DateTime.UtcNow, sender.ToString(), e.text);
+            var logMsg = new LogMessage(DateTime.UtcNow, sender.ToString(), e.Text, e.Color);
             LastLines.Add(logMsg);
-            _sw?.WriteLine(e.text);
+            _sw?.WriteLine(e.Text);
         }
     }
 
@@ -102,7 +104,7 @@ public unsafe class LogWindow : IImGuiComponent
                     {
                         _imGui.TextColored(greyColor, $"[{LastLines[i].Time:HH:mm:ss.fff}]"); _imGui.SameLineEx(0, 4);
                         //ImGui.TextColored(greyColor, $"[{LastLines[i].Handler}]"); ImGui.SameLine(0, 4);
-                        _imGui.TextColored(whiteColor, LastLines[i].Message);
+                        _imGui.TextColored(LastLines[i].Color.ToVector4(), LastLines[i].Message);
                     }
                 }
 
@@ -117,4 +119,4 @@ public unsafe class LogWindow : IImGuiComponent
     }
 }
 
-public record LogMessage(DateTime Time, string Handler, string Message);
+public record LogMessage(DateTime Time, string Handler, string Message, Color Color);
