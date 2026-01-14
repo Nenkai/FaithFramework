@@ -35,6 +35,8 @@ public class MagicEditor
     private Dictionary<MagicOperationType, IDisposableHandle<IImGuiTextFilter>> _propertyFilters = [];
 
     private IOperation? _addedOperation;
+    private int _inputGroup;
+
     public MagicEditor(ResourceHandle resource, MagicFile magicFile)
     {
         Resource = resource;
@@ -190,39 +192,101 @@ public class MagicEditor
 
     private unsafe void RenderCurrentMagicEntry(IImGuiShell shell, IImGui imgui)
     {
+        RenderGroupSelector(shell, imgui);
+        imgui.Text("Right clicking groups/operations for deletion is also supported.");
+        RenderGroups(shell, imgui);
+
+        if (_pendingGroupDelete is not null)
+        {
+            _currentEntry!.OperationGroupList.OperationGroups.Remove(_pendingGroupDelete);
+            _pendingGroupDelete = null;
+        }
+    }
+
+    private unsafe void RenderGroupSelector(IImGuiShell shell, IImGui imgui)
+    {
+        imgui.PushItemWidth(100f);
+        imgui.InputInt("Group Id"u8, ref _inputGroup);
+        imgui.PopItemWidth();
+        imgui.SameLine();
+        if (imgui.Button("Add group"u8))
+        {
+            bool canAdd = true;
+            foreach (var magic in MagicFile.MagicEntries)
+            {
+                foreach (var group in magic.Value.OperationGroupList.OperationGroups)
+                {
+                    if (group.Id == _inputGroup)
+                    {
+                        canAdd = false;
+                        shell.LogWriteLine(nameof(MagicEditor), $"A group with id {_inputGroup} already exists in this file.", Color.Yellow);
+                    }
+                }
+            }
+
+            if (_inputGroup < 0)
+            {
+                canAdd = false;
+                shell.LogWriteLine(nameof(MagicEditor), $"Group id must be >= 0", Color.Yellow);
+            }
+
+            if (canAdd)
+                _currentEntry!.OperationGroupList.OperationGroups.Add(new MagicOperationGroup() { Id = (uint)_inputGroup });
+        }
+    }
+
+    private unsafe void RenderGroups(IImGuiShell shell, IImGui imgui)
+    {
         foreach (MagicOperationGroup group in _currentEntry!.OperationGroupList.OperationGroups)
         {
             bool visible = true;
-            if (imgui.CollapsingHeaderBoolPtr($"Group {group.Id}", ref visible, ImGuiTreeNodeFlags.ImGuiTreeNodeFlags_DefaultOpen))
+            bool groupOpen = imgui.CollapsingHeaderBoolPtr($"Group {group.Id}", ref visible, ImGuiTreeNodeFlags.ImGuiTreeNodeFlags_DefaultOpen);
+
+            string deleteGroupPopupName = $"Delete Group##delgroup_modal{group.Id}";
+            bool deletePopupOpen = false;
+            if (imgui.BeginPopupContextItem())
+            {
+                if (imgui.MenuItem("Delete Group"u8))
+                    deletePopupOpen = true;
+
+                imgui.EndPopup();
+            }
+
+            if (groupOpen)
             {
                 if (!visible)
-                    imgui.OpenPopup($"Delete Group##delgroup_modal{group.Id}", ImGuiPopupFlags.ImGuiPopupFlags_None);
+                    deletePopupOpen = true;
+            }
 
-                imgui.SetNextWindowPosEx(imgui.ImGuiViewport_GetCenter(imgui.GetMainViewport()), ImGuiCond.ImGuiCond_Appearing, pivot: new Vector2(0.5f, 0.5f));
-                if (imgui.BeginPopupModal($"Delete Group##delgroup_modal{group.Id}", ImGuiWindowFlags.ImGuiWindowFlags_AlwaysAutoResize))
+            if (deletePopupOpen)
+                imgui.OpenPopup(deleteGroupPopupName, ImGuiPopupFlags.ImGuiPopupFlags_None);
+
+            imgui.SetNextWindowPosEx(imgui.ImGuiViewport_GetCenter(imgui.GetMainViewport()), ImGuiCond.ImGuiCond_Appearing, pivot: new Vector2(0.5f, 0.5f));
+            if (imgui.BeginPopupModal(deleteGroupPopupName, ImGuiWindowFlags.ImGuiWindowFlags_AlwaysAutoResize))
+            {
+                imgui.Text("🗑 Delete Group?"u8);
+                imgui.Separator();
+
+                imgui.PushStyleColor(ImGuiCol.ImGuiCol_Button, ColorUtils.RGBA(0xAA, 0x22, 0x22));
+                imgui.PushStyleColor(ImGuiCol.ImGuiCol_ButtonHovered, ColorUtils.RGBA(0xCC, 0x22, 0x22));
+                bool yes = imgui.ButtonEx("Yes"u8, new Vector2(100, 0));
+                imgui.PopStyleColorEx(2);
+
+                if (yes)
                 {
-                    imgui.Text("🗑 Delete Group?"u8);
-                    imgui.Separator();
-
-                    imgui.PushStyleColor(ImGuiCol.ImGuiCol_Button, ColorUtils.RGBA(0xAA, 0x22, 0x22));
-                    imgui.PushStyleColor(ImGuiCol.ImGuiCol_ButtonHovered, ColorUtils.RGBA(0xCC, 0x22, 0x22));
-                    bool yes = imgui.ButtonEx("Yes"u8, new Vector2(100, 0));
-                    imgui.PopStyleColorEx(2);
-
-                    if (yes)
-                    {
-                        _pendingGroupDelete = group;
-                        imgui.CloseCurrentPopup();
-                    }
-
-                    imgui.SameLine();
-                    if (imgui.ButtonEx("Close"u8, new Vector2(100, 0)))
-                        imgui.CloseCurrentPopup();
-
-                    imgui.EndPopup();
+                    _pendingGroupDelete = group;
+                    imgui.CloseCurrentPopup();
                 }
-                
 
+                imgui.SameLine();
+                if (imgui.ButtonEx("Close"u8, new Vector2(100, 0)))
+                    imgui.CloseCurrentPopup();
+
+                imgui.EndPopup();
+            }
+
+            if (groupOpen)
+            {
                 foreach (IOperation op in group.OperationList.Operations)
                 {
                     RenderOperation(shell, imgui, group, op);
@@ -262,19 +326,13 @@ public class MagicEditor
 
                     imgui.EndCombo();
                 }
-
-                if (_pendingOperationDelete is not null)
-                {
-                    group.OperationList.Operations.Remove(_pendingOperationDelete);
-                    _pendingOperationDelete = null;
-                }
             }
-        }
-
-        if (_pendingGroupDelete is not null)
-        {
-            _currentEntry!.OperationGroupList.OperationGroups.Remove(_pendingGroupDelete);
-            _pendingGroupDelete = null;
+            
+            if (_pendingOperationDelete is not null)
+            {
+                group.OperationList.Operations.Remove(_pendingOperationDelete);
+                _pendingOperationDelete = null;
+            }
         }
     }
 
@@ -289,6 +347,14 @@ public class MagicEditor
         }
 
         bool isExpanded = imgui.TreeNodeEx($"{op.Type}##{operationId}", ImGuiTreeNodeFlags.ImGuiTreeNodeFlags_AllowOverlap);
+        if (imgui.BeginPopupContextItem())
+        {
+            if (imgui.MenuItem("Delete Operation"u8))
+                _pendingOperationDelete = op;
+
+            imgui.EndPopup();
+        }
+
         float right = imgui.GetContentRegionAvail().X;
 
         float offset = isExpanded ? 0.0f : 24f;  // Not sure why I need to offset when expanded. Otherwise it goes to the left and leaves a gap
@@ -333,6 +399,7 @@ public class MagicEditor
                     foreach (MagicPropertyType prop in op.SupportedProperties)
                     {
                         bool pushedColor = false;
+                        bool canSelect = true;
                         if (!MagicPropertyValueTypeMapping.TypeToValueType.TryGetValue(prop, out MagicPropertyValueType valueType))
                         {
                             imgui.PushStyleColor(ImGuiCol.ImGuiCol_Text, ColorUtils.RGBA(255, 0, 0, 255));
@@ -340,15 +407,20 @@ public class MagicEditor
                         }
                         else if (op.Properties.Any(e => e.Type == prop))
                         {
-                            imgui.PushStyleColor(ImGuiCol.ImGuiCol_Text, ColorUtils.RGBA(85, 51, 51, 255));
+                            imgui.PushStyleColor(ImGuiCol.ImGuiCol_Text, ColorUtils.RGBA(95, 61, 61, 255));
                             pushedColor = true;
+                            canSelect = false;
                         }
 
                         string name = valueType != 0 ? $"{prop} ({valueType})" : prop.ToString();
 
                         if (imgui.ImGuiTextFilter_PassFilter(filter, name, null))
                         {
-                            if (imgui.Selectable(name))
+                            var flags = ImGuiSelectableFlags.ImGuiSelectableFlags_None;
+                            if (!canSelect)
+                                flags |= ImGuiSelectableFlags.ImGuiSelectableFlags_Disabled;
+
+                            if (imgui.SelectableEx(name, false, flags, Vector2.Zero))
                             {
                                 var defaultProperty = MagicPropertyFactory.Create(prop);
                                 if (defaultProperty is null)
