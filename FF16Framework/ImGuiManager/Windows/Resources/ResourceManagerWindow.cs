@@ -8,6 +8,8 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Collections.Concurrent;
 using System.Runtime.InteropServices;
+using System.Collections.Frozen;
+using System.Diagnostics;
 
 using FF16Framework.Faith.Hooks;
 using FF16Framework.Services.ResourceManager;
@@ -36,6 +38,54 @@ public class ResourceManagerWindow : IImGuiComponent
 
     private ConcurrentDictionary<nint, MagicEditor> _magicEditors = [];
 
+    public FrozenDictionary<string, string> _resourceNamesPerExtension = new Dictionary<string, string>
+    {
+        [".anmb"] = "Animation/Havok Binary",
+        [".bnfb"] = "Bonamik F Binary",
+        [".bnmb"] = "Bonamik Binary",
+        [".ccb"] = "Chara Collision Binary",
+        [".cfb"] = "Camera Fade Binary",
+        [".csb"] = "Cutscene Set Binary",
+        [".dep"] = "Magic Dependencies",
+        [".eqsbin"] = "EQS Binary",
+        [".fnt"] = "Font Resource",
+        [".gid"] = "Map Global Illumination Data",
+        [".gtex"] = "Map ? Texture",
+        [".idl"] = "Chara Timeline ID List",
+        [".ikb"] = "IK Binary",
+        [".kdb"] = "KineDriver Binary",
+        [".ker"] = "Font Additional Kerning Data",
+        [".lsb"] = "Lipsync Binary",
+        [".mdl"] = "Model Resource",
+        [".mgb"] = "Map Merge Grid Binary",
+        [".mpb"] = "Map Binary",
+        [".mseq"] = "MSequence",
+        [".mtl"] = "Material Resource",
+        [".nxd"] = "NEX/Next Excel Data",
+        [".nxl"] = "NEX/Next Excel Table List",
+        [".magic"] = "Magic/Spell Resource",
+        [".pac"] = "Pack Resource",
+        [".pzd"] = "Panzer Data",
+        [".sab"] = "SQEX Audio Binary",
+        [".shb"] = "Shader/Technique Binary",
+        [".skl"] = "Skeleton/Havok Binary",
+        [".sndenv"] = "Map Sound Environment",
+        [".spd8"] = "SpeedTree Resource",
+        [".srope"] = "Spline Rope",
+        [".ssb"] = "Stage Set Binary",
+        [".tec"] = "Shader/Technique Binary",
+        [".tera"] = "Map Terrain Binary",
+        [".tnb"] = "Tanebi (?) Binary",
+        [".tex"] = "Texture Resource",
+        [".tlb"] = "Chara Timeline Binary",
+        [".uib"] = "UI Binary",
+        [".utexpt"] = "UI Texture Parts",
+        [".vatb"] = "VFX/Audio Table Binary",
+        [".vfxb"] = "VFX Binary",
+    }.ToFrozenDictionary();
+
+    private bool? _010EditorInstalled;
+
     public ResourceManagerWindow(IImGui imgui, IModConfig modConfig, IModLoader modLoader, ResourceManagerService resourceManagerService)
     {
         _imGui = imgui;
@@ -57,12 +107,26 @@ public class ResourceManagerWindow : IImGuiComponent
         if (!IsOpen)
             return;
 
+        Check010EditorIfNeeded();
+
         if (_imGui.Begin("Loaded Resources"u8, ref IsOpen, 0))
         {
             _imGui.Text($"Total Resources: {_resourceManagerService.LoadedHandles.Count}");
             foreach (var group in _resourceManagerService.SortedHandles)
             {
-                if (_imGui.TreeNode($"{group.Key} ({group.Value.Count} resources)"))
+                // Span the entire width since we are constructing the text ourselves
+                var open = _imGui.TreeNodeEx($"##{group.Key}", ImGuiTreeNodeFlags.ImGuiTreeNodeFlags_SpanAvailWidth);
+                _imGui.SameLineEx(0.0f, 0.0f);
+                _imGui.Text($"{group.Key} ({group.Value.Count} resources)");
+
+                if (_resourceNamesPerExtension.TryGetValue(group.Key, out string? desc))
+                {
+                    _imGui.SameLineEx(0.0f, 4.0f);
+                    _imGui.TextColored(new Vector4(0.4f, 0.4f, 0.4f, 1.0f), $"- {desc}");
+                }
+
+
+                if (open)
                 {
                     foreach (ResourceHandle resource in group.Value.Values)
                     {
@@ -85,6 +149,29 @@ public class ResourceManagerWindow : IImGuiComponent
                                 string str = $"{resource.BufferAddress:X}";
                                 _imGui.SetClipboardText(str);
                                 imGuiShell.LogWriteLine("FaithFramework", $"Copied to clipboard: {str}", outputTargetFlags: LoggerOutputTargetFlags.OverlayLogger);
+                            }
+
+                            if (resource.BufferAddress != 0)
+                            {
+                                _imGui.SameLine();
+                                if (_010EditorInstalled!.Value)
+                                {
+                                    if (_imGui.SmallButton("Open in 010 Editor"u8))
+                                    {
+                                        Process.Start(new ProcessStartInfo()
+                                        {
+                                            FileName = "010editor",
+                                            Arguments = $"-process:{Environment.ProcessId} -goto:0x{resource.BufferAddress:X}",
+                                            UseShellExecute = true,
+                                        });
+                                    }
+                                }
+                                else
+                                {
+                                    _imGui.BeginDisabled(false);
+                                    _imGui.SmallButton("Open in 010 Editor (not found)"u8);
+                                    _imGui.EndDisabled();
+                                }
                             }
 
                             _imGui.Text($"FileSize: {resource.FileSize:X}");
@@ -142,6 +229,16 @@ public class ResourceManagerWindow : IImGuiComponent
 
             foreach (MagicEditor oldEditor in oldEditors)
                 _magicEditors.Remove(oldEditor.Resource.HandleAddress, out _);
+        }
+    }
+
+    private unsafe void Check010EditorIfNeeded()
+    {
+        if (_010EditorInstalled is null)
+        {
+            string programFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
+            if (File.Exists(Path.Combine(programFiles, "010 Editor", "010Editor.exe")))
+                _010EditorInstalled = true;
         }
     }
 }
