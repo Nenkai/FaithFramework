@@ -68,6 +68,12 @@ public class SettingsComponent(IImGui imGui, GameContext gameContext, ImGuiShell
                 _imGui.MenuItemBoolPtr("Print magic casts"u8, ""u8, ref _frameworkConfig.MagicSystem.PrintMagicCastsField, true);
                 _imGui.EndMenu();
             }
+
+            if (_imGui.BeginMenu("Sound Manager"u8))
+            {
+                _imGui.MenuItemBoolPtr("Ignore volume changes (background audio)"u8, ""u8, ref _frameworkConfig.SoundManager.IgnoreSystemVolumeChangesField, true);
+                _imGui.EndMenu();
+            }
         }
         _imGui.PopItemFlag();
 

@@ -225,6 +225,7 @@ public class Mod : ModBase, IExports // <= Do not Remove.
             // Hooks (Any)
             .AddSingletonAs<HookGroupBase, NexHooks>()
             .AddSingletonAs<HookGroupBase, ResourceManagerHooks>()
+            .AddSingletonAs<HookGroupBase, SoundManagerHooks>() // For now, only FFXVI. FFT's SetVolume is obfuscated by denuvo
 
             // Hooks (FFXVI)
             .AddSingletonAs<HookGroupBase, EntityManagerHooks>() 

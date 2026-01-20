@@ -13,6 +13,7 @@ public class FrameworkConfig
     private string _configPath;
 
     public GameInfoOverlayConfig GameInfoOverlay { get; set; } = new();
+    public SoundManagerConfig SoundManager { get; set; } = new();
     public EntityManagerConfig EntityManager { get; set; } = new();
     public MagicSystemConfig MagicSystem { get; set; } = new();
 
@@ -41,6 +42,12 @@ public class FrameworkConfig
     {
         public bool ShowActorInfoField = false;
         public bool ShowCurrentActorInfo { get => ShowActorInfoField; set => ShowActorInfoField = value; }
+    }
+
+    public class SoundManagerConfig
+    {
+        public bool IgnoreSystemVolumeChangesField = false;
+        public bool IgnoreSystemVolumeChanges { get => IgnoreSystemVolumeChangesField; set => IgnoreSystemVolumeChangesField = value; }
     }
 
     public class EntityManagerConfig
