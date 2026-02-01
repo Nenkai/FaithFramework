@@ -65,8 +65,10 @@ public unsafe class ImGuiInputHookManager
         // Hook keyboard presses so keys don't get passed to the game while ImGui is open.
         Project.Scans.AddScanHook(nameof(KeyboardManager_HandleWindowKeyboardKeyPressed),
             (result, hooks) => _HOOK_KeyboardManager_HandleWindowKeyboardKeyPressed = hooks.CreateHook<KeyboardManager_HandleWindowKeyboardKeyPressed>(HandleWindowKeyboardKeyPressedImpl, result).Activate());
+
         //Project.Scans.AddScanHook(nameof(MouseDevice_WindowMessageIntercepter),
         //    (result, hooks) => _HOOK_MouseDevice_WindowMessageIntercepter = hooks.CreateHook<MouseDevice_WindowMessageIntercepter>(MouseDevice_WindowMessageIntercepterImpl, result).Activate());
+
         // Hook keyboard so keys don't get passed to the game while ImGui is open.
         Project.Scans.AddScanHook(nameof(KeyboardDevice_WindowMessageIntercepter),
             (result, hooks) => _HOOK_KeyboardDevice_WindowMessageIntercepter = hooks.CreateHook<KeyboardDevice_WindowMessageIntercepter>(KeyboardDeviceWindowMessageIntercepterImpl, result).Activate());
