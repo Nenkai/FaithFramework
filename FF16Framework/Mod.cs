@@ -59,7 +59,8 @@ public class Mod : ModBase, IExports // <= Do not Remove.
         typeof(IImGuiShell),
         typeof(IImGuiTextureManager),
         typeof(INextExcelDBApiManagedV2),
-        typeof(IMagicApi)
+        typeof(IMagicApi),
+        typeof(IMagicWriter)
     ];
 
     /// <summary>
@@ -296,6 +297,7 @@ public class Mod : ModBase, IExports // <= Do not Remove.
                 var modConfig = provider.GetRequiredService<IModConfig>();
                 var frameworkConfig = provider.GetRequiredService<FrameworkConfig>();
                 var hooks = provider.GetRequiredService<IReloadedHooks>();
+                var resourceManagerService = provider.GetRequiredService<ResourceManagerService>();
                 
                 var scannerController = _modLoader.GetController<IStartupScanner>();
                 if (!scannerController.TryGetTarget(out var scanner))
@@ -311,6 +313,14 @@ public class Mod : ModBase, IExports // <= Do not Remove.
                 magicApi.SetActorApi(actorApi);
                 
                 return magicApi;
+            })
+            .AddSingleton<IMagicWriter>(provider =>
+            {
+                var logger = provider.GetRequiredService<Reloaded.Mod.Interfaces.ILogger>();
+                var resourceManagerHooks = provider.GetRequiredService<ResourceManagerHooks>();
+                var resourceManagerService = provider.GetRequiredService<ResourceManagerService>();
+                
+                return new MagicWriter(logger, resourceManagerHooks, resourceManagerService);
             });
 
         return services.BuildServiceProvider();
@@ -488,6 +498,7 @@ public class Mod : ModBase, IExports // <= Do not Remove.
     {
         // Publish Game APIs for other mods
         _modLoader.AddOrReplaceController<IMagicApi>(_owner, _services.GetRequiredService<IMagicApi>());
+        _modLoader.AddOrReplaceController<IMagicWriter>(_owner, _services.GetRequiredService<IMagicWriter>());
     }
 
     #region Standard Overrides
