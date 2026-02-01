@@ -294,7 +294,7 @@ public class Mod : ModBase, IExports // <= Do not Remove.
             {
                 var logger = provider.GetRequiredService<Reloaded.Mod.Interfaces.ILogger>();
                 var modConfig = provider.GetRequiredService<IModConfig>();
-                var config = provider.GetRequiredService<Config>();
+                var frameworkConfig = provider.GetRequiredService<FrameworkConfig>();
                 var hooks = provider.GetRequiredService<IReloadedHooks>();
                 
                 var scannerController = _modLoader.GetController<IStartupScanner>();
@@ -303,7 +303,7 @@ public class Mod : ModBase, IExports // <= Do not Remove.
 
                 var actorApi = provider.GetRequiredService<IActorApi>();
                 
-                var magicApi = new MagicApi(logger, modConfig.ModId, config, scanner);
+                var magicApi = new MagicApi(logger, modConfig.ModId, frameworkConfig, scanner);
                 
                 // Initialize it
                 magicApi.SetupScans(scanner, hooks);

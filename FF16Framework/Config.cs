@@ -28,18 +28,6 @@ namespace FF16Framework
         [DefaultValue(false)]
         public bool SerializeSavesAsXml { get; set; } = false;
 
-        [Category("Magic API")]
-        [DisplayName("Enable Property Logging")]
-        [Description("Logs all magic property values during spell processing.")]
-        [DefaultValue(false)]
-        public bool EnablePropertyLogging { get; set; } = false;
-
-        [Category("Magic API")]
-        [DisplayName("Enable Injection Logging")]
-        [Description("Logs injection operations when modifying magic spells.")]
-        [DefaultValue(false)]
-        public bool EnableInjectionLogging { get; set; } = false;
-
         /*
         [DisplayName("Load Saves from XML")]
         [Description("""

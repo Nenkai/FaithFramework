@@ -19,11 +19,11 @@ public class MagicApi : IMagicApi, IDisposable
     private readonly string _modId;
     private readonly MagicCastingEngine _engine;
 
-    internal MagicApi(ILogger logger, string modId, Config configuration, IStartupScanner scanner)
+    internal MagicApi(ILogger logger, string modId, FrameworkConfig frameworkConfig, IStartupScanner scanner)
     {
         _logger = logger;
         _modId = modId;
-        _engine = new MagicCastingEngine(logger, modId, configuration, scanner);
+        _engine = new MagicCastingEngine(logger, modId, frameworkConfig, scanner);
         
         _logger.WriteLine($"[{_modId}] [MagicApi] Initialized", _logger.ColorGreen);
     }
@@ -164,14 +164,6 @@ public class MagicApi : IMagicApi, IDisposable
     public void Reset()
     {
         _engine.Reset();
-    }
-    
-    /// <summary>
-    /// Updates the configuration.
-    /// </summary>
-    public void UpdateConfiguration(Config configuration)
-    {
-        _engine.UpdateConfiguration(configuration);
     }
     
     public void Dispose()

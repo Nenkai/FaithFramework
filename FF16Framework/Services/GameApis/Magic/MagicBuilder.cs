@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 using Reloaded.Mod.Interfaces;
 using FF16Framework.Interfaces.GameApis.Magic;
 using FF16Tools.Files.Magic;
-using FF16Framework.Services.GameApis.Magic.MagicFile;
+using FF16Tools.Files.Magic.Factories;
 
 namespace FF16Framework.Services.GameApis.Magic;
 
@@ -531,23 +531,27 @@ internal class MagicBuilder : IMagicBuilder
             rawValue = value;
         }
         
-        // Apply type coercion based on MagicProperties definition
-        if (propertyId.HasValue && MagicProperties.Definitions.TryGetValue(propertyId.Value, out var propInfo))
+        // Apply type coercion based on MagicPropertyValueTypeMapping
+        if (propertyId.HasValue)
         {
-            rawValue = CoerceToPropertyType(rawValue, propInfo.Type);
+            var propType = (MagicPropertyType)propertyId.Value;
+            if (MagicPropertyValueTypeMapping.TypeToValueType.TryGetValue(propType, out var valueType))
+            {
+                rawValue = CoerceToPropertyType(rawValue, valueType);
+            }
         }
         
         return rawValue;
     }
     
     /// <summary>
-    /// Coerces a value to the expected property type based on MagicProperties definition.
+    /// Coerces a value to the expected property type based on MagicPropertyValueType.
     /// </summary>
-    private static object CoerceToPropertyType(object value, MagicValueType expectedType)
+    private static object CoerceToPropertyType(object value, MagicPropertyValueType expectedType)
     {
         return expectedType switch
         {
-            MagicValueType.Int => value switch
+            MagicPropertyValueType.Int or MagicPropertyValueType.OperationGroupId => value switch
             {
                 int i => i,
                 float f => (int)f,
@@ -555,21 +559,21 @@ internal class MagicBuilder : IMagicBuilder
                 long l => (int)l,
                 _ => value
             },
-            MagicValueType.Float => value switch
+            MagicPropertyValueType.Float => value switch
             {
                 float f => f,
                 int i => (float)i,
                 double d => (float)d,
                 _ => value
             },
-            MagicValueType.Bool => value switch
+            MagicPropertyValueType.Bool or MagicPropertyValueType.Byte => value switch
             {
                 bool b => b,
                 int i => i != 0,
                 float f => f != 0,
                 _ => value
             },
-            MagicValueType.Vec3Float or MagicValueType.Vec3Int => value switch
+            MagicPropertyValueType.Vec3 => value switch
             {
                 Vector3 v => v,
                 _ => value

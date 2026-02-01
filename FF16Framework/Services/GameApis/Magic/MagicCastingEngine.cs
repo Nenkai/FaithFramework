@@ -115,14 +115,14 @@ internal unsafe class MagicCastingEngine : IDisposable
     
     private const int TARGET_STRUCT_SIZE = 0x7C;  // Size of TargetStruct (UnkTargetStruct)
     
-    public MagicCastingEngine(ILogger logger, string modId, Config configuration, IStartupScanner scanner)
+    public MagicCastingEngine(ILogger logger, string modId, FrameworkConfig frameworkConfig, IStartupScanner scanner)
     {
         _logger = logger;
         _modId = modId;
         _baseAddress = System.Diagnostics.Process.GetCurrentProcess().MainModule!.BaseAddress;
         
         // Create processor component
-        _processor = new MagicProcessor(logger, modId, configuration, scanner);
+        _processor = new MagicProcessor(logger, modId, frameworkConfig, scanner);
         
         _logger.WriteLine($"[{_modId}] [MagicCastingEngine] Initialized (using per-cast buffer allocation)", _logger.ColorGreen);
     }
@@ -736,11 +736,6 @@ internal unsafe class MagicCastingEngine : IDisposable
         _cachedFlag = 0;
         
         _logger.WriteLine($"[{_modId}] [MagicCastingEngine] Reset", _logger.ColorYellow);
-    }
-    
-    public void UpdateConfiguration(Config configuration)
-    {
-        _processor.UpdateConfiguration(configuration);
     }
     
     public void Dispose()

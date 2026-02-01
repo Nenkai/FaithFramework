@@ -3,11 +3,11 @@ using Reloaded.Hooks.Definitions;
 using Reloaded.Memory.SigScan.ReloadedII.Interfaces;
 using Reloaded.Mod.Interfaces;
 using FF16Framework;
-using FF16Framework.Services.GameApis.Magic.MagicFile;
 using FF16Framework.Services.GameApis.Actor;
 using FF16Framework.Faith.Structs;
 using FF16Framework.Interfaces.GameApis.Magic;
-using FF16Framework.Services.GameApis.Magic.MagicFile;
+using FF16Tools.Files.Magic;
+using FF16Tools.Files.Magic.Factories;
 
 namespace FF16Framework.Services.GameApis.Magic;
 
@@ -64,17 +64,17 @@ internal unsafe class MagicProcessor
     private readonly ILogger _logger;
     private readonly string _modId;
     private readonly IStartupScanner _scanner;
-    private Config _configuration;
+    private FrameworkConfig _frameworkConfig;
 
     // ============================================================
     // CONSTRUCTOR
     // ============================================================
     
-    public MagicProcessor(ILogger logger, string modId, Config configuration, IStartupScanner scanner)
+    public MagicProcessor(ILogger logger, string modId, FrameworkConfig frameworkConfig, IStartupScanner scanner)
     {
         _logger = logger;
         _modId = modId;
-        _configuration = configuration;
+        _frameworkConfig = frameworkConfig;
         _scanner = scanner;
     }
 
@@ -141,14 +141,6 @@ internal unsafe class MagicProcessor
         }
     }
 
-    /// <summary>
-    /// Updates the configuration reference.
-    /// </summary>
-    public void UpdateConfiguration(Config configuration)
-    {
-        _configuration = configuration;
-    }
-
     // ============================================================
     // HOOK IMPLEMENTATIONS
     // ============================================================
@@ -191,7 +183,7 @@ internal unsafe class MagicProcessor
                 {
                     foreach (var entry in _pendingInjections)
                     {
-                        if (_configuration.EnableInjectionLogging)
+                        if (_frameworkConfig.GameApis.MagicApi.EnableInjectionLogging)
                         {
                             _logger.WriteLine($"[{_modId}] [INJECTOR] Injecting Op {entry.OpType} Prop {entry.PropertyId} AFTER Op {_lastOpType} (End of Group)", _logger.ColorGreen);
                         }
@@ -212,7 +204,7 @@ internal unsafe class MagicProcessor
                 {
                     if (entry.Enabled && entry.IsInjection && entry.InjectAfterOp == -1)
                     {
-                        if (entry.IsOperationOnly && _configuration.EnableInjectionLogging)
+                        if (entry.IsOperationOnly && _frameworkConfig.GameApis.MagicApi.EnableInjectionLogging)
                         {
                             _logger.WriteLine($"[{_modId}] [INJECTOR] Processing AddOperation {entry.OpType} at END of Group", _logger.ColorBlue);
                         }
@@ -249,7 +241,7 @@ internal unsafe class MagicProcessor
             {
                 _activeInstanceEntries = queue.Dequeue();
                 _activeInstanceMagicId = magicId;
-                if (_configuration.EnableInjectionLogging)
+                if (_frameworkConfig.GameApis.MagicApi.EnableInjectionLogging)
                 {
                     _logger.WriteLine($"[{_modId}] [ACTIVATE] Linked {_activeInstanceEntries.Count} mods to Magic {magicId} Group {groupId}", _logger.ColorGreen);
                 }
@@ -271,7 +263,7 @@ internal unsafe class MagicProcessor
         
         // Log property value before any processing
         long valuePtr = *(long*)(dataPtr + 8);
-        if (_configuration.EnablePropertyLogging)
+        if (_frameworkConfig.GameApis.MagicApi.EnablePropertyLogging)
         {
             LogPropertyValue(magicId, groupId, opType, propertyId, valuePtr);
         }
@@ -291,7 +283,7 @@ internal unsafe class MagicProcessor
                 int targetOcc = (entry.PropertyId == -1) ? opOccurrence : propOccurrence;
                 if (EntryMatchesContext(entry, magicId, groupId, targetOcc) && (entry.PropertyId == -1 || entry.PropertyId == propertyId))
                 {
-                    if (_configuration.EnableInjectionLogging)
+                    if (_frameworkConfig.GameApis.MagicApi.EnableInjectionLogging)
                     {
                         _logger.WriteLine($"[{_modId}] [MAGIC] {magicId} Group {groupId} Op {opType} Prop {propertyId} DISABLED (Occ {targetOcc})", _logger.ColorRed);
                     }
@@ -342,7 +334,7 @@ internal unsafe class MagicProcessor
             *(int*)buffer = entry.IntValue;
 
         
-        if (_configuration.EnableInjectionLogging)
+        if (_frameworkConfig.GameApis.MagicApi.EnableInjectionLogging)
         {
             _logger.WriteLine($"[{_modId}] [INJECTOR] Injecting property: Op {entry.OpType} Prop {entry.PropertyId} = {GetValueString(entry)}", _logger.ColorGreen);
         }
@@ -387,7 +379,7 @@ internal unsafe class MagicProcessor
             {
                 foreach (var entry in _pendingInjections)
                 {
-                    if (_configuration.EnableInjectionLogging)
+                    if (_frameworkConfig.GameApis.MagicApi.EnableInjectionLogging)
                     {
                         _logger.WriteLine($"[{_modId}] [INJECTOR] Injecting Op {entry.OpType} Prop {entry.PropertyId} AFTER Op {_lastOpType} in Magic {magicId} Group {groupId}", _logger.ColorGreen);
                     }
@@ -416,7 +408,7 @@ internal unsafe class MagicProcessor
                 if (entry.Enabled && entry.IsInjection && entry.InjectAfterOp == opType && EntryMatchesContext(entry, magicId, groupId, currentOpOccurrence))
                 {
                     _pendingInjections.Add(entry);
-                    if (_configuration.EnableInjectionLogging)
+                    if (_frameworkConfig.GameApis.MagicApi.EnableInjectionLogging)
                     {
                         _logger.WriteLine($"[{_modId}] [QUEUE_INJECT] Queued Op {entry.OpType} to inject after Op {opType} (Occ {currentOpOccurrence})", _logger.ColorBlue);
                     }
@@ -476,7 +468,7 @@ internal unsafe class MagicProcessor
             {
                 original.v = *(Vector3*)valuePtr;
                 *(Vector3*)valuePtr = new Vector3(entry.Vec3X, entry.Vec3Y, entry.Vec3Z);
-                if (_configuration.EnableInjectionLogging)
+                if (_frameworkConfig.GameApis.MagicApi.EnableInjectionLogging)
                 {
                     _logger.WriteLine($"[{_modId}] [FUZZER] {contextStr} Op {opType} Prop {propertyId} (Vec3) OVERRIDE: {original.v} -> {*(Vector3*)valuePtr} (Occ {occurrence})", _logger.ColorYellow);
                 }
@@ -485,7 +477,7 @@ internal unsafe class MagicProcessor
             {
                 original.f = *(float*)valuePtr;
                 *(float*)valuePtr = entry.FloatValue;
-                if (_configuration.EnableInjectionLogging)
+                if (_frameworkConfig.GameApis.MagicApi.EnableInjectionLogging)
                 {
                     _logger.WriteLine($"[{_modId}] [FUZZER] {contextStr} Op {opType} Prop {propertyId} (Float) OVERRIDE: {original.f:F4} -> {entry.FloatValue:F4} (Occ {occurrence})", _logger.ColorYellow);
                 }
@@ -494,7 +486,7 @@ internal unsafe class MagicProcessor
             {
                 original.i = *(int*)valuePtr;
                 *(int*)valuePtr = entry.IntValue;
-                if (_configuration.EnableInjectionLogging)
+                if (_frameworkConfig.GameApis.MagicApi.EnableInjectionLogging)
                 {
                     _logger.WriteLine($"[{_modId}] [FUZZER] {contextStr} Op {opType} Prop {propertyId} (Int) OVERRIDE: {original.i} -> {entry.IntValue} (Occ {occurrence})", _logger.ColorYellow);
                 }
@@ -523,7 +515,7 @@ internal unsafe class MagicProcessor
 
     /// <summary>
     /// Logs a property value for debugging and reverse engineering purposes.
-    /// If the property is known (defined in MagicProperties), logs with the property name and correct type.
+    /// If the property is known (defined in MagicPropertyType), logs with the property name and correct type.
     /// If unknown, logs all possible interpretations (int, float, vec3).
     /// </summary>
     /// <param name="magicId">Current magic spell ID.</param>
@@ -534,19 +526,21 @@ internal unsafe class MagicProcessor
     private void LogPropertyValue(int magicId, int groupId, int opType, int propertyId, long valuePtr)
     {
         string contextStr = $"[Magic {magicId} Group {groupId}]";
-
-        if (MagicProperties.Definitions.TryGetValue(propertyId, out var info))
+        
+        var propType = (MagicPropertyType)propertyId;
+        string? propName = Enum.IsDefined(propType) ? propType.ToString() : null;
+        
+        if (propName != null && MagicPropertyValueTypeMapping.TypeToValueType.TryGetValue(propType, out var valueType))
         {
-            string valStr = info.Type switch
+            string valStr = valueType switch
             {
-                MagicValueType.Float => $"float={*(float*)valuePtr:F4}",
-                MagicValueType.Int => $"int={*(int*)valuePtr} (0x{*(int*)valuePtr:X})",
-                MagicValueType.Bool => $"bool={(*(int*)valuePtr != 0)}",
-                MagicValueType.Vec3Float => $"vec3<f>=({(*(Vector3*)valuePtr).X:F4}, {(*(Vector3*)valuePtr).Y:F4}, {(*(Vector3*)valuePtr).Z:F4})",
-                MagicValueType.Vec3Int => $"vec3<i>=({((int*)valuePtr)[0]}, {((int*)valuePtr)[1]}, {((int*)valuePtr)[2]})",
+                MagicPropertyValueType.Float => $"float={*(float*)valuePtr:F4}",
+                MagicPropertyValueType.Int or MagicPropertyValueType.OperationGroupId => $"int={*(int*)valuePtr} (0x{*(int*)valuePtr:X})",
+                MagicPropertyValueType.Bool or MagicPropertyValueType.Byte => $"bool={(*(int*)valuePtr != 0)}",
+                MagicPropertyValueType.Vec3 => $"vec3=({(*(Vector3*)valuePtr).X:F4}, {(*(Vector3*)valuePtr).Y:F4}, {(*(Vector3*)valuePtr).Z:F4})",
                 _ => "unknown"
             };
-            _logger.WriteLine($"[{_modId}] [PROP_LOG] {contextStr} Op {opType} Prop {propertyId} ({info.Name}): {valStr}", _logger.ColorBlue);
+            _logger.WriteLine($"[{_modId}] [PROP_LOG] {contextStr} Op {opType} Prop {propertyId} ({propName}): {valStr}", _logger.ColorBlue);
         }
         else
         {
