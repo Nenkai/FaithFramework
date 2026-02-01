@@ -128,10 +128,13 @@ public class MagicWriter : IMagicWriter, IDisposable
         
         _logger.WriteLine($"[MagicWriter] [{modId}] Registered {modifications.Count} modifications for MagicId {magicId} in {magicFilePath}", _logger.ColorGreen);
         
-        // If the file is already loaded, apply modifications immediately
+        // If the file is already loaded, apply modifications with retry
         if (TryGetLoadedResourceHandle(magicFilePath, out var resourceHandle))
         {
-            ApplyModificationsToFile(magicFilePath, resourceHandle);
+            Task.Run(async () =>
+            {
+                await ApplyModificationsWithRetry(magicFilePath, resourceHandle, maxRetries: 10, delayMs: 200);
+            });
         }
         
         return handle;
@@ -225,11 +228,26 @@ public class MagicWriter : IMagicWriter, IDisposable
             return;
         
         // Check if we have any registered modifications for this file
-        if (!_fileToHandles.TryGetValue(path, out var handles) || handles.IsEmpty)
+        // The path from the hook might be different format (e.g., "nxd://chara/c1001/magic/c1001.magic")
+        // We need to check if any of our registered paths are contained in the loaded path
+        string? matchedFilePath = null;
+        foreach (var registeredPath in _fileToHandles.Keys)
+        {
+            if (path.Contains(registeredPath, StringComparison.OrdinalIgnoreCase) ||
+                path.EndsWith(registeredPath, StringComparison.OrdinalIgnoreCase))
+            {
+                matchedFilePath = registeredPath;
+                break;
+            }
+        }
+        
+        if (matchedFilePath == null)
             return;
         
+        _logger.WriteLine($"[MagicWriter] Detected load of {path} (matched: {matchedFilePath})", _logger.ColorGreen);
+        
         // Schedule the application of modifications (can't await in unsafe context)
-        ScheduleModificationApplication(path);
+        ScheduleModificationApplication(matchedFilePath);
     }
     
     private void ScheduleModificationApplication(string path)
@@ -241,13 +259,39 @@ public class MagicWriter : IMagicWriter, IDisposable
             return;
         }
         
-        // Small delay to ensure the file is fully loaded
-        // The resource might not have its buffer populated immediately
+        // Use retry mechanism to wait for the buffer to be ready
         Task.Run(async () =>
         {
-            await Task.Delay(100);
-            ApplyModificationsToFile(path, resourceHandle);
+            await ApplyModificationsWithRetry(path, resourceHandle, maxRetries: 10, delayMs: 200);
         });
+    }
+    
+    private async Task ApplyModificationsWithRetry(string magicFilePath, ResourceHandle resourceHandle, int maxRetries, int delayMs)
+    {
+        for (int attempt = 1; attempt <= maxRetries; attempt++)
+        {
+            // Wait before attempting
+            await Task.Delay(delayMs);
+            
+            // Check if buffer is ready
+            if (resourceHandle.BufferAddress == 0 || !resourceHandle.IsLoaded())
+            {
+                if (attempt < maxRetries)
+                {
+                    _logger.WriteLine($"[MagicWriter] Buffer not ready for {magicFilePath}, attempt {attempt}/{maxRetries}", _logger.ColorYellow);
+                    continue;
+                }
+                else
+                {
+                    _logger.WriteLine($"[MagicWriter] Buffer never became ready for {magicFilePath} after {maxRetries} attempts", _logger.ColorRed);
+                    return;
+                }
+            }
+            
+            // Buffer is ready, apply modifications
+            ApplyModificationsToFile(magicFilePath, resourceHandle);
+            return;
+        }
     }
     
     // ========================================
@@ -259,6 +303,13 @@ public class MagicWriter : IMagicWriter, IDisposable
         if (!resourceHandle.IsValid)
         {
             _logger.WriteLine($"[MagicWriter] ResourceHandle not valid for {magicFilePath}", _logger.ColorYellow);
+            return;
+        }
+        
+        // Double-check buffer is ready
+        if (resourceHandle.BufferAddress == 0 || resourceHandle.FileSize == 0)
+        {
+            _logger.WriteLine($"[MagicWriter] Buffer not ready for {magicFilePath} (Address=0x{resourceHandle.BufferAddress:X}, Size={resourceHandle.FileSize})", _logger.ColorYellow);
             return;
         }
         
