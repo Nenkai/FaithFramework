@@ -87,7 +87,7 @@ public class ResourceManagerWindow : IImGuiComponent
         [".vfxb"] = "VFX Binary",
     }.ToFrozenDictionary();
 
-    private bool? _010EditorInstalled;
+    private bool _010EditorInstalled = false;
 
     public ResourceManagerWindow(IImGui imgui, IModConfig modConfig, IModLoader modLoader, ResourceManagerService resourceManagerService, IMagicApi magicApi)
     {
@@ -158,7 +158,7 @@ public class ResourceManagerWindow : IImGuiComponent
                             if (resource.BufferAddress != 0)
                             {
                                 _imGui.SameLine();
-                                if (_010EditorInstalled!.Value)
+                                if (_010EditorInstalled)
                                 {
                                     if (_imGui.SmallButton("Open in 010 Editor"u8))
                                     {
@@ -238,11 +238,11 @@ public class ResourceManagerWindow : IImGuiComponent
 
     private unsafe void Check010EditorIfNeeded()
     {
-        if (_010EditorInstalled is null)
-        {
-            string programFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
-            if (File.Exists(Path.Combine(programFiles, "010 Editor", "010Editor.exe")))
-                _010EditorInstalled = true;
-        }
+        string programFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
+        if (File.Exists(Path.Combine(programFiles, "010 Editor", "010Editor.exe")))
+            _010EditorInstalled = true;
+        else
+            _010EditorInstalled = false;
+        
     }
 }

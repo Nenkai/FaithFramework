@@ -59,7 +59,7 @@ public class MagicEditor
 
     public unsafe void Render(IImGuiShell shell, IImGui imgui)
     {
-        if (imgui.Begin($"Magic Editor ({Marshal.PtrToStringAnsi(Resource.FileNamePointer)})", ref IsOpen, ImGuiWindowFlags.ImGuiWindowFlags_None))
+        if (imgui.Begin($"Magic Editor ({Marshal.PtrToStringAnsi(Resource.FileNamePointer)})", ref IsOpen))
         {
             imgui.SeparatorText(Resource.FileNameSpan);
 
@@ -136,7 +136,7 @@ public class MagicEditor
 
             imgui.SameLine();
             var reloadPropertyValueTypes = imgui.Button("🔄 Reload property value types"u8);
-            if (imgui.IsItemHovered(ImGuiHoveredFlags.ImGuiHoveredFlags_None))
+            if (imgui.IsItemHovered())
                 imgui.SetTooltip("Reload from Magic/MagicPropertyValueTypes.txt"u8);
 
             if (reloadPropertyValueTypes)
@@ -157,7 +157,7 @@ public class MagicEditor
                 IImGuiTextFilter filter = _magicFilterHandle.Value;
 
                 imgui.SetNextItemWidth(-1.0f);
-                if (imgui.InputTextWithHint("##MagicFilter"u8, "🔍 Filter magics..."u8, filter.InputBuf.AsSpan(), ImGuiInputTextFlags.ImGuiInputTextFlags_None))
+                if (imgui.InputTextWithHint("##MagicFilter"u8, "🔍 Filter magics..."u8, filter.InputBuf.AsSpan()))
                     imgui.ImGuiTextFilter_Build(filter);
 
                 if (imgui.IsWindowAppearing())
@@ -258,7 +258,7 @@ public class MagicEditor
                 }
                 imgui.PopStyleColor();
 
-                if (imgui.BeginChild($"##magicchild_{_currentEntry.Id}", Vector2.Zero, ImGuiChildFlags.ImGuiChildFlags_None, ImGuiWindowFlags.ImGuiWindowFlags_None))
+                if (imgui.BeginChild($"##magicchild_{_currentEntry.Id}", Vector2.Zero))
                     RenderCurrentMagicEntry(shell, imgui);
 
                 imgui.EndChild();
@@ -338,7 +338,7 @@ public class MagicEditor
             }
 
             if (deletePopupOpen)
-                imgui.OpenPopup(deleteGroupPopupName, ImGuiPopupFlags.ImGuiPopupFlags_None);
+                imgui.OpenPopup(deleteGroupPopupName);
 
             imgui.SetNextWindowPosEx(imgui.ImGuiViewport_GetCenter(imgui.GetMainViewport()), ImGuiCond.ImGuiCond_Appearing, pivot: new Vector2(0.5f, 0.5f));
             if (imgui.BeginPopupModal(deleteGroupPopupName, ImGuiWindowFlags.ImGuiWindowFlags_AlwaysAutoResize))
@@ -378,7 +378,7 @@ public class MagicEditor
                     IImGuiTextFilter filter = _operationFilterHandle.Value;
 
                     imgui.SetNextItemWidth(-1.0f);
-                    if (imgui.InputTextWithHint("##OperationFilter"u8, "🔍 Filter operations..."u8, filter.InputBuf.AsSpan(), ImGuiInputTextFlags.ImGuiInputTextFlags_None))
+                    if (imgui.InputTextWithHint("##OperationFilter"u8, "🔍 Filter operations..."u8, filter.InputBuf.AsSpan()))
                         imgui.ImGuiTextFilter_Build(filter);
 
                     if (imgui.IsWindowAppearing())
@@ -445,8 +445,8 @@ public class MagicEditor
         {
             if (imgui.BeginTable($"##proptable_{operationId}", 2, ImGuiTableFlags.ImGuiTableFlags_Borders | ImGuiTableFlags.ImGuiTableFlags_Resizable | ImGuiTableFlags.ImGuiTableFlags_RowBg))
             {
-                imgui.TableSetupColumn("Type"u8, ImGuiTableColumnFlags.ImGuiTableColumnFlags_None);
-                imgui.TableSetupColumn("Value"u8, ImGuiTableColumnFlags.ImGuiTableColumnFlags_None);
+                imgui.TableSetupColumn("Type"u8);
+                imgui.TableSetupColumn("Value"u8);
                 imgui.TableHeadersRow();
 
                 foreach (var property in op.Properties)
@@ -464,7 +464,7 @@ public class MagicEditor
                     IImGuiTextFilter filter = filterHandle.Value;
 
                     imgui.SetNextItemWidth(-1.0f);
-                    if (imgui.InputTextWithHint("##PropertyFilter"u8, "🔍 Filter property..."u8, filter.InputBuf.AsSpan(), ImGuiInputTextFlags.ImGuiInputTextFlags_None))
+                    if (imgui.InputTextWithHint("##PropertyFilter"u8, "🔍 Filter property..."u8, filter.InputBuf.AsSpan()))
                         imgui.ImGuiTextFilter_Build(filter);
 
                     if (imgui.IsWindowAppearing())
@@ -549,7 +549,7 @@ public class MagicEditor
         if (pushedColor)
             imgui.PopStyleColor();
 
-        if (valueType != MagicPropertyValueType.Unknown && imgui.IsItemHovered(ImGuiHoveredFlags.ImGuiHoveredFlags_None))
+        if (valueType != MagicPropertyValueType.Unknown && imgui.IsItemHovered())
             imgui.SetTooltip(valueType.ToString());
 
         imgui.TableSetColumnIndex(1);
