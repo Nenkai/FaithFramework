@@ -386,7 +386,19 @@ public class MagicWriter : IMagicWriter, IDisposable
     
     private void ApplySingleModification(MagicEntry magicEntry, MagicModification mod)
     {
-        // Find the operation group
+        // Handle operation group level modifications first
+        switch (mod.Type)
+        {
+            case MagicModificationType.AddOperationGroup:
+                AddOperationGroupToEntry(magicEntry, mod);
+                return;
+                
+            case MagicModificationType.RemoveOperationGroup:
+                RemoveOperationGroupFromEntry(magicEntry, mod);
+                return;
+        }
+        
+        // For other modifications, find the operation group first
         var operationGroup = magicEntry.OperationGroupList.OperationGroups
             .FirstOrDefault(g => g.Id == (uint)mod.OperationGroupId);
         
@@ -512,6 +524,39 @@ public class MagicWriter : IMagicWriter, IDisposable
         foreach (var op in operationsToRemove)
         {
             group.OperationList.Operations.Remove(op);
+        }
+    }
+    
+    private void AddOperationGroupToEntry(MagicEntry magicEntry, MagicModification mod)
+    {
+        var groupId = (uint)mod.OperationGroupId;
+        
+        // Check if operation group already exists
+        if (magicEntry.OperationGroupList.OperationGroups.Any(g => g.Id == groupId))
+        {
+            return;
+        }
+        
+        // Create a new operation group
+        var newGroup = new MagicOperationGroup
+        {
+            Id = groupId,
+            OperationList = new OperationList()
+        };
+        
+        magicEntry.OperationGroupList.OperationGroups.Add(newGroup);
+    }
+    
+    private void RemoveOperationGroupFromEntry(MagicEntry magicEntry, MagicModification mod)
+    {
+        var groupId = (uint)mod.OperationGroupId;
+        
+        var groupToRemove = magicEntry.OperationGroupList.OperationGroups
+            .FirstOrDefault(g => g.Id == groupId);
+        
+        if (groupToRemove != null)
+        {
+            magicEntry.OperationGroupList.OperationGroups.Remove(groupToRemove);
         }
     }
     

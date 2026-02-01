@@ -259,6 +259,52 @@ internal class MagicBuilder : IMagicBuilder
     }
     
     // ========================================
+    // OPERATION GROUP MODIFICATIONS
+    // ========================================
+    
+    public IMagicBuilder AddOperationGroup(int operationGroupId)
+    {
+        // Key: use OpId = -1 and PropId = -1 for operation group level modifications
+        var key = (MagicModificationType.AddOperationGroup, operationGroupId, -1, -1);
+        
+        // Remove any conflicting RemoveOperationGroup
+        var removeKey = (MagicModificationType.RemoveOperationGroup, operationGroupId, -1, -1);
+        _modifications.Remove(removeKey);
+        
+        _modifications[key] = new MagicModification
+        {
+            Type = MagicModificationType.AddOperationGroup,
+            OperationGroupId = operationGroupId
+        };
+        
+        return this;
+    }
+    
+    public IMagicBuilder RemoveOperationGroup(int operationGroupId)
+    {
+        var key = (MagicModificationType.RemoveOperationGroup, operationGroupId, -1, -1);
+        
+        // Remove any conflicting modifications for this operation group:
+        // - AddOperationGroup
+        // - All operations and properties within this group
+        var keysToRemove = _modifications.Keys
+            .Where(k => k.GroupId == operationGroupId)
+            .ToList();
+        foreach (var keyToRemove in keysToRemove)
+        {
+            _modifications.Remove(keyToRemove);
+        }
+        
+        _modifications[key] = new MagicModification
+        {
+            Type = MagicModificationType.RemoveOperationGroup,
+            OperationGroupId = operationGroupId
+        };
+        
+        return this;
+    }
+    
+    // ========================================
     // EXECUTION
     // ========================================
     
