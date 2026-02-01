@@ -37,6 +37,13 @@ using FF16Framework.Services.ResourceManager;
 using FF16Framework.ImGuiManager.Windows.Resources;
 using FF16Framework.ImGuiManager.Windows.Visualizers;
 
+using FF16Framework.Interfaces.GameApis.Actor;
+using FF16Framework.Interfaces.GameApis.Magic;
+using FF16Framework.Services.GameApis.Actor;
+using FF16Framework.Services.GameApis.Magic;
+using FF16Framework.Interfaces.GameApis.Magic;
+using Reloaded.Memory.SigScan.ReloadedII.Interfaces;
+
 namespace FF16Framework;
 
 /// <summary>
@@ -51,7 +58,8 @@ public class Mod : ModBase, IExports // <= Do not Remove.
         typeof(IImGui),
         typeof(IImGuiShell),
         typeof(IImGuiTextureManager),
-        typeof(INextExcelDBApiManagedV2)
+        typeof(INextExcelDBApiManagedV2),
+        typeof(IMagicApi)
     ];
 
     /// <summary>
@@ -264,7 +272,45 @@ public class Mod : ModBase, IExports // <= Do not Remove.
             .AddSingleton<GameOverlay>()
             .AddSingleton<EidVisualizerComponent>()
             .AddSingleton<MainVisualizerComponent>()
-            .AddSingleton<AboutWindow>();
+            .AddSingleton<AboutWindow>()
+
+            // Game APIs
+            .AddSingleton<IActorApi>(provider =>
+            {
+                var logger = provider.GetRequiredService<Reloaded.Mod.Interfaces.ILogger>();
+                var modConfig = provider.GetRequiredService<IModConfig>();
+                var hooks = provider.GetRequiredService<IReloadedHooks>();
+                
+                var scannerController = _modLoader.GetController<IStartupScanner>();
+                if (!scannerController.TryGetTarget(out var scanner))
+                    throw new Exception("Could not get IStartupScanner");
+
+                var api = new ActorApi(logger, modConfig);
+                api.SetupScans(scanner, hooks);
+                return api;
+            })
+            .AddSingleton<IMagicApi>(provider =>
+            {
+                var logger = provider.GetRequiredService<Reloaded.Mod.Interfaces.ILogger>();
+                var modConfig = provider.GetRequiredService<IModConfig>();
+                var config = provider.GetRequiredService<Config>();
+                var hooks = provider.GetRequiredService<IReloadedHooks>();
+                
+                var scannerController = _modLoader.GetController<IStartupScanner>();
+                if (!scannerController.TryGetTarget(out var scanner))
+                    throw new Exception("Could not get IStartupScanner");
+
+                var actorApi = provider.GetRequiredService<IActorApi>();
+                
+                var magicApi = new MagicApiV2(logger, modConfig.ModId, config, scanner);
+                
+                // Initialize it
+                magicApi.SetupScans(scanner, hooks);
+                magicApi.InitializeProcessor(hooks);
+                magicApi.SetActorApi(actorApi);
+                
+                return magicApi;
+            });
 
         return services.BuildServiceProvider();
     }

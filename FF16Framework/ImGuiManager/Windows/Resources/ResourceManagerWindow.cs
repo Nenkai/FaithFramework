@@ -24,6 +24,8 @@ using NenTools.ImGui.Shell;
 using Reloaded.Mod.Interfaces;
 
 
+using FF16Framework.Interfaces.GameApis.Magic;
+
 namespace FF16Framework.ImGuiManager.Windows.Resources;
 
 public class ResourceManagerWindow : IImGuiComponent
@@ -32,6 +34,7 @@ public class ResourceManagerWindow : IImGuiComponent
     private readonly IModConfig _modConfig;
     private readonly IModLoader _modLoader;
     private readonly ResourceManagerService _resourceManagerService;
+    private readonly IMagicApi _magicApi;
 
     public bool IsOverlay => false;
     public bool IsOpen = false;
@@ -86,12 +89,13 @@ public class ResourceManagerWindow : IImGuiComponent
 
     private bool? _010EditorInstalled;
 
-    public ResourceManagerWindow(IImGui imgui, IModConfig modConfig, IModLoader modLoader, ResourceManagerService resourceManagerService)
+    public ResourceManagerWindow(IImGui imgui, IModConfig modConfig, IModLoader modLoader, ResourceManagerService resourceManagerService, IMagicApi magicApi)
     {
         _imGui = imgui;
         _modConfig = modConfig;
         _modLoader = modLoader;
         _resourceManagerService = resourceManagerService;
+        _magicApi = magicApi;
     }
 
     public void RenderMenu(IImGuiShell imGuiShell)
@@ -188,7 +192,7 @@ public class ResourceManagerWindow : IImGuiComponent
                                         try
                                         {
                                             var magic = MagicFile.Open(resource.BufferAddress, resource.FileSize);
-                                            _magicEditors.TryAdd(resource.HandleAddress, new MagicEditor(resource, magic));
+                                            _magicEditors.TryAdd(resource.HandleAddress, new MagicEditor(resource, magic, _magicApi));
                                         }
                                         catch (Exception ex)
                                         {

@@ -8,6 +8,7 @@ using System.Text;
 
 using FF16Framework.Services.ResourceManager;
 using FF16Framework.Utils;
+using FF16Framework.Interfaces.GameApis.Magic;
 
 using FF16Tools.Files.Magic;
 using FF16Tools.Files.Magic.Factories;
@@ -17,14 +18,25 @@ using NenTools.ImGui.Interfaces.Shell;
 
 namespace FF16Framework.ImGuiManager.Windows.Resources.Editors;
 
+public enum ActorSelection
+{
+    None,
+    PlayerActor,
+    CameraLockedActor
+}
+
 public class MagicEditor
 {
     public ResourceHandle Resource;
     public MagicFile MagicFile;
     public bool IsOpen = true;
 
+    private readonly IMagicApi _magicApi;
     private MagicEntry? _currentEntry;
     private string _selectedName;
+
+    private ActorSelection _castSource = ActorSelection.PlayerActor;
+    private ActorSelection _castTarget = ActorSelection.CameraLockedActor;
 
     private MagicOperationGroup? _pendingGroupDelete;
     private MagicOperationProperty? _pendingPropertyDelete;
@@ -37,10 +49,11 @@ public class MagicEditor
     private IOperation? _addedOperation;
     private int _inputGroup;
 
-    public MagicEditor(ResourceHandle resource, MagicFile magicFile)
+    public MagicEditor(ResourceHandle resource, MagicFile magicFile, IMagicApi magicApi)
     {
         Resource = resource;
         MagicFile = magicFile;
+        _magicApi = magicApi;
     }
 
     public unsafe void Render(IImGuiShell shell, IImGui imgui)
@@ -179,6 +192,63 @@ public class MagicEditor
             if (_currentEntry is not null)
             {
                 imgui.SeparatorText($"Magic: {_selectedName}");
+
+                imgui.Text("Source:");
+                imgui.SameLine();
+                imgui.SetNextItemWidth(150f);
+                if (imgui.BeginCombo("##Source", _castSource.ToString(), ImGuiComboFlags.ImGuiComboFlags_None))
+                {
+                    foreach (var val in Enum.GetValues<ActorSelection>())
+                    {
+                        if (imgui.SelectableEx(val.ToString(), _castSource == val, ImGuiSelectableFlags.ImGuiSelectableFlags_None, Vector2.Zero))
+                            _castSource = val;
+                    }
+                    imgui.EndCombo();
+                }
+
+                imgui.SameLine();
+                imgui.Text("Target:");
+                imgui.SameLine();
+                imgui.SetNextItemWidth(150f);
+                if (imgui.BeginCombo("##Target", _castTarget.ToString(), ImGuiComboFlags.ImGuiComboFlags_None))
+                {
+                    foreach (var val in Enum.GetValues<ActorSelection>())
+                    {
+                        if (imgui.SelectableEx(val.ToString(), _castTarget == val, ImGuiSelectableFlags.ImGuiSelectableFlags_None, Vector2.Zero))
+                            _castTarget = val;
+                    }
+                    imgui.EndCombo();
+                }
+
+                imgui.SameLine();
+                imgui.PushStyleColor(ImGuiCol.ImGuiCol_Button, ColorUtils.RGBA(0, 112, 192, 255));
+                if (imgui.Button("🚀 Cast!"u8))
+                {
+                    nint source = _castSource switch {
+                        ActorSelection.PlayerActor => _magicApi.GetPlayerActor(),
+                        ActorSelection.CameraLockedActor => _magicApi.GetLockedTarget(),
+                        _ => nint.Zero
+                    };
+
+                    bool success;
+                    if (_castTarget == ActorSelection.CameraLockedActor)
+                    {
+                        success = _magicApi.CastWithGameTarget((int)_currentEntry.Id, source);
+                    }
+                    else
+                    {
+                        nint target = _castTarget switch {
+                            ActorSelection.PlayerActor => _magicApi.GetPlayerActor(),
+                            _ => nint.Zero
+                        };
+                        success = _magicApi.Cast((int)_currentEntry.Id, source, target);
+                    }
+
+                    if (!success)
+                        shell.LogWriteLine(nameof(MagicEditor), "Failed to cast magic - API not ready?", Color.Red);
+                }
+                imgui.PopStyleColor();
+
                 if (imgui.BeginChild($"##magicchild_{_currentEntry.Id}", Vector2.Zero, ImGuiChildFlags.ImGuiChildFlags_None, ImGuiWindowFlags.ImGuiWindowFlags_None))
                     RenderCurrentMagicEntry(shell, imgui);
 
