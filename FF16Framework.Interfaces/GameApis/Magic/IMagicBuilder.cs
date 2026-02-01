@@ -94,6 +94,24 @@ public interface IMagicBuilder
     IMagicBuilder RemoveOperation(int operationGroupId, int operationId);
     
     // ========================================
+    // OPERATION GROUP MODIFICATIONS
+    // ========================================
+    
+    /// <summary>
+    /// Adds a new operation group to the magic entry.
+    /// </summary>
+    /// <param name="operationGroupId">The ID for the new operation group.</param>
+    /// <returns>This builder for chaining.</returns>
+    IMagicBuilder AddOperationGroup(int operationGroupId);
+    
+    /// <summary>
+    /// Removes an operation group from the magic entry.
+    /// </summary>
+    /// <param name="operationGroupId">The ID of the operation group to remove.</param>
+    /// <returns>This builder for chaining.</returns>
+    IMagicBuilder RemoveOperationGroup(int operationGroupId);
+    
+    // ========================================
     // VALIDATION
     // ========================================
     
@@ -265,7 +283,17 @@ public enum MagicModificationType
     /// <summary>
     /// Remove an operation from an operation group.
     /// </summary>
-    RemoveOperation
+    RemoveOperation,
+    
+    /// <summary>
+    /// Add a new operation group to the magic entry.
+    /// </summary>
+    AddOperationGroup,
+    
+    /// <summary>
+    /// Remove an operation group from the magic entry.
+    /// </summary>
+    RemoveOperationGroup
 }
 
 /// <summary>
@@ -337,10 +365,10 @@ public class MagicModificationConfig
     
     /// <summary>
     /// The operation type after which to inject this modification.
-    /// -1 means inject at the end of the operation group.
+    /// -1 (or null/omitted) means inject at the end of the operation group.
     /// Only used for IsInjection entries (AddProperty, AddOperation).
     /// </summary>
-    public int InjectAfterOp { get; set; } = -1;
+    public int? InjectAfterOp { get; set; }
 }
 
 /// <summary>

@@ -498,7 +498,7 @@ internal class MagicBuilder : IMagicBuilder
     private void ApplyModificationConfig(MagicModificationConfig config)
     {
         var type = Enum.Parse<MagicModificationType>(config.Type, ignoreCase: true);
-        int injectAfterOp = config.InjectAfterOp;
+        int injectAfterOp = config.InjectAfterOp ?? -1;  // Default to -1 (end of group) if not specified
         
         switch (type)
         {

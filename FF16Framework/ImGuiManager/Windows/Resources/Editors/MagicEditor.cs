@@ -7,6 +7,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 
 using FF16Framework.Services.ResourceManager;
+using FF16Framework.Services.GameApis.Magic;
 using FF16Framework.Utils;
 using FF16Framework.Interfaces.GameApis.Magic;
 
@@ -246,6 +247,14 @@ public class MagicEditor
 
                     if (!success)
                         shell.LogWriteLine(nameof(MagicEditor), "Failed to cast magic - API not ready?", Color.Red);
+                }
+                imgui.PopStyleColor();
+                
+                imgui.SameLine();
+                imgui.PushStyleColor(ImGuiCol.ImGuiCol_Button, ColorUtils.RGBA(64, 128, 64, 255));
+                if (imgui.Button("📋 Export to Clipboard"u8))
+                {
+                    ExportCurrentEntryToClipboard(shell);
                 }
                 imgui.PopStyleColor();
 
@@ -577,4 +586,87 @@ public class MagicEditor
             imgui.Text($"Bytes: {string.Join(" ", property.Data.Select(e => e.ToString("X2")))}");
         }
     }
+    
+    // ========================================
+    // EXPORT TO JSON
+    // ========================================
+    
+    private void ExportCurrentEntryToClipboard(IImGuiShell shell)
+    {
+        if (_currentEntry == null)
+        {
+            shell.LogWriteLine(nameof(MagicEditor), "No magic entry selected", Color.Yellow);
+            return;
+        }
+        
+        try
+        {
+            var json = MagicExporter.ExportToJson(_currentEntry);
+            
+            // Copy to clipboard using Windows API
+            if (CopyToClipboard(json))
+            {
+                var config = MagicExporter.BuildMagicSpellConfig(_currentEntry);
+                shell.LogWriteLine(nameof(MagicEditor), $"Exported Magic ID {_currentEntry.Id} to clipboard ({config.Modifications.Count} modifications)", Color.LightGreen);
+            }
+            else
+            {
+                shell.LogWriteLine(nameof(MagicEditor), "Failed to copy to clipboard", Color.Red);
+            }
+        }
+        catch (Exception ex)
+        {
+            shell.LogWriteLine(nameof(MagicEditor), $"Export failed: {ex.Message}", Color.Red);
+        }
+    }
+    
+    private static bool CopyToClipboard(string text)
+    {
+        try
+        {
+            nint hGlobal = nint.Zero;
+            if (!OpenClipboard(nint.Zero))
+                return false;
+            
+            try
+            {
+                EmptyClipboard();
+                
+                var bytes = Encoding.Unicode.GetBytes(text + "\0");
+                hGlobal = Marshal.AllocHGlobal(bytes.Length);
+                Marshal.Copy(bytes, 0, hGlobal, bytes.Length);
+                
+                if (SetClipboardData(CF_UNICODETEXT, hGlobal) == nint.Zero)
+                {
+                    Marshal.FreeHGlobal(hGlobal);
+                    return false;
+                }
+                
+                // SetClipboardData takes ownership, don't free
+                return true;
+            }
+            finally
+            {
+                CloseClipboard();
+            }
+        }
+        catch
+        {
+            return false;
+        }
+    }
+    
+    private const uint CF_UNICODETEXT = 13;
+    
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern bool OpenClipboard(nint hWndNewOwner);
+    
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern bool CloseClipboard();
+    
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern bool EmptyClipboard();
+    
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern nint SetClipboardData(uint uFormat, nint hMem);
 }
