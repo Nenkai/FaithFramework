@@ -302,7 +302,7 @@ public class Mod : ModBase, IExports // <= Do not Remove.
 
                 var actorApi = provider.GetRequiredService<IActorApi>();
                 
-                var magicApi = new MagicApiV2(logger, modConfig.ModId, config, scanner);
+                var magicApi = new MagicApi(logger, modConfig.ModId, config, scanner);
                 
                 // Initialize it
                 magicApi.SetupScans(scanner, hooks);

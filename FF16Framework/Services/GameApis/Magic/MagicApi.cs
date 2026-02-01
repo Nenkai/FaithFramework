@@ -13,19 +13,19 @@ namespace FF16Framework.Services.GameApis.Magic;
 /// Implementation of the public Magic API.
 /// Provides a clean interface for casting magic spells and applying modifications.
 /// </summary>
-public class MagicApiV2 : IMagicApi, IDisposable
+public class MagicApi : IMagicApi, IDisposable
 {
     private readonly ILogger _logger;
     private readonly string _modId;
     private readonly MagicCastingEngine _engine;
 
-    internal MagicApiV2(ILogger logger, string modId, Config configuration, IStartupScanner scanner)
+    internal MagicApi(ILogger logger, string modId, Config configuration, IStartupScanner scanner)
     {
         _logger = logger;
         _modId = modId;
         _engine = new MagicCastingEngine(logger, modId, configuration, scanner);
         
-        _logger.WriteLine($"[{_modId}] [MagicApiV2] Initialized", _logger.ColorGreen);
+        _logger.WriteLine($"[{_modId}] [MagicApi] Initialized", _logger.ColorGreen);
     }
 
     // ========================================
@@ -117,7 +117,7 @@ public class MagicApiV2 : IMagicApi, IDisposable
             
             if (config == null)
             {
-                _logger.WriteLine($"[{_modId}] [MagicApiV2] Failed to parse JSON", _logger.ColorRed);
+                _logger.WriteLine($"[{_modId}] [MagicApi] Failed to parse JSON", _logger.ColorRed);
                 return null;
             }
             
@@ -127,7 +127,7 @@ public class MagicApiV2 : IMagicApi, IDisposable
         }
         catch (Exception ex)
         {
-            _logger.WriteLine($"[{_modId}] [MagicApiV2] Failed to import JSON: {ex.Message}", _logger.ColorRed);
+            _logger.WriteLine($"[{_modId}] [MagicApi] Failed to import JSON: {ex.Message}", _logger.ColorRed);
             return null;
         }
     }
@@ -139,7 +139,7 @@ public class MagicApiV2 : IMagicApi, IDisposable
         {
             if (!File.Exists(filePath))
             {
-                _logger.WriteLine($"[{_modId}] [MagicApiV2] File not found: {filePath}", _logger.ColorRed);
+                _logger.WriteLine($"[{_modId}] [MagicApi] File not found: {filePath}", _logger.ColorRed);
                 return null;
             }
             
@@ -148,7 +148,7 @@ public class MagicApiV2 : IMagicApi, IDisposable
         }
         catch (Exception ex)
         {
-            _logger.WriteLine($"[{_modId}] [MagicApiV2] Failed to load file: {ex.Message}", _logger.ColorRed);
+            _logger.WriteLine($"[{_modId}] [MagicApi] Failed to load file: {ex.Message}", _logger.ColorRed);
             return null;
         }
     }

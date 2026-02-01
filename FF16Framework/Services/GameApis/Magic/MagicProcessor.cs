@@ -262,6 +262,11 @@ internal unsafe class MagicProcessor
         
         // Get active entries for current instance
         var activeEntries = _activeInstanceEntries;
+        
+        // Log property value before any processing
+        long valuePtr = *(long*)(dataPtr + 8);
+        LogPropertyValue(magicId, groupId, opType, propertyId, valuePtr);
+        
         if (activeEntries == null)
         {
             // Execute original and exit if no active modifications
@@ -283,18 +288,10 @@ internal unsafe class MagicProcessor
             }
         }
 
-        long valuePtr = *(long*)(dataPtr + 8);
-
         // Apply magic mod override (Fuzzer functionality removed from global config)
         var (isFuzzed, activeEntry, originalValue) = ApplyMagicModOverride(
             activeEntries, true, opType, propertyId, 
             magicId, groupId, propOccurrence, valuePtr);
-
-        // Log property value if enabled
-        if (false)
-        {
-            LogPropertyValue(magicId, groupId, opType, propertyId, valuePtr);
-        }
 
         // Execute original
         _magicUnkExecuteHook!.OriginalFunction(magicFileInstance, opType, propertyId, dataPtr);
