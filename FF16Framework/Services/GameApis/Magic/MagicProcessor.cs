@@ -191,7 +191,10 @@ internal unsafe class MagicProcessor
                 {
                     foreach (var entry in _pendingInjections)
                     {
-                        _logger.WriteLine($"[{_modId}] [INJECTOR] Injecting Op {entry.OpType} Prop {entry.PropertyId} AFTER Op {_lastOpType} (End of Group)", _logger.ColorGreen);
+                        if (_configuration.EnableInjectionLogging)
+                        {
+                            _logger.WriteLine($"[{_modId}] [INJECTOR] Injecting Op {entry.OpType} Prop {entry.PropertyId} AFTER Op {_lastOpType} (End of Group)", _logger.ColorGreen);
+                        }
                         PerformInjection(a1, entry);
                     }
                     _pendingInjections.Clear();
@@ -209,7 +212,7 @@ internal unsafe class MagicProcessor
                 {
                     if (entry.Enabled && entry.IsInjection && entry.InjectAfterOp == -1)
                     {
-                        if (entry.IsOperationOnly)
+                        if (entry.IsOperationOnly && _configuration.EnableInjectionLogging)
                         {
                             _logger.WriteLine($"[{_modId}] [INJECTOR] Processing AddOperation {entry.OpType} at END of Group", _logger.ColorBlue);
                         }
@@ -246,7 +249,10 @@ internal unsafe class MagicProcessor
             {
                 _activeInstanceEntries = queue.Dequeue();
                 _activeInstanceMagicId = magicId;
-                _logger.WriteLine($"[{_modId}] [ACTIVATE] Linked {_activeInstanceEntries.Count} mods to Magic {magicId} Group {groupId}", _logger.ColorGreen);
+                if (_configuration.EnableInjectionLogging)
+                {
+                    _logger.WriteLine($"[{_modId}] [ACTIVATE] Linked {_activeInstanceEntries.Count} mods to Magic {magicId} Group {groupId}", _logger.ColorGreen);
+                }
             }
         }
 
@@ -265,7 +271,10 @@ internal unsafe class MagicProcessor
         
         // Log property value before any processing
         long valuePtr = *(long*)(dataPtr + 8);
-        LogPropertyValue(magicId, groupId, opType, propertyId, valuePtr);
+        if (_configuration.EnablePropertyLogging)
+        {
+            LogPropertyValue(magicId, groupId, opType, propertyId, valuePtr);
+        }
         
         if (activeEntries == null)
         {
@@ -282,7 +291,10 @@ internal unsafe class MagicProcessor
                 int targetOcc = (entry.PropertyId == -1) ? opOccurrence : propOccurrence;
                 if (EntryMatchesContext(entry, magicId, groupId, targetOcc) && (entry.PropertyId == -1 || entry.PropertyId == propertyId))
                 {
-                    _logger.WriteLine($"[{_modId}] [MAGIC] {magicId} Group {groupId} Op {opType} Prop {propertyId} DISABLED (Occ {targetOcc})", _logger.ColorRed);
+                    if (_configuration.EnableInjectionLogging)
+                    {
+                        _logger.WriteLine($"[{_modId}] [MAGIC] {magicId} Group {groupId} Op {opType} Prop {propertyId} DISABLED (Occ {targetOcc})", _logger.ColorRed);
+                    }
                     return;
                 }
             }
@@ -329,8 +341,12 @@ internal unsafe class MagicProcessor
         else
             *(int*)buffer = entry.IntValue;
 
+        
+        if (_configuration.EnableInjectionLogging)
+        {
+            _logger.WriteLine($"[{_modId}] [INJECTOR] Injecting property: Op {entry.OpType} Prop {entry.PropertyId} = {GetValueString(entry)}", _logger.ColorGreen);
+        }
         // Inject by calling the hook implementation directly
-        _logger.WriteLine($"[{_modId}] [INJECTOR] Injecting property: Op {entry.OpType} Prop {entry.PropertyId} = {GetValueString(entry)}", _logger.ColorGreen);
         MagicUnkExecuteImpl(magicFileInstance, entry.OpType, entry.PropertyId, (long)fakeData);
     }
     
@@ -371,7 +387,10 @@ internal unsafe class MagicProcessor
             {
                 foreach (var entry in _pendingInjections)
                 {
-                    _logger.WriteLine($"[{_modId}] [INJECTOR] Injecting Op {entry.OpType} Prop {entry.PropertyId} AFTER Op {_lastOpType} in Magic {magicId} Group {groupId}", _logger.ColorGreen);
+                    if (_configuration.EnableInjectionLogging)
+                    {
+                        _logger.WriteLine($"[{_modId}] [INJECTOR] Injecting Op {entry.OpType} Prop {entry.PropertyId} AFTER Op {_lastOpType} in Magic {magicId} Group {groupId}", _logger.ColorGreen);
+                    }
                     PerformInjection(magicFileInstance, entry);
                 }
                 _pendingInjections.Clear();
@@ -397,7 +416,10 @@ internal unsafe class MagicProcessor
                 if (entry.Enabled && entry.IsInjection && entry.InjectAfterOp == opType && EntryMatchesContext(entry, magicId, groupId, currentOpOccurrence))
                 {
                     _pendingInjections.Add(entry);
-                    _logger.WriteLine($"[{_modId}] [QUEUE_INJECT] Queued Op {entry.OpType} to inject after Op {opType} (Occ {currentOpOccurrence})", _logger.ColorBlue);
+                    if (_configuration.EnableInjectionLogging)
+                    {
+                        _logger.WriteLine($"[{_modId}] [QUEUE_INJECT] Queued Op {entry.OpType} to inject after Op {opType} (Occ {currentOpOccurrence})", _logger.ColorBlue);
+                    }
                 }
             }
         }
@@ -454,19 +476,28 @@ internal unsafe class MagicProcessor
             {
                 original.v = *(Vector3*)valuePtr;
                 *(Vector3*)valuePtr = new Vector3(entry.Vec3X, entry.Vec3Y, entry.Vec3Z);
-                _logger.WriteLine($"[{_modId}] [FUZZER] {contextStr} Op {opType} Prop {propertyId} (Vec3) OVERRIDE: {original.v} -> {*(Vector3*)valuePtr} (Occ {occurrence})", _logger.ColorYellow);
+                if (_configuration.EnableInjectionLogging)
+                {
+                    _logger.WriteLine($"[{_modId}] [FUZZER] {contextStr} Op {opType} Prop {propertyId} (Vec3) OVERRIDE: {original.v} -> {*(Vector3*)valuePtr} (Occ {occurrence})", _logger.ColorYellow);
+                }
             }
             else if (entry.UseFloat)
             {
                 original.f = *(float*)valuePtr;
                 *(float*)valuePtr = entry.FloatValue;
-                _logger.WriteLine($"[{_modId}] [FUZZER] {contextStr} Op {opType} Prop {propertyId} (Float) OVERRIDE: {original.f:F4} -> {entry.FloatValue:F4} (Occ {occurrence})", _logger.ColorYellow);
+                if (_configuration.EnableInjectionLogging)
+                {
+                    _logger.WriteLine($"[{_modId}] [FUZZER] {contextStr} Op {opType} Prop {propertyId} (Float) OVERRIDE: {original.f:F4} -> {entry.FloatValue:F4} (Occ {occurrence})", _logger.ColorYellow);
+                }
             }
             else
             {
                 original.i = *(int*)valuePtr;
                 *(int*)valuePtr = entry.IntValue;
-                _logger.WriteLine($"[{_modId}] [FUZZER] {contextStr} Op {opType} Prop {propertyId} (Int) OVERRIDE: {original.i} -> {entry.IntValue} (Occ {occurrence})", _logger.ColorYellow);
+                if (_configuration.EnableInjectionLogging)
+                {
+                    _logger.WriteLine($"[{_modId}] [FUZZER] {contextStr} Op {opType} Prop {propertyId} (Int) OVERRIDE: {original.i} -> {entry.IntValue} (Occ {occurrence})", _logger.ColorYellow);
+                }
             }
             return (true, entry, original);
         }

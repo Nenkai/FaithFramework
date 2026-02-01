@@ -156,6 +156,7 @@ public class Mod : ModBase, IExports // <= Do not Remove.
             hookGroup.SetupHooks();
 
         InitNex();
+        InitGameApis();
         InitImGui();
 
         _logger.WriteLine($"[{_modConfig.ModId}] Framework {_modConfig.ModVersion} initted.", _logger.ColorGreen);
@@ -481,6 +482,12 @@ public class Mod : ModBase, IExports // <= Do not Remove.
         _modLoader.AddOrReplaceController<INextExcelDBApi>(_owner, _services.GetRequiredService<INextExcelDBApi>());
         _modLoader.AddOrReplaceController<INextExcelDBApiManaged>(_owner, _services.GetRequiredService<INextExcelDBApiManagedV2>());
         _modLoader.AddOrReplaceController<INextExcelDBApiManagedV2>(_owner, _services.GetRequiredService<INextExcelDBApiManagedV2>());
+    }
+
+    private void InitGameApis()
+    {
+        // Publish Game APIs for other mods
+        _modLoader.AddOrReplaceController<IMagicApi>(_owner, _services.GetRequiredService<IMagicApi>());
     }
 
     #region Standard Overrides
