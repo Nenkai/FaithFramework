@@ -104,10 +104,6 @@ internal static class PlayerStateOffsets
 /// - When you release Abyssal Tear, State changes to 4 (executed)
 /// - State returns to 0 when inactive
 /// 
-/// From IDA analysis:
-/// - sub_7FF6DD537E0C: Initializes Abyssal Tear on activation
-/// - sub_7FF6DD53861C: Calculates gauge percentage for UI
-/// - sub_7FF6DD538598: Gets threshold values from leviathanrocketlauncher table
 /// </summary>
 internal static class AbyssalTearOffsets
 {
@@ -750,5 +746,3 @@ public unsafe struct StateList
     // 0x234 is the bit used for Airborne/InAir state in IDA logic
     [FieldOffset(0x234)] public uint IsAirborneBit;
 }
-
-// NodePositionPair, ActorManager, and ActorReference have been removed as they are duplicates of existing definitions in FF16Framework.

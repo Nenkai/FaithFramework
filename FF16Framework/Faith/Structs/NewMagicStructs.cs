@@ -2,14 +2,6 @@ using System.Runtime.InteropServices;
 
 namespace FF16Framework.Faith.Structs;
 
-/// <summary>
-/// Native game structures for magic system. 
-/// These structs mirror the game's internal memory layout.
-/// </summary>
-/// 
-// POINTER VALIDATION CONSTANTS, MAGIC FILE INSTANCE, MAGIC SHOT TYPE, MAGIC MANAGER, MAGIC PROPERTY DATA, ID RANGE VALIDATION 
-// have been removed as they are duplicates of existing definitions in MagicRuntime.cs and other framework files.
-
 // ============================================================
 // BATTLE MAGIC STRUCT
 // ============================================================
@@ -158,5 +150,3 @@ internal unsafe struct BattleBehaviorEntityEntry
     /// </summary>
     [FieldOffset(0x4160)] public nint PositionStructMaybe;
 }
-
-// MagicIdRanges removed (duplicate)

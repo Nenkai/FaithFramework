@@ -3,45 +3,21 @@ using System.Runtime.InteropServices;
 
 namespace FF16Framework.Faith.Structs;
 
-/// <summary>
-/// Runtime structures for the magic system.
-/// These structs mirror the game's internal memory layout for hooks and casting.
-/// For .magic file parsing, use FF16Tools.Files.Magic.MagicFile instead.
-/// </summary>
-/// 
-// ============================================================
-// POINTER VALIDATION
-// ============================================================
-
-/// <summary>
-/// Constants for validating pointers in x64 user-mode address space.
-/// </summary>
-public static class PointerValidation
-{
-    public const long MIN_VALID_ADDRESS = 0x10000;
-    public const long MAX_VALID_ADDRESS = 0x00007FFFFFFFFFFF;
-    
-    public static bool IsValidPointer(long ptr) => 
-        ptr >= MIN_VALID_ADDRESS && ptr <= MAX_VALID_ADDRESS && ptr % 8 == 0;
-    
-    public static bool IsValidPointer(nint ptr) => IsValidPointer((long)ptr);
-}
-
 // ============================================================
 // MAGIC ID VALIDATION
 // ============================================================
 
 /// <summary>
-/// Constants for validating magic/group IDs.
+/// Constants for validating magic IDs.
+/// Vanilla IDs are within a known range; modded IDs exceed that range.
 /// </summary>
 public static class MagicIdRanges
 {
-    public const int MIN_VALID_ID = 1;
-    public const int MAX_VALID_ID = 30000;
-    public const int MAX_EXTENDED_ID = 1000000;
+    public const int MIN_VANILLA_ID = 1;
+    public const int MAX_VANILLA_ID = 30000;
     
-    public static bool IsValidId(int id) => id > MIN_VALID_ID && id < MAX_VALID_ID;
-    public static bool IsValidExtendedId(int id) => id > MIN_VALID_ID && id < MAX_EXTENDED_ID;
+    public static bool IsVanillaId(int id) => id > MIN_VANILLA_ID && id < MAX_VANILLA_ID;
+    public static bool IsModdedId(int id) => id > MAX_VANILLA_ID;
 }
 
 // ============================================================
@@ -130,7 +106,136 @@ public static unsafe class MagicManagerHelper
     }
 }
 
-// TargetStruct moved to FF16Framework.Interfaces.GameApis.Structs
+// ============================================================
+// TARGET STRUCT (UnkTargetStruct in IDA)
+// ============================================================
+
+/// <summary>
+/// Target position structure passed to SetupMagic.
+/// Based on IDA analysis of faith::Battle::Magic::SetupMagic.
+/// Size: 0x7C bytes
+/// </summary>
+[StructLayout(LayoutKind.Explicit, Size = 0x7C)]
+public unsafe struct TargetStruct
+{
+    [FieldOffset(0x00)] public nint VTable;
+    [FieldOffset(0x08)] public long Field_8;
+    [FieldOffset(0x10)] public long Field_10;
+    [FieldOffset(0x18)] public long Field_18;
+    
+    /// <summary>
+    /// Pointer to some global offset (p_g_off_7FF6A3500598 in IDA).
+    /// </summary>
+    [FieldOffset(0x20)] public nint GlobalOffset;
+    
+    /// <summary>
+    /// Pointer to faith::Node for relative positioning.
+    /// </summary>
+    [FieldOffset(0x28)] public nint Node;
+    
+    /// <summary>
+    /// Target position in world space.
+    /// </summary>
+    [FieldOffset(0x30)] public float X;
+    [FieldOffset(0x34)] public float Y;
+    [FieldOffset(0x38)] public float Z;
+    
+    [FieldOffset(0x3C)] public int Dword1C;
+    
+    /// <summary>
+    /// Direction vector.
+    /// </summary>
+    [FieldOffset(0x40)] public float DirectionX;
+    [FieldOffset(0x44)] public float DirectionY;
+    [FieldOffset(0x48)] public float DirectionZ;
+    
+    [FieldOffset(0x4C)] public int Padding4C;
+    
+    /// <summary>
+    /// Type of target. Used for targeting mode.
+    /// </summary>
+    [FieldOffset(0x50)] public int Type;
+    
+    [FieldOffset(0x54)] public int Field_54;
+    [FieldOffset(0x58)] public int Field_58;
+    [FieldOffset(0x5C)] public int Field_5C;
+    [FieldOffset(0x60)] public int Field_60;
+    [FieldOffset(0x64)] public int Field_64;
+    [FieldOffset(0x68)] public int Field_68;
+    
+    /// <summary>
+    /// Target actor ID.
+    /// </summary>
+    [FieldOffset(0x6C)] public int ActorId;
+    
+    [FieldOffset(0x70)] public float Field_70;
+    [FieldOffset(0x74)] public int Field_74;
+    [FieldOffset(0x78)] public int Field_78;
+    
+    /// <summary>
+    /// World position as Vector3.
+    /// </summary>
+    public Vector3 Position
+    {
+        readonly get => new(X, Y, Z);
+        set { X = value.X; Y = value.Y; Z = value.Z; }
+    }
+    
+    /// <summary>
+    /// Direction as Vector3.
+    /// </summary>
+    public Vector3 Direction
+    {
+        readonly get => new(DirectionX, DirectionY, DirectionZ);
+        set { DirectionX = value.X; DirectionY = value.Y; DirectionZ = value.Z; }
+    }
+    
+    public static TargetStruct FromPosition(Vector3 position)
+    {
+        return new TargetStruct
+        {
+            Type = 0,
+            Node = 0,
+            X = position.X,
+            Y = position.Y,
+            Z = position.Z,
+            DirectionX = 0,
+            DirectionY = 0,
+            DirectionZ = 1
+        };
+    }
+    
+    public static TargetStruct FromPositionAndDirection(Vector3 position, Vector3 direction)
+    {
+        return new TargetStruct
+        {
+            Type = 0,
+            Node = 0,
+            X = position.X,
+            Y = position.Y,
+            Z = position.Z,
+            DirectionX = direction.X,
+            DirectionY = direction.Y,
+            DirectionZ = direction.Z
+        };
+    }
+    
+    public static TargetStruct FromActorId(int actorId, Vector3 position, int targetType = 1)
+    {
+        return new TargetStruct
+        {
+            Type = targetType,
+            Node = 0,
+            X = position.X,
+            Y = position.Y,
+            Z = position.Z,
+            ActorId = actorId,
+            DirectionX = 0,
+            DirectionY = 0,
+            DirectionZ = 1
+        };
+    }
+}
 
 // ============================================================
 // MAGIC FILE INSTANCE (Runtime only, for hook context)
@@ -147,8 +252,7 @@ public unsafe struct MagicFileInstance
     [FieldOffset(0x200)] public int MagicId;
     [FieldOffset(0x204)] public int GroupId;
     
-    public readonly bool IsValid => PointerValidation.IsValidPointer(VTable);
-    public readonly bool HasValidMagicId => MagicIdRanges.IsValidId(MagicId);
-    public readonly bool HasValidGroupId => MagicIdRanges.IsValidId(GroupId) && GroupId != MagicId;
+    public readonly bool IsValid => VTable != 0;
+    public readonly bool HasValidMagicId => MagicIdRanges.IsVanillaId(MagicId) || MagicIdRanges.IsModdedId(MagicId);
 }
 

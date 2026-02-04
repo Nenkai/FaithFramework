@@ -559,7 +559,7 @@ internal unsafe class MagicProcessor
     /// </summary>
     private static (int magicId, int groupId) ResolveIds(long instance)
     {
-        if (!PointerValidation.IsValidPointer(instance)) return (0, 0);
+        if (instance == 0) return (0, 0);
         
         try
         {
