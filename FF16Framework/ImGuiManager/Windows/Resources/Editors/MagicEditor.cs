@@ -194,10 +194,10 @@ public class MagicEditor
             {
                 imgui.SeparatorText($"Magic: {_selectedName}");
 
-                imgui.Text("Source:");
+                imgui.Text("Source:"u8);
                 imgui.SameLine();
                 imgui.SetNextItemWidth(150f);
-                if (imgui.BeginCombo("##Source", _castSource.ToString(), ImGuiComboFlags.ImGuiComboFlags_None))
+                if (imgui.BeginCombo("##Source"u8, _castSource.ToString()))
                 {
                     foreach (var val in Enum.GetValues<ActorSelection>())
                     {
@@ -208,10 +208,10 @@ public class MagicEditor
                 }
 
                 imgui.SameLine();
-                imgui.Text("Target:");
+                imgui.Text("Target:"u8);
                 imgui.SameLine();
                 imgui.SetNextItemWidth(150f);
-                if (imgui.BeginCombo("##Target", _castTarget.ToString(), ImGuiComboFlags.ImGuiComboFlags_None))
+                if (imgui.BeginCombo("##Target"u8, _castTarget.ToString()))
                 {
                     foreach (var val in Enum.GetValues<ActorSelection>())
                     {
