@@ -254,7 +254,7 @@ public class MagicEditor
                 imgui.PushStyleColor(ImGuiCol.ImGuiCol_Button, ColorUtils.RGBA(64, 128, 64, 255));
                 if (imgui.Button("📋 Export to Clipboard"u8))
                 {
-                    ExportCurrentEntryToClipboard(shell);
+                    ExportCurrentEntryToClipboard(shell, imgui);
                 }
                 imgui.PopStyleColor();
 
@@ -591,7 +591,7 @@ public class MagicEditor
     // EXPORT TO JSON
     // ========================================
     
-    private void ExportCurrentEntryToClipboard(IImGuiShell shell)
+    private void ExportCurrentEntryToClipboard(IImGuiShell shell, IImGui imgui)
     {
         if (_currentEntry == null)
         {
@@ -603,70 +603,15 @@ public class MagicEditor
         {
             var json = MagicExporter.ExportToJson(_currentEntry);
             
-            // Copy to clipboard using Windows API
-            if (CopyToClipboard(json))
-            {
-                var config = MagicExporter.BuildMagicSpellConfig(_currentEntry);
-                shell.LogWriteLine(nameof(MagicEditor), $"Exported Magic ID {_currentEntry.Id} to clipboard ({config.Modifications.Count} modifications)", Color.LightGreen);
-            }
-            else
-            {
-                shell.LogWriteLine(nameof(MagicEditor), "Failed to copy to clipboard", Color.Red);
-            }
+            // Copy to clipboard using ImGui API
+            imgui.SetClipboardText(json);
+            
+            var config = MagicExporter.BuildMagicSpellConfig(_currentEntry);
+            shell.LogWriteLine(nameof(MagicEditor), $"Exported Magic ID {_currentEntry.Id} to clipboard ({config.Modifications.Count} modifications)", Color.LightGreen);
         }
         catch (Exception ex)
         {
             shell.LogWriteLine(nameof(MagicEditor), $"Export failed: {ex.Message}", Color.Red);
         }
     }
-    
-    private static bool CopyToClipboard(string text)
-    {
-        try
-        {
-            nint hGlobal = nint.Zero;
-            if (!OpenClipboard(nint.Zero))
-                return false;
-            
-            try
-            {
-                EmptyClipboard();
-                
-                var bytes = Encoding.Unicode.GetBytes(text + "\0");
-                hGlobal = Marshal.AllocHGlobal(bytes.Length);
-                Marshal.Copy(bytes, 0, hGlobal, bytes.Length);
-                
-                if (SetClipboardData(CF_UNICODETEXT, hGlobal) == nint.Zero)
-                {
-                    Marshal.FreeHGlobal(hGlobal);
-                    return false;
-                }
-                
-                // SetClipboardData takes ownership, don't free
-                return true;
-            }
-            finally
-            {
-                CloseClipboard();
-            }
-        }
-        catch
-        {
-            return false;
-        }
-    }
-    
-    private const uint CF_UNICODETEXT = 13;
-    
-    [DllImport("user32.dll", SetLastError = true)]
-    private static extern bool OpenClipboard(nint hWndNewOwner);
-    
-    [DllImport("user32.dll", SetLastError = true)]
-    private static extern bool CloseClipboard();
-    
-    [DllImport("user32.dll", SetLastError = true)]
-    private static extern bool EmptyClipboard();
-    
-    [DllImport("user32.dll", SetLastError = true)]
-    private static extern nint SetClipboardData(uint uFormat, nint hMem);
 }
