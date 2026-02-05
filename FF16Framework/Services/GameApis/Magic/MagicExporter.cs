@@ -46,7 +46,7 @@ internal static class MagicExporter
             // Export the OperationGroup itself
             config.Modifications.Add(new MagicModificationConfig
             {
-                Type = "AddOperationGroup",
+                Type = MagicModificationType.AddOperationGroup,
                 OperationGroupId = (int)group.Id
             });
             
@@ -65,7 +65,7 @@ internal static class MagicExporter
                 
                 config.Modifications.Add(new MagicModificationConfig
                 {
-                    Type = "AddOperation",
+                    Type = MagicModificationType.AddOperation,
                     OperationGroupId = (int)group.Id,
                     OperationId = (int)operation.Type,
                     Properties = properties.Count > 0 ? properties : null

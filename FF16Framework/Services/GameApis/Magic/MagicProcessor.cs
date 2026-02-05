@@ -12,7 +12,7 @@ using FF16Tools.Files.Magic.Factories;
 namespace FF16Framework.Services.GameApis.Magic;
 
 /// <summary>
-/// Handles magic file processing, property fuzzing, and injection logic.
+/// Handles magic file processing, property modification, and injection logic.
 /// Separated from MagicGameSystem to follow single responsibility principle.
 /// </summary>
 internal unsafe class MagicProcessor

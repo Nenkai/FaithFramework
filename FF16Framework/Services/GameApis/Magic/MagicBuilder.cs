@@ -68,7 +68,7 @@ internal class MagicBuilder : IMagicBuilder
         {
             Type = MagicModificationType.SetProperty,
             OperationGroupId = operationGroupId,
-            operationId = operationId,
+            OperationId = operationId,
             PropertyId = propertyId,
             Value = NormalizeValue(value)
         };
@@ -90,7 +90,7 @@ internal class MagicBuilder : IMagicBuilder
         {
             Type = MagicModificationType.RemoveProperty,
             OperationGroupId = operationGroupId,
-            operationId = operationId,
+            OperationId = operationId,
             PropertyId = propertyId
         };
         
@@ -116,7 +116,7 @@ internal class MagicBuilder : IMagicBuilder
         {
             Type = MagicModificationType.AddProperty,
             OperationGroupId = operationGroupId,
-            operationId = operationId,
+            OperationId = operationId,
             PropertyId = propertyId,
             Value = NormalizeValue(value)
         };
@@ -125,7 +125,7 @@ internal class MagicBuilder : IMagicBuilder
     }
     
     /// <summary>
-    /// Internal method to add a property with a specific InjectAfterOp value.
+    /// Internal method to add a property with a specific InsertAfterOperationTypeId value.
     /// Used when importing from JSON that specifies injection timing.
     /// </summary>
     private void AddPropertyWithInjectAfter(int operationGroupId, int operationId, int propertyId, object value, int injectAfterOp)
@@ -140,10 +140,10 @@ internal class MagicBuilder : IMagicBuilder
         {
             Type = MagicModificationType.AddProperty,
             OperationGroupId = operationGroupId,
-            operationId = operationId,
+            OperationId = operationId,
             PropertyId = propertyId,
             Value = NormalizeValue(value),
-            InjectAfterOp = injectAfterOp
+            InsertAfterOperationTypeId = injectAfterOp
         };
     }
     
@@ -164,7 +164,7 @@ internal class MagicBuilder : IMagicBuilder
         {
             Type = MagicModificationType.AddOperation,
             OperationGroupId = operationGroupId,
-            operationId = operationId
+            OperationId = operationId
         };
         
         return this;
@@ -190,7 +190,7 @@ internal class MagicBuilder : IMagicBuilder
     }
     
     /// <summary>
-    /// Internal method to add an operation with a specific InjectAfterOp value.
+    /// Internal method to add an operation with a specific InsertAfterOperationTypeId value.
     /// </summary>
     private void AddOperationWithInjectAfter(int operationGroupId, int operationId, int injectAfterOp)
     {
@@ -203,13 +203,13 @@ internal class MagicBuilder : IMagicBuilder
         {
             Type = MagicModificationType.AddOperation,
             OperationGroupId = operationGroupId,
-            operationId = operationId,
-            InjectAfterOp = injectAfterOp
+            OperationId = operationId,
+            InsertAfterOperationTypeId = injectAfterOp
         };
     }
     
     /// <summary>
-    /// Internal method to add an operation with properties and a specific InjectAfterOp value.
+    /// Internal method to add an operation with properties and a specific InsertAfterOperationTypeId value.
     /// </summary>
     private void AddOperationWithInjectAfter(int operationGroupId, int operationId, IList<int> propertyIds, IList<object> values, int injectAfterOp)
     {
@@ -252,7 +252,7 @@ internal class MagicBuilder : IMagicBuilder
         {
             Type = MagicModificationType.RemoveOperation,
             OperationGroupId = operationGroupId,
-            operationId = operationId
+            OperationId = operationId
         };
         
         return this;
@@ -445,9 +445,9 @@ internal class MagicBuilder : IMagicBuilder
     {
         var config = new MagicModificationConfig
         {
-            Type = mod.Type.ToString(),
+            Type = mod.Type,
             OperationGroupId = mod.OperationGroupId,
-            OperationId = mod.operationId
+            OperationId = mod.OperationId
         };
         
         if (mod.Type == MagicModificationType.AddOperation && 
@@ -497,8 +497,8 @@ internal class MagicBuilder : IMagicBuilder
     
     private void ApplyModificationConfig(MagicModificationConfig config)
     {
-        var type = Enum.Parse<MagicModificationType>(config.Type, ignoreCase: true);
-        int injectAfterOp = config.InjectAfterOp ?? -1;  // Default to -1 (end of group) if not specified
+        var type = config.Type;
+        int injectAfterOp = config.InsertAfterOperationTypeId ?? -1;  // Default to -1 (end of group) if not specified
         
         switch (type)
         {

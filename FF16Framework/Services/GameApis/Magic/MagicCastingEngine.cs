@@ -463,10 +463,10 @@ internal unsafe class MagicCastingEngine : IDisposable
             var entry = new MagicModEntry
             {
                 Enabled = true,
-                OpType = mod.operationId,
+                OpType = mod.OperationId,
                 PropertyId = mod.PropertyId,
                 TargetOperationGroupId = mod.OperationGroupId,
-                InjectAfterOp = mod.InjectAfterOp  // Propagate injection timing
+                InjectAfterOp = mod.InsertAfterOperationTypeId  // Propagate injection timing
             };
             
             // Set the value based on type

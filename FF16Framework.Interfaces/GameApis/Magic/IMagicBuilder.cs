@@ -224,7 +224,7 @@ public record MagicModification
     /// <summary>
     /// The operation ID (for operation modifications) or the operation containing the property.
     /// </summary>
-    public int operationId { get; init; }
+    public int OperationId { get; init; }
     
     /// <summary>
     /// The property ID (for property modifications).
@@ -249,10 +249,10 @@ public record MagicModification
     public IList<object>? AdditionalValues { get; init; }
     
     /// <summary>
-    /// The operation type after which to inject this modification.
+    /// The operation type ID after which to inject this modification.
     /// -1 means inject at the end of the operation group.
     /// </summary>
-    public int InjectAfterOp { get; init; } = -1;
+    public int InsertAfterOperationTypeId { get; init; } = -1;
 }
 
 /// <summary>
@@ -329,9 +329,9 @@ public class MagicSpellConfig
 public class MagicModificationConfig
 {
     /// <summary>
-    /// Type of modification: "SetProperty", "RemoveProperty", "AddProperty", "AddOperation", "RemoveOperation"
+    /// Type of modification.
     /// </summary>
-    public string Type { get; set; } = "";
+    public MagicModificationType Type { get; set; }
     
     /// <summary>
     /// The operation group ID where this modification applies.
@@ -364,11 +364,11 @@ public class MagicModificationConfig
     public List<PropertyValuePair>? Properties { get; set; }
     
     /// <summary>
-    /// The operation type after which to inject this modification.
+    /// The operation type ID after which to inject this modification.
     /// -1 (or null/omitted) means inject at the end of the operation group.
     /// Only used for IsInjection entries (AddProperty, AddOperation).
     /// </summary>
-    public int? InjectAfterOp { get; set; }
+    public int? InsertAfterOperationTypeId { get; set; }
 }
 
 /// <summary>

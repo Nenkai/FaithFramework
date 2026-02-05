@@ -429,7 +429,7 @@ public class MagicWriter : IMagicWriter, IDisposable
     private void ApplyPropertyModification(MagicOperationGroup group, MagicModification mod)
     {
         var operation = group.OperationList.Operations
-            .FirstOrDefault(op => (int)op.Type == mod.operationId);
+            .FirstOrDefault(op => (int)op.Type == mod.OperationId);
         
         if (operation == null)
             return;
@@ -470,7 +470,7 @@ public class MagicWriter : IMagicWriter, IDisposable
     private void RemovePropertyFromOperation(MagicOperationGroup group, MagicModification mod)
     {
         var operation = group.OperationList.Operations
-            .FirstOrDefault(op => (int)op.Type == mod.operationId);
+            .FirstOrDefault(op => (int)op.Type == mod.OperationId);
         
         if (operation == null) return;
         
@@ -480,7 +480,7 @@ public class MagicWriter : IMagicWriter, IDisposable
     
     private void AddOperationToGroup(MagicOperationGroup group, MagicModification mod)
     {
-        var opType = (MagicOperationType)mod.operationId;
+        var opType = (MagicOperationType)mod.OperationId;
         
         if (group.OperationList.Operations.Any(op => op.Type == opType))
             return;
@@ -516,7 +516,7 @@ public class MagicWriter : IMagicWriter, IDisposable
     
     private void RemoveOperationFromGroup(MagicOperationGroup group, MagicModification mod)
     {
-        var opType = (MagicOperationType)mod.operationId;
+        var opType = (MagicOperationType)mod.OperationId;
         var operationsToRemove = group.OperationList.Operations
             .Where(op => op.Type == opType)
             .ToList();
