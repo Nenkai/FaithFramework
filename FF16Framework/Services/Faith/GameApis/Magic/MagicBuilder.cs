@@ -317,9 +317,9 @@ internal class MagicBuilder : IMagicBuilder
     // EXECUTION
     // ========================================
     
-    public bool Cast(nint? sourceActor = null, nint? targetActor = null)
+    public bool Cast(ActorSelection source = ActorSelection.Player, ActorSelection target = ActorSelection.LockedTarget)
     {
-        return _engine.CastSpell(BuildCastRequest(sourceActor, targetActor));
+        return _engine.CastSpell(BuildCastRequest(source, target));
     }
     
     // ========================================
@@ -490,13 +490,30 @@ internal class MagicBuilder : IMagicBuilder
     // INTERNAL HELPERS
     // ========================================
     
-    private MagicCastRequest BuildCastRequest(nint? sourceActor, nint? targetActor)
+    private MagicCastRequest BuildCastRequest(ActorSelection source, ActorSelection target)
     {
+        nint? sourceActor = source switch
+        {
+            ActorSelection.Player => _engine.GetPlayerActor(),
+            ActorSelection.LockedTarget => _engine.GetLockedTarget(),
+            ActorSelection.None => nint.Zero,
+            _ => nint.Zero
+        };
+        
+        nint? targetActor = target switch
+        {
+            ActorSelection.Player => _engine.GetPlayerActor(),
+            ActorSelection.LockedTarget => _engine.GetLockedTarget(),
+            ActorSelection.None => nint.Zero,
+            _ => nint.Zero
+        };
+        
         return new MagicCastRequest
         {
             MagicId = MagicId,
             SourceActor = sourceActor,
             TargetActor = targetActor,
+            UseGameTarget = target == ActorSelection.LockedTarget,
             Modifications = _modifications.Values.ToList()
         };
     }

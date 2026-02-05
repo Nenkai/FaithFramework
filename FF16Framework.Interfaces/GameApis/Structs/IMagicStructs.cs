@@ -3,6 +3,28 @@ using System.Collections.Generic;
 namespace FF16Framework.Interfaces.GameApis.Structs;
 
 /// <summary>
+/// Specifies which actor to use as source or target when casting magic.
+/// </summary>
+public enum ActorSelection
+{
+    /// <summary>
+    /// No actor (cast without source/target).
+    /// </summary>
+    None,
+    
+    /// <summary>
+    /// The player character (Clive).
+    /// </summary>
+    Player,
+    
+    /// <summary>
+    /// The camera's currently soft-locked or hard-locked target.
+    /// Uses the game's targeting system for proper body positioning.
+    /// </summary>
+    LockedTarget
+}
+
+/// <summary>
 /// Types of magic modifications that can be applied to a spell.
 /// </summary>
 public enum MagicModificationType

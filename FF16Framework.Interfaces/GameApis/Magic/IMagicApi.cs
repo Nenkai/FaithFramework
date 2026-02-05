@@ -1,4 +1,5 @@
 using System;
+using FF16Framework.Interfaces.GameApis.Structs;
 
 namespace FF16Framework.Interfaces.GameApis.Magic;
 
@@ -30,40 +31,13 @@ public interface IMagicApi
     IMagicBuilder CreateSpell(int magicId);
     
     /// <summary>
-    /// Casts a magic spell with optional source and target actors.
+    /// Casts a magic spell with the specified source and target actors.
     /// </summary>
     /// <param name="magicId">The ID of the magic spell to cast.</param>
-    /// <param name="sourceActor">
-    /// The actor casting the spell. If null, defaults to the player (Clive).
-    /// Use nint.Zero to explicitly cast without a source.
-    /// </param>
-    /// <param name="targetActor">
-    /// The target actor for the spell. If null, defaults to the camera's soft/hard locked target.
-    /// Use nint.Zero to explicitly cast without a target.
-    /// </param>
+    /// <param name="source">The actor casting the spell. Defaults to Player.</param>
+    /// <param name="target">The target actor. Defaults to LockedTarget (camera's soft/hard locked target).</param>
     /// <returns>True if the spell was cast successfully.</returns>
-    bool Cast(int magicId, nint? sourceActor = null, nint? targetActor = null);
-    
-    /// <summary>
-    /// Casts a magic spell using the GAME'S OWN TargetStruct for the locked enemy.
-    /// This is the correct way to get body-targeting (Y=1.23 vs Y=0.26).
-    /// The game's targeting system already calculates the proper body position.
-    /// </summary>
-    /// <param name="magicId">The ID of the magic spell to cast.</param>
-    /// <param name="sourceActor">The actor casting the spell. If null, defaults to player.</param>
-    /// <returns>True if the spell was cast successfully.</returns>
-    bool CastWithGameTarget(int magicId, nint? sourceActor = null);
-    
-    /// <summary>
-    /// Gets the currently soft-locked or hard-locked target actor from the camera system.
-    /// Returns nint.Zero if no target is locked.
-    /// </summary>
-    nint GetLockedTarget();
-    
-    /// <summary>
-    /// Gets the player's (Clive's) actor pointer.
-    /// </summary>
-    nint GetPlayerActor();
+    bool Cast(int magicId, ActorSelection source = ActorSelection.Player, ActorSelection target = ActorSelection.LockedTarget);
     
     /// <summary>
     /// Creates a spell builder from a JSON configuration.

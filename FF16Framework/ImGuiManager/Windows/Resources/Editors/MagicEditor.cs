@@ -10,6 +10,7 @@ using FF16Framework.Services.ResourceManager;
 using FF16Framework.Services.Faith.GameApis.Magic;
 using FF16Framework.Utils;
 using FF16Framework.Interfaces.GameApis.Magic;
+using FF16Framework.Interfaces.GameApis.Structs;
 
 using FF16Tools.Files.Magic;
 using FF16Tools.Files.Magic.Factories;
@@ -18,13 +19,6 @@ using NenTools.ImGui.Interfaces;
 using NenTools.ImGui.Interfaces.Shell;
 
 namespace FF16Framework.ImGuiManager.Windows.Resources.Editors;
-
-public enum ActorSelection
-{
-    None,
-    PlayerActor,
-    CameraLockedActor
-}
 
 public class MagicEditor
 {
@@ -36,8 +30,8 @@ public class MagicEditor
     private MagicEntry? _currentEntry;
     private string _selectedName;
 
-    private ActorSelection _castSource = ActorSelection.PlayerActor;
-    private ActorSelection _castTarget = ActorSelection.CameraLockedActor;
+    private ActorSelection _castSource = ActorSelection.Player;
+    private ActorSelection _castTarget = ActorSelection.LockedTarget;
 
     private MagicOperationGroup? _pendingGroupDelete;
     private MagicOperationProperty? _pendingPropertyDelete;
@@ -225,25 +219,7 @@ public class MagicEditor
                 imgui.PushStyleColor(ImGuiCol.ImGuiCol_Button, ColorUtils.RGBA(0, 112, 192, 255));
                 if (imgui.Button("🚀 Cast!"u8))
                 {
-                    nint source = _castSource switch {
-                        ActorSelection.PlayerActor => _magicApi.GetPlayerActor(),
-                        ActorSelection.CameraLockedActor => _magicApi.GetLockedTarget(),
-                        _ => nint.Zero
-                    };
-
-                    bool success;
-                    if (_castTarget == ActorSelection.CameraLockedActor)
-                    {
-                        success = _magicApi.CastWithGameTarget((int)_currentEntry.Id, source);
-                    }
-                    else
-                    {
-                        nint target = _castTarget switch {
-                            ActorSelection.PlayerActor => _magicApi.GetPlayerActor(),
-                            _ => nint.Zero
-                        };
-                        success = _magicApi.Cast((int)_currentEntry.Id, source, target);
-                    }
+                    bool success = _magicApi.Cast((int)_currentEntry.Id, _castSource, _castTarget);
 
                     if (!success)
                         shell.LogWriteLine(nameof(MagicEditor), "Failed to cast magic - API not ready?", Color.Red);

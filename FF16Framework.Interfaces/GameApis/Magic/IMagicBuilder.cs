@@ -140,16 +140,12 @@ public interface IMagicBuilder
     // ========================================
     
     /// <summary>
-    /// Casts the configured spell with optional source and target.
+    /// Casts the configured spell with the specified source and target.
     /// </summary>
-    /// <param name="sourceActor">
-    /// The actor casting the spell. If null, defaults to the player.
-    /// </param>
-    /// <param name="targetActor">
-    /// The target actor. If null, defaults to camera's locked target.
-    /// </param>
+    /// <param name="source">The actor casting the spell. Defaults to Player.</param>
+    /// <param name="target">The target actor. Defaults to LockedTarget.</param>
     /// <returns>True if the spell was cast successfully.</returns>
-    bool Cast(nint? sourceActor = null, nint? targetActor = null);
+    bool Cast(ActorSelection source = ActorSelection.Player, ActorSelection target = ActorSelection.LockedTarget);
     
     // ========================================
     // SERIALIZATION

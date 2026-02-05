@@ -3,6 +3,7 @@ using Reloaded.Mod.Interfaces;
 using FF16Framework;
 using FF16Framework.Faith.Hooks;
 using FF16Framework.Interfaces.GameApis.Magic;
+using FF16Framework.Interfaces.GameApis.Structs;
 using FF16Framework.Services.Faith.GameApis.Actor;
 
 namespace FF16Framework.Services.Faith.GameApis.Magic;
@@ -52,38 +53,10 @@ public class MagicApi : IMagicApi, IDisposable
     }
     
     /// <inheritdoc/>
-    public bool Cast(int magicId, nint? sourceActor = null, nint? targetActor = null)
+    public bool Cast(int magicId, ActorSelection source = ActorSelection.Player, ActorSelection target = ActorSelection.LockedTarget)
     {
-        return CreateSpell(magicId).Cast(sourceActor, targetActor);
-    }
-    
-    /// <inheritdoc/>
-    public bool CastWithGameTarget(int magicId, nint? sourceActor = null)
-    {
-        var request = new MagicCastRequest
-        {
-            MagicId = magicId,
-            SourceActor = sourceActor,
-            // Don't set TargetActor - UseGameTarget will copy from game's targeting system
-            UseGameTarget = true
-        };
-        return _engine.CastSpell(request);
-    }
-    
-    /// <inheritdoc/>
-    public nint GetLockedTarget()
-    {
-        return _engine.GetLockedTarget();
-    }
-    
-    /// <inheritdoc/>
-    public nint GetPlayerActor()
-    {
-        return _engine.GetPlayerActor();
-    }
-    
-
-    
+        return CreateSpell(magicId).Cast(source, target);
+    }    
     /// <inheritdoc/>
     public IMagicBuilder? ImportFromJson(string json)
     {
