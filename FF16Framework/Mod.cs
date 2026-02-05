@@ -37,7 +37,6 @@ using FF16Framework.Services.ResourceManager;
 using FF16Framework.ImGuiManager.Windows.Resources;
 using FF16Framework.ImGuiManager.Windows.Visualizers;
 
-using FF16Framework.Interfaces.GameApis.Actor;
 using FF16Framework.Interfaces.GameApis.Magic;
 using FF16Framework.Services.GameApis.Actor;
 using FF16Framework.Services.GameApis.Magic;
@@ -286,7 +285,6 @@ public class Mod : ModBase, IExports // <= Do not Remove.
 
                 return new ActorApi(logger, modConfig, entityHooks, list35Hooks);
             })
-            .AddSingleton<IActorApi>(provider => provider.GetRequiredService<ActorApi>())
             .AddSingleton<IMagicApi>(provider =>
             {
                 var logger = provider.GetRequiredService<Reloaded.Mod.Interfaces.ILogger>();

@@ -2,7 +2,6 @@ using System.Numerics;
 using Reloaded.Mod.Interfaces;
 using FF16Framework.Faith.Structs;
 using FF16Framework.Faith.Hooks;
-using FF16Framework.Interfaces.GameApis.Actor;
 using FF16Framework.Interfaces.GameApis.Structs;
 using FF16Framework.Services.GameApis.Structs;
 
@@ -13,7 +12,7 @@ namespace FF16Framework.Services.GameApis.Actor;
 /// Provides player info, targeting, and actor lookups for the Magic API.
 /// Uses EntityManagerHooks for all function wrappers and singletons.
 /// </summary>
-public unsafe class ActorApi : IActorApi
+internal unsafe class ActorApi
 {
     // ============================================================
     // DEPENDENCIES
@@ -30,7 +29,7 @@ public unsafe class ActorApi : IActorApi
     public nint PlayerStaticActorInfo { get; private set; }
     
     // ============================================================
-    // IACTORAPI PROPERTIES
+    // PROPERTIES
     // ============================================================
     
     /// <inheritdoc/>
@@ -69,7 +68,7 @@ public unsafe class ActorApi : IActorApi
     }
     
     // ============================================================
-    // IACTORAPI IMPLEMENTATION - PLAYER
+    // PLAYER
     // ============================================================
     
     /// <inheritdoc/>
@@ -120,7 +119,7 @@ public unsafe class ActorApi : IActorApi
     }
     
     // ============================================================
-    // IACTORAPI IMPLEMENTATION - TARGETING
+    // TARGETING
     // ============================================================
     
     /// <inheritdoc/>
@@ -169,7 +168,7 @@ public unsafe class ActorApi : IActorApi
     }
     
     // ============================================================
-    // IACTORAPI IMPLEMENTATION - ACTOR LOOKUP
+    // ACTOR LOOKUP
     // ============================================================
     
     /// <inheritdoc/>
@@ -206,7 +205,7 @@ public unsafe class ActorApi : IActorApi
     }
     
     // ============================================================
-    // IACTORAPI IMPLEMENTATION - TARGET CREATION
+    // TARGET CREATION
     // ============================================================
     
     /// <inheritdoc/>
@@ -364,61 +363,5 @@ public unsafe class ActorApi : IActorApi
         nint* staticActorInfo = null;
         getOrCreateHook.OriginalFunction(staticActorManager, &staticActorInfo, actorId);
         return staticActorInfo != null ? (nint)staticActorInfo : 0;
-    }
-    
-    // ============================================================
-    // IACTORAPI IMPLEMENTATION - STATE DETECTION (PUBLIC)
-    // ============================================================
-    
-    // Track vertical push to detect post-launch state
-    private readonly System.Collections.Concurrent.ConcurrentDictionary<long, float> _npcVerticalPush = new();
-    
-    /// <inheritdoc/>
-    public bool IsAirborne(long bnpcRow)
-    {
-        if (bnpcRow < 0x10000 || bnpcRow > 0x00007FFFFFFFFFFF) return false;
-
-        try
-        {
-            StaticActorInfo* info = (StaticActorInfo*)*(long*)(bnpcRow + BnpcRowOffsets.StaticActorInfoPtr);
-            
-            long actorPtr = 0;
-            if (info != null && (long)info > 0x10000)
-            {
-                actorPtr = info->ActorRef;
-            }
-            
-            // Fallback: read bnpcRow + 0 directly (old method)
-            if (actorPtr == 0) 
-            {
-                actorPtr = *(long*)bnpcRow;
-            }
-
-            if (actorPtr > 0x10000 && actorPtr < 0x00007FFFFFFFFFFF)
-            {
-                // ReactionState (Byte):
-                // 0x02 = Ground / Neutral
-                // 0x03-0x05 = Ground reactions (Step Back/Slide)
-                // > 0x05 = Airborne / Launch reaction (0x67, 0xC0, etc)
-                byte reactionState = *(byte*)(actorPtr + ActorOffsets.ReactionState);
-                if (reactionState > 5) return true;
-                
-                // If state is 0x02 but we have recent vertical push, maintain airborne
-                if (reactionState == 2)
-                {
-                    if (_npcVerticalPush.TryGetValue(bnpcRow, out float push) && push > 0.1f)
-                    {
-                        _npcVerticalPush.TryRemove(bnpcRow, out _);
-                        return false; 
-                    }
-                    return false;
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.WriteLine($"[{_modConfig.ModId}] [ActorApi] IsAirborne Error: {ex.Message}", _logger.ColorRed);
-        }
-        return false;
     }
 }
