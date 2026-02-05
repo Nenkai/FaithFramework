@@ -7,7 +7,7 @@ using FF16Framework.Interfaces.GameApis.Structs;
 using FF16Tools.Files.Magic;
 using FF16Tools.Files.Magic.Factories;
 
-namespace FF16Framework.Services.GameApis.Magic;
+namespace FF16Framework.Services.Faith.GameApis.Magic;
 
 /// <summary>
 /// Represents a single modification to a magic spell (runtime representation).

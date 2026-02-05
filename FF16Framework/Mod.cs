@@ -38,8 +38,8 @@ using FF16Framework.ImGuiManager.Windows.Resources;
 using FF16Framework.ImGuiManager.Windows.Visualizers;
 
 using FF16Framework.Interfaces.GameApis.Magic;
-using FF16Framework.Services.GameApis.Actor;
-using FF16Framework.Services.GameApis.Magic;
+using FF16Framework.Services.Faith.GameApis.Actor;
+using FF16Framework.Services.Faith.GameApis.Magic;
 using FF16Framework.Interfaces.GameApis.Magic;
 using Reloaded.Memory.SigScan.ReloadedII.Interfaces;
 

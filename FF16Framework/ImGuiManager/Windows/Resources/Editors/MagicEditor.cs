@@ -7,7 +7,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 
 using FF16Framework.Services.ResourceManager;
-using FF16Framework.Services.GameApis.Magic;
+using FF16Framework.Services.Faith.GameApis.Magic;
 using FF16Framework.Utils;
 using FF16Framework.Interfaces.GameApis.Magic;
 

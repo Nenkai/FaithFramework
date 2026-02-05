@@ -1,6 +1,6 @@
 using System;
 
-namespace FF16Framework.Services.GameApis.Magic;
+namespace FF16Framework.Services.Faith.GameApis.Magic;
 
 /// <summary>
 /// Internal structure representing a magic modification to be applied at runtime.

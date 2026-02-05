@@ -1,7 +1,7 @@
 using System.Numerics;
 using FF16Framework.Interfaces.GameApis.Structs;
 
-namespace FF16Framework.Services.GameApis.Structs;
+namespace FF16Framework.Services.Faith.GameApis.Structs;
 
 /// <summary>
 /// Implementation of ITargetInfo wrapping internal TargetStruct data.

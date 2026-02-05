@@ -3,9 +3,9 @@ using Reloaded.Mod.Interfaces;
 using FF16Framework.Faith.Structs;
 using FF16Framework.Faith.Hooks;
 using FF16Framework.Interfaces.GameApis.Structs;
-using FF16Framework.Services.GameApis.Structs;
+using FF16Framework.Services.Faith.GameApis.Structs;
 
-namespace FF16Framework.Services.GameApis.Actor;
+namespace FF16Framework.Services.Faith.GameApis.Actor;
 
 /// <summary>
 /// Actor API implementation for actor management.

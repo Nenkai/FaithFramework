@@ -10,7 +10,7 @@ using FF16Tools.Files.Magic;
 using FF16Tools.Files.Magic.Factories;
 using FF16Tools.Files.Magic.Operations;
 
-namespace FF16Framework.Services.GameApis.Magic;
+namespace FF16Framework.Services.Faith.GameApis.Magic;
 
 /// <summary>
 /// Represents a set of modifications registered by a mod.

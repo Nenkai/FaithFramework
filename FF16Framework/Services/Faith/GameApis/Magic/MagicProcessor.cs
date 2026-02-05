@@ -3,13 +3,13 @@ using Reloaded.Hooks.Definitions;
 using Reloaded.Mod.Interfaces;
 using FF16Framework;
 using FF16Framework.Faith.Hooks;
-using FF16Framework.Services.GameApis.Actor;
+using FF16Framework.Services.Faith.GameApis.Actor;
 using FF16Framework.Faith.Structs;
 using FF16Framework.Interfaces.GameApis.Magic;
 using FF16Tools.Files.Magic;
 using FF16Tools.Files.Magic.Factories;
 
-namespace FF16Framework.Services.GameApis.Magic;
+namespace FF16Framework.Services.Faith.GameApis.Magic;
 
 /// <summary>
 /// Handles magic file processing, property modification, and injection logic.
