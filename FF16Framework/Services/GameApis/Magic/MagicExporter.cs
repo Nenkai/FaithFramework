@@ -15,7 +15,8 @@ internal static class MagicExporter
     private static readonly JsonSerializerOptions _jsonOptions = new()
     {
         WriteIndented = true,
-        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+        Converters = { new JsonStringEnumConverter() }
     };
     
     /// <summary>
@@ -53,14 +54,14 @@ internal static class MagicExporter
             foreach (var operation in group.OperationList.Operations)
             {
                 // Export the Operation with all its properties
-                var properties = new List<PropertyValuePair>();
+                var properties = new Dictionary<int, object>();
                 foreach (var property in operation.Properties)
                 {
-                    properties.Add(new PropertyValuePair
+                    var value = ExtractPropertyValue(property);
+                    if (value != null)
                     {
-                        PropertyId = (int)property.Type,
-                        Value = ExtractPropertyValue(property)
-                    });
+                        properties[(int)property.Type] = value;
+                    }
                 }
                 
                 config.Modifications.Add(new MagicModificationConfig
