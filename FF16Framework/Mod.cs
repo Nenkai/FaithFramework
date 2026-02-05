@@ -281,15 +281,10 @@ public class Mod : ModBase, IExports // <= Do not Remove.
             {
                 var logger = provider.GetRequiredService<Reloaded.Mod.Interfaces.ILogger>();
                 var modConfig = provider.GetRequiredService<IModConfig>();
-                var hooks = provider.GetRequiredService<IReloadedHooks>();
-                
-                var scannerController = _modLoader.GetController<IStartupScanner>();
-                if (!scannerController.TryGetTarget(out var scanner))
-                    throw new Exception("Could not get IStartupScanner");
+                var entityHooks = provider.GetRequiredService<EntityManagerHooks>();
+                var list35Hooks = provider.GetRequiredService<UnkList35Hooks>();
 
-                var api = new ActorApi(logger, modConfig);
-                api.SetupScans(scanner, hooks);
-                return api;
+                return new ActorApi(logger, modConfig, entityHooks, list35Hooks);
             })
             .AddSingleton<IActorApi>(provider => provider.GetRequiredService<ActorApi>())
             .AddSingleton<IMagicApi>(provider =>
