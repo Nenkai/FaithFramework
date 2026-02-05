@@ -66,13 +66,6 @@ public interface IMagicApi
     nint GetPlayerActor();
     
     /// <summary>
-    /// Registers a handler that can intercept and modify charged shots.
-    /// The handler receives the active Eikon ID and returns true to suppress the shot.
-    /// </summary>
-    /// <param name="handler">The handler function.</param>
-    void RegisterChargedShotHandler(Func<int, bool> handler);
-    
-    /// <summary>
     /// Creates a spell builder from a JSON configuration.
     /// </summary>
     /// <param name="json">JSON string containing spell modifications.</param>

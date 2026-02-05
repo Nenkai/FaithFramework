@@ -197,7 +197,7 @@ public class MagicEditor
                 imgui.Text("Source:"u8);
                 imgui.SameLine();
                 imgui.SetNextItemWidth(150f);
-                if (imgui.BeginCombo("##Source"u8, _castSource.ToString()))
+                if (imgui.BeginCombo("##Source", _castSource.ToString()))
                 {
                     foreach (var val in Enum.GetValues<ActorSelection>())
                     {
@@ -211,7 +211,7 @@ public class MagicEditor
                 imgui.Text("Target:"u8);
                 imgui.SameLine();
                 imgui.SetNextItemWidth(150f);
-                if (imgui.BeginCombo("##Target"u8, _castTarget.ToString()))
+                if (imgui.BeginCombo("##Target", _castTarget.ToString()))
                 {
                     foreach (var val in Enum.GetValues<ActorSelection>())
                     {

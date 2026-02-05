@@ -277,7 +277,7 @@ public class Mod : ModBase, IExports // <= Do not Remove.
             .AddSingleton<AboutWindow>()
 
             // Game APIs
-            .AddSingleton<IActorApi>(provider =>
+            .AddSingleton<ActorApi>(provider =>
             {
                 var logger = provider.GetRequiredService<Reloaded.Mod.Interfaces.ILogger>();
                 var modConfig = provider.GetRequiredService<IModConfig>();
@@ -291,25 +291,16 @@ public class Mod : ModBase, IExports // <= Do not Remove.
                 api.SetupScans(scanner, hooks);
                 return api;
             })
+            .AddSingleton<IActorApi>(provider => provider.GetRequiredService<ActorApi>())
             .AddSingleton<IMagicApi>(provider =>
             {
                 var logger = provider.GetRequiredService<Reloaded.Mod.Interfaces.ILogger>();
                 var modConfig = provider.GetRequiredService<IModConfig>();
                 var frameworkConfig = provider.GetRequiredService<FrameworkConfig>();
-                var hooks = provider.GetRequiredService<IReloadedHooks>();
-                var resourceManagerService = provider.GetRequiredService<ResourceManagerService>();
+                var magicHooks = provider.GetRequiredService<MagicHooks>();
+                var actorApi = provider.GetRequiredService<ActorApi>();
                 
-                var scannerController = _modLoader.GetController<IStartupScanner>();
-                if (!scannerController.TryGetTarget(out var scanner))
-                    throw new Exception("Could not get IStartupScanner");
-
-                var actorApi = provider.GetRequiredService<IActorApi>();
-                
-                var magicApi = new MagicApi(logger, modConfig.ModId, frameworkConfig, scanner);
-                
-                // Initialize it
-                magicApi.SetupScans(scanner, hooks);
-                magicApi.InitializeProcessor(hooks);
+                var magicApi = new MagicApi(logger, modConfig.ModId, frameworkConfig, magicHooks);
                 magicApi.SetActorApi(actorApi);
                 
                 return magicApi;

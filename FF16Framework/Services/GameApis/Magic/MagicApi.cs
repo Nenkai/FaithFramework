@@ -1,10 +1,8 @@
 using System.Text.Json;
-using Reloaded.Hooks.Definitions;
-using Reloaded.Memory.SigScan.ReloadedII.Interfaces;
 using Reloaded.Mod.Interfaces;
 using FF16Framework;
+using FF16Framework.Faith.Hooks;
 using FF16Framework.Interfaces.GameApis.Magic;
-using FF16Framework.Interfaces.GameApis.Actor;
 using FF16Framework.Services.GameApis.Actor;
 
 namespace FF16Framework.Services.GameApis.Magic;
@@ -19,11 +17,11 @@ public class MagicApi : IMagicApi, IDisposable
     private readonly string _modId;
     private readonly MagicCastingEngine _engine;
 
-    internal MagicApi(ILogger logger, string modId, FrameworkConfig frameworkConfig, IStartupScanner scanner)
+    internal MagicApi(ILogger logger, string modId, FrameworkConfig frameworkConfig, MagicHooks magicHooks)
     {
         _logger = logger;
         _modId = modId;
-        _engine = new MagicCastingEngine(logger, modId, frameworkConfig, scanner);
+        _engine = new MagicCastingEngine(logger, modId, frameworkConfig, magicHooks);
         
         _logger.WriteLine($"[{_modId}] [MagicApi] Initialized", _logger.ColorGreen);
     }
@@ -32,25 +30,10 @@ public class MagicApi : IMagicApi, IDisposable
     // INITIALIZATION (Internal)
     // ========================================
     
-    internal void SetupScans(IStartupScanner scans, IReloadedHooks hooks)
-    {
-        _engine.SetupScans(scans, hooks);
-    }
-    
-    internal void InitializeProcessor(IReloadedHooks hooks)
-    {
-        _engine.InitializeProcessor(hooks);
-    }
-    
-    internal void SetCallbacks(Func<int>? getActiveEikon)
-    {
-        _engine.GetActiveEikon = getActiveEikon;
-    }
-    
     /// <summary>
     /// Sets the ActorApi for consolidated actor/player management.
     /// </summary>
-    internal void SetActorApi(IActorApi actorApi)
+    internal void SetActorApi(ActorApi actorApi)
     {
         _engine.SetActorApi(actorApi);
     }
@@ -99,11 +82,7 @@ public class MagicApi : IMagicApi, IDisposable
         return _engine.GetPlayerActor();
     }
     
-    /// <inheritdoc/>
-    public void RegisterChargedShotHandler(Func<int, bool> handler)
-    {
-        _engine.OnChargedShotDetected = handler;
-    }
+
     
     /// <inheritdoc/>
     public IMagicBuilder? ImportFromJson(string json)

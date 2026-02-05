@@ -44,12 +44,11 @@ public interface IActorApi
     nint GetLockedTargetStaticActorInfo();
     
     /// <summary>
-    /// Copies the game's own TargetStruct for the currently locked enemy.
-    /// This is the correct way to get body-targeting position (Y≈1.23 instead of Y≈0.26).
-    /// The game's targeting system already calculates the correct position.
+    /// Gets target info for the currently locked enemy.
+    /// This is the correct way to get body-targeting position.
     /// </summary>
-    /// <returns>A copy of the game's TargetStruct with Type=1 forced, or null if no target.</returns>
-    TargetStruct? CopyGameTargetStruct();
+    /// <returns>Target info with position and actor ID, or null if no target.</returns>
+    ITargetInfo? CopyGameTargetInfo();
     
     // ============================================================
     // ACTOR LOOKUP API
@@ -68,22 +67,20 @@ public interface IActorApi
     // ============================================================
     
     /// <summary>
-    /// Creates a TargetStruct from a StaticActorInfo with actor tracking.
-    /// Uses Type=1 so the spell will follow/track the target.
+    /// Creates target info from a StaticActorInfo with actor tracking.
+    /// The returned info includes the actor ID for spell tracking.
     /// </summary>
     /// <param name="staticActorInfo">The target actor's StaticActorInfo pointer.</param>
-    /// <returns>A TargetStruct configured for tracking, or null if failed.</returns>
-    TargetStruct? CreateTargetFromActorWithTracking(nint staticActorInfo);
+    /// <returns>Target info with actor tracking, or null if failed.</returns>
+    ITargetInfo? CreateTargetFromActorWithTracking(nint staticActorInfo);
     
     /// <summary>
-    /// Creates a TargetStruct from a StaticActorInfo's position only.
-    /// Uses Type=0 (position-based, no tracking).
+    /// Creates target info from a StaticActorInfo's position only.
+    /// No actor tracking (position-based targeting).
     /// </summary>
     /// <param name="staticActorInfo">The target actor's StaticActorInfo pointer.</param>
-    /// <returns>A TargetStruct with position only, or null if failed.</returns>
-    TargetStruct? CreateTargetFromActor(nint staticActorInfo);
-    
-
+    /// <returns>Target info with position only, or null if failed.</returns>
+    ITargetInfo? CreateTargetFromActor(nint staticActorInfo);
     
     // ============================================================
     // ACTOR DATA API

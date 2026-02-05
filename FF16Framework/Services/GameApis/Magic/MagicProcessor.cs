@@ -1,8 +1,8 @@
 using System.Numerics;
 using Reloaded.Hooks.Definitions;
-using Reloaded.Memory.SigScan.ReloadedII.Interfaces;
 using Reloaded.Mod.Interfaces;
 using FF16Framework;
+using FF16Framework.Faith.Hooks;
 using FF16Framework.Services.GameApis.Actor;
 using FF16Framework.Faith.Structs;
 using FF16Framework.Interfaces.GameApis.Magic;
@@ -17,32 +17,6 @@ namespace FF16Framework.Services.GameApis.Magic;
 /// </summary>
 internal unsafe class MagicProcessor
 {
-    // ============================================================
-    // DELEGATES
-    // ============================================================
-    
-    [Reloaded.Hooks.Definitions.X64.Function(Reloaded.Hooks.Definitions.X64.CallingConventions.Microsoft)]
-    public delegate void MagicUnkExecuteDelegate(long magicFileInstance, int opType, int propertyId, long dataPtr);
-
-    [Reloaded.Hooks.Definitions.X64.Function(Reloaded.Hooks.Definitions.X64.CallingConventions.Microsoft)]
-    public delegate long GenericMagicDelegate(long a1, long a2, long a3, long a4);
-
-    // ============================================================
-    // CONSTANTS
-    // ============================================================
-    
-    private const string MAGIC_UNK_EXECUTE_SIG = "48 89 5C 24 08 48 89 74 24 10 57 48 83 EC 20 49 8B F9 41 8B D8 8B F2 41 83 F8 02 75 2F 48 8D 59 10 48 8D B9 10 01 00 00 EB 1B 48 8B 0B 48 85 C9 74 0F 39 71 20 75 0A";
-    private const string MAGIC_FILE_PROCESS_SIG = "48 8B C4 48 89 58 ?? 55 56 57 41 54 41 55 41 56 41 57 48 8D 68 ?? 48 81 EC ?? ?? ?? ?? C5 F8 29 70 ?? 48 8B 05 ?? ?? ?? ?? 48 33 C4 48 89 45 ?? 45 33 F6 48 89 55";
-    private const string MAGIC_FILE_HANDLE_SUB_ENTRY_SIG = "40 55 53 56 57 41 54 41 56 41 57 48 8B EC 48 83 EC ?? 48 8D 59";
-
-    // ============================================================
-    // HOOKS
-    // ============================================================
-    
-    private IHook<MagicUnkExecuteDelegate>? _magicUnkExecuteHook;
-    private IHook<GenericMagicDelegate>? _magicFileProcessHook;
-    private IHook<GenericMagicDelegate>? _magicFileHandleSubEntryHook;
-
     // ============================================================
     // STATE - Queues and Trackers
     // ============================================================
@@ -63,58 +37,24 @@ internal unsafe class MagicProcessor
     
     private readonly ILogger _logger;
     private readonly string _modId;
-    private readonly IStartupScanner _scanner;
+    private readonly MagicHooks _magicHooks;
     private FrameworkConfig _frameworkConfig;
 
     // ============================================================
     // CONSTRUCTOR
     // ============================================================
     
-    public MagicProcessor(ILogger logger, string modId, FrameworkConfig frameworkConfig, IStartupScanner scanner)
+    public MagicProcessor(ILogger logger, string modId, FrameworkConfig frameworkConfig, MagicHooks magicHooks)
     {
         _logger = logger;
         _modId = modId;
         _frameworkConfig = frameworkConfig;
-        _scanner = scanner;
-    }
-
-    // ============================================================
-    // INITIALIZATION
-    // ============================================================
-    
-    /// <summary>
-    /// Sets up hooks for magic file processing.
-    /// </summary>
-    public void SetupScans(IReloadedHooks hooks)
-    {
-        // Hook: MagicUnkExecute - Main property interception point
-        // Called for each property value in a .magic file during execution.
-        // Allows fuzzing/overriding values and logging property data.
-        _scanner.AddScan(MAGIC_UNK_EXECUTE_SIG, address =>
-        {
-            _magicUnkExecuteHook = hooks.CreateHook<MagicUnkExecuteDelegate>(MagicUnkExecuteImpl, address).Activate();
-            _logger.WriteLine($"[{_modId}] [MagicProcessor] Hooked MagicUnkExecute at 0x{address:X}", _logger.ColorGreen);
-        });
-
-        // Hook: MagicFile::Process - Operation group lifecycle management
-        // Called once per operation group. Resets all trackers at start.
-        // After original execution, processes any remaining pending injections
-        // and end-of-group injections (InjectAfterOp == -1).
-        _scanner.AddScan(MAGIC_FILE_PROCESS_SIG, address =>
-        {
-            _magicFileProcessHook = hooks.CreateHook<GenericMagicDelegate>(MagicFileProcessImpl, address).Activate();
-            _logger.WriteLine($"[{_modId}] [MagicProcessor] Hooked MagicFile::Process at 0x{address:X}", _logger.ColorGreen);
-        });
-
-        // Hook: MagicFile::HandleSubEntry - Operation transition detection
-        // Called when processing each sub-entry (individual operation).
-        // Detects opType changes and triggers CheckOpChange to process
-        // pending injections and queue new ones based on InjectAfterOp.
-        _scanner.AddScan(MAGIC_FILE_HANDLE_SUB_ENTRY_SIG, address =>
-        {
-            _magicFileHandleSubEntryHook = hooks.CreateHook<GenericMagicDelegate>(MagicFileHandleSubEntryImpl, address).Activate();
-            _logger.WriteLine($"[{_modId}] [MagicProcessor] Hooked MagicFile::HandleSubEntry at 0x{address:X}", _logger.ColorGreen);
-        });
+        _magicHooks = magicHooks;
+        
+        // Register callbacks with MagicHooks
+        _magicHooks.OnMagicFileUnkExecute = MagicUnkExecuteImpl;
+        _magicHooks.OnMagicFileProcess = MagicFileProcessImpl;
+        _magicHooks.OnMagicFileHandleSubEntry = MagicFileHandleSubEntryImpl;
     }
 
     // ============================================================
@@ -173,7 +113,7 @@ internal unsafe class MagicProcessor
 
         try
         {
-            long result = _magicFileProcessHook!.OriginalFunction(a1, a2, a3, a4);
+            long result = _magicHooks.MagicFile_ProcessHook!.OriginalFunction(a1, a2, a3, a4);
 
             // Process remaining injections at end of group
             if (_pendingInjections.Count > 0)
@@ -226,7 +166,7 @@ internal unsafe class MagicProcessor
     {
         int opType = (int)a2;
         CheckOpChange(a1, opType);
-        return _magicFileHandleSubEntryHook!.OriginalFunction(a1, a2, a3, a4);
+        return _magicHooks.MagicFile_HandleSubEntryHook!.OriginalFunction(a1, a2, a3, a4);
     }
 
     private void MagicUnkExecuteImpl(long magicFileInstance, int opType, int propertyId, long dataPtr)
@@ -271,7 +211,7 @@ internal unsafe class MagicProcessor
         if (activeEntries == null)
         {
             // Execute original and exit if no active modifications
-            _magicUnkExecuteHook!.OriginalFunction(magicFileInstance, opType, propertyId, dataPtr);
+            _magicHooks.MagicFile_UnkExecuteHook!.OriginalFunction(magicFileInstance, opType, propertyId, dataPtr);
             return;
         }
 
@@ -298,7 +238,7 @@ internal unsafe class MagicProcessor
             magicId, groupId, propOccurrence, valuePtr);
 
         // Execute original
-        _magicUnkExecuteHook!.OriginalFunction(magicFileInstance, opType, propertyId, dataPtr);
+        _magicHooks.MagicFile_UnkExecuteHook!.OriginalFunction(magicFileInstance, opType, propertyId, dataPtr);
 
         // Restore original value
         if (isFuzzed && activeEntry != null)

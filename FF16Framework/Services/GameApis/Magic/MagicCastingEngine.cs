@@ -1,14 +1,12 @@
 using System.Numerics;
 using System.Runtime.InteropServices;
 using Reloaded.Hooks.Definitions;
-using Reloaded.Memory.SigScan.ReloadedII.Interfaces;
 using Reloaded.Mod.Interfaces;
 using FF16Framework;
+using FF16Framework.Faith.Hooks;
 using FF16Framework.Faith.Structs;
 using FF16Framework.Services.GameApis.Actor;
-using FF16Framework.Interfaces.GameApis.Actor;
 using FF16Framework.Interfaces.GameApis.Magic;
-using FF16Framework.Interfaces.GameApis.Structs;
 
 namespace FF16Framework.Services.GameApis.Magic;
 
@@ -20,31 +18,6 @@ namespace FF16Framework.Services.GameApis.Magic;
 internal unsafe class MagicCastingEngine : IDisposable
 {
     // ============================================================
-    // DELEGATES
-    // ============================================================
-
-    [Reloaded.Hooks.Definitions.X64.Function(Reloaded.Hooks.Definitions.X64.CallingConventions.Microsoft)]
-    public delegate long SetupMagicDelegate(long battleMagicPtr, int magicId, long casterActorRef, long positionStruct, int commandId, int actionID, byte flag);
-    
-    [Reloaded.Hooks.Definitions.X64.Function(Reloaded.Hooks.Definitions.X64.CallingConventions.Microsoft)]
-    public delegate char CastMagicDelegate(long a1, long unkMagicStructPtr);
-
-    [Reloaded.Hooks.Definitions.X64.Function(Reloaded.Hooks.Definitions.X64.CallingConventions.Microsoft)]
-    public delegate char FireMagicProjectileDelegate(long magicManagerPtr, long projectileDataPtr);
-    
-    [Reloaded.Hooks.Definitions.X64.Function(Reloaded.Hooks.Definitions.X64.CallingConventions.Microsoft)]
-    public delegate long* UnkTargetStructCreateDelegate(long manager, long* outResult);
-    
-    // ============================================================
-    // SIGNATURES
-    // ============================================================
-    private const string SETUP_MAGIC_SIG = "48 8B C4 48 89 58 08 48 89 70 10 57 48 83 EC 60 8B FA 66 C7 40 E8 01 00 48 8B F1 C6 40 EA 00 C5 F9 EF C0 49 8B D1 48 8D 48 D8 C5 FA 7F 40 D8 49 8B D8";
-    private const string CAST_MAGIC_SIG = "48 89 5C 24 10 48 89 74 24 18 57 48 83 EC 20 48 8B 41 10 48 8B F2 48 8B 0D";
-    private const string INSERT_NEW_MAGIC_SIG = "40 53 48 83 EC 20 48 8B DA 4C 8B D9 8B 92 EC 00";
-    private const string FIRE_MAGIC_PROJECTILE_SIG = "48 89 5C 24 10 48 89 74 24 18 48 89 7C 24 20 55 41 54 41 55 41 56 41 57 48 8d 6C 24 90 48 81 EC 70 01 00 00 48 8B 05 2D 0F 1A 01 48 33 C4 48 89 45 60 48 8B 51 38 4C 8B E1 44 8B 42 10 41 83 E8 01 0F 84 B6 01 00 00";
-    private const string UNK_TARGET_STRUCT_CREATE_SIG = "48 89 5C 24 ?? 48 89 74 24 ?? 48 89 7C 24 ?? 41 56 48 83 EC ?? 48 8D 99 ?? ?? ?? ?? 48 8B F1";
-    
-    // ============================================================
     // CONSTANTS
     // ============================================================
     
@@ -52,16 +25,6 @@ internal unsafe class MagicCastingEngine : IDisposable
     private const int DEFAULT_ACTION_ID = 218;
     private const byte DEFAULT_FLAG = 1;
     private const int MAGIC_STRUCT_SIZE = 0x108;
-    
-    // ============================================================
-    // HOOKS & FUNCTION POINTERS
-    // ============================================================
-    
-    private IHook<SetupMagicDelegate>? _setupMagicHook;
-    private IHook<CastMagicDelegate>? _castMagicHook;
-    private IHook<FireMagicProjectileDelegate>? _fireMagicProjectileHook;
-    private IHook<UnkTargetStructCreateDelegate>? _unkTargetStructCreateHook;
-    private CastMagicDelegate? _castMagicWrapper;
     
     // ============================================================
     // CACHED CONTEXT
@@ -80,8 +43,6 @@ internal unsafe class MagicCastingEngine : IDisposable
     private int _cachedCommandId = 0;
     private int _cachedActionId = 0;
     private byte _cachedFlag = 0;
-    private long _cachedExecutorClient = 0;
-    private bool _hasMagicContext = false;
     
     // ============================================================
     // DEPENDENCIES
@@ -89,15 +50,12 @@ internal unsafe class MagicCastingEngine : IDisposable
     
     private readonly ILogger _logger;
     private readonly string _modId;
+    private readonly MagicHooks _magicHooks;
     private readonly MagicProcessor _processor;
     private readonly long _baseAddress;
     
-    // Actor API reference for actor/player management
-    private IActorApi? _actorApi;
-    
-    // Callback for active Eikon detection (still needed for Eikon-specific behavior)
-    public Func<int>? GetActiveEikon { get; set; }
-    public Func<int, bool>? OnChargedShotDetected { get; set; }
+    // Actor API reference for actor/player management (internal, not interface)
+    private ActorApi? _actorApi;
     
     // ============================================================
     // PROPERTIES
@@ -105,9 +63,8 @@ internal unsafe class MagicCastingEngine : IDisposable
     
     /// <summary>
     /// Returns true if we can cast spells.
-    /// With explicit source/target support, we may not need cached context anymore.
     /// </summary>
-    public bool IsReady => _setupMagicHook != null && _castMagicWrapper != null;
+    public bool IsReady => _magicHooks.Magic_SetupHook != null && _magicHooks.BattleMagicExecutor_InsertMagicHook != null;
     
     // ============================================================
     // CONSTRUCTOR
@@ -115,14 +72,19 @@ internal unsafe class MagicCastingEngine : IDisposable
     
     private const int TARGET_STRUCT_SIZE = 0x7C;  // Size of TargetStruct (UnkTargetStruct)
     
-    public MagicCastingEngine(ILogger logger, string modId, FrameworkConfig frameworkConfig, IStartupScanner scanner)
+    public MagicCastingEngine(ILogger logger, string modId, FrameworkConfig frameworkConfig, MagicHooks magicHooks)
     {
         _logger = logger;
         _modId = modId;
+        _magicHooks = magicHooks;
         _baseAddress = System.Diagnostics.Process.GetCurrentProcess().MainModule!.BaseAddress;
         
         // Create processor component
-        _processor = new MagicProcessor(logger, modId, frameworkConfig, scanner);
+        _processor = new MagicProcessor(logger, modId, frameworkConfig, magicHooks);
+        
+        // Register callbacks with MagicHooks
+        _magicHooks.OnMagicSetup = SetupMagicImpl;
+        _magicHooks.OnTargetStructCreate = TargetStructCreateImpl;
         
         _logger.WriteLine($"[{_modId}] [MagicCastingEngine] Initialized (using per-cast buffer allocation)", _logger.ColorGreen);
     }
@@ -130,52 +92,9 @@ internal unsafe class MagicCastingEngine : IDisposable
     /// <summary>
     /// Sets the ActorApi reference for actor/player management.
     /// </summary>
-    public void SetActorApi(IActorApi actorApi)
+    internal void SetActorApi(ActorApi actorApi)
     {
         _actorApi = actorApi;
-    }
-    
-    // ============================================================
-    // INITIALIZATION
-    // ============================================================
-    
-    public void SetupScans(IStartupScanner scans, IReloadedHooks hooks)
-    {
-        scans.AddScan(SETUP_MAGIC_SIG, address =>
-        {
-            _setupMagicHook = hooks.CreateHook<SetupMagicDelegate>(SetupMagicImpl, address).Activate();
-            _logger.WriteLine($"[{_modId}] [MagicCastingEngine] Hooked SetupMagic at 0x{address:X}", _logger.ColorGreen);
-        });
-        
-        scans.AddScan(CAST_MAGIC_SIG, address =>
-        {
-            _castMagicHook = hooks.CreateHook<CastMagicDelegate>(CastMagicImpl, address).Activate();
-            _logger.WriteLine($"[{_modId}] [MagicCastingEngine] Hooked CastMagic at 0x{address:X}", _logger.ColorGreen);
-        });
-
-        scans.AddScan(INSERT_NEW_MAGIC_SIG, address =>
-        {
-            _castMagicWrapper = hooks.CreateWrapper<CastMagicDelegate>(address, out _);
-            _logger.WriteLine($"[{_modId}] [MagicCastingEngine] Resolved InsertNewMagic at 0x{address:X}", _logger.ColorGreen);
-        });
-
-        scans.AddScan(FIRE_MAGIC_PROJECTILE_SIG, address =>
-        {
-            _fireMagicProjectileHook = hooks.CreateHook<FireMagicProjectileDelegate>(FireMagicProjectileImpl, address).Activate();
-            _logger.WriteLine($"[{_modId}] [MagicCastingEngine] Hooked FireMagicProjectile at 0x{address:X}", _logger.ColorGreen);
-        });
-        
-        // Hook UnkTargetStruct::Create to capture VTable automatically
-        scans.AddScan(UNK_TARGET_STRUCT_CREATE_SIG, address =>
-        {
-            _unkTargetStructCreateHook = hooks.CreateHook<UnkTargetStructCreateDelegate>(UnkTargetStructCreateImpl, address).Activate();
-            _logger.WriteLine($"[{_modId}] [MagicCastingEngine] Hooked UnkTargetStruct::Create at 0x{address:X}", _logger.ColorGreen);
-        });
-    }
-    
-    public void InitializeProcessor(IReloadedHooks hooks)
-    {
-        _processor.SetupScans(hooks);
     }
     
     // ============================================================
@@ -281,7 +200,7 @@ internal unsafe class MagicCastingEngine : IDisposable
         // HIGHEST PRIORITY: UseGameTarget - copy the game's own TargetStruct directly
         if (request.UseGameTarget && _actorApi != null)
         {
-            var gameTarget = _actorApi.CopyGameTargetStruct();
+            var gameTarget = _actorApi.CopyGameTargetStructInternal();
             if (gameTarget.HasValue)
             {
                 *(TargetStruct*)targetBuffer = gameTarget.Value;
@@ -312,7 +231,7 @@ internal unsafe class MagicCastingEngine : IDisposable
             // Create TargetStruct from explicit target actor with tracking
             if (_actorApi != null)
             {
-                var targetResult = _actorApi.CreateTargetFromActorWithTracking(request.TargetActor.Value);
+                var targetResult = _actorApi.CreateTargetStructWithTracking(request.TargetActor.Value);
                 if (targetResult.HasValue)
                 {
                     *(TargetStruct*)targetBuffer = targetResult.Value;
@@ -327,7 +246,7 @@ internal unsafe class MagicCastingEngine : IDisposable
             var lockedTarget = GetLockedTarget();
             if (lockedTarget != nint.Zero && _actorApi != null)
             {
-                var targetResult = _actorApi.CreateTargetFromActorWithTracking(lockedTarget);
+                var targetResult = _actorApi.CreateTargetStructWithTracking(lockedTarget);
                 if (targetResult.HasValue)
                 {
                     *(TargetStruct*)targetBuffer = targetResult.Value;
@@ -361,7 +280,7 @@ internal unsafe class MagicCastingEngine : IDisposable
             
             if (sourceForPosition != nint.Zero)
             {
-                var targetResult = _actorApi.CreateTargetFromActor(sourceForPosition);
+                var targetResult = _actorApi.CreateTargetStructFromPosition(sourceForPosition);
                 if (targetResult.HasValue)
                 {
                     *(TargetStruct*)targetBuffer = targetResult.Value;
@@ -431,7 +350,7 @@ internal unsafe class MagicCastingEngine : IDisposable
             _logger.WriteLine($"[{_modId}] [CastSpell] Calling SetupMagic: MagicId={request.MagicId}, ActorRef=0x{casterActorRef:X}, TargetPtr=0x{targetStructPtr:X}, CmdId={commandId}, ActId={actionId}, Flag={flag}", _logger.ColorYellow);
             
             // Setup the magic struct
-            _setupMagicHook!.OriginalFunction(
+            _magicHooks.Magic_SetupHook!.OriginalFunction(
                 (long)magicBuffer, 
                 request.MagicId, 
                 casterActorRef, 
@@ -443,16 +362,14 @@ internal unsafe class MagicCastingEngine : IDisposable
             
             _logger.WriteLine($"[{_modId}] [CastSpell] SetupMagic completed successfully", _logger.ColorGreen);
             
-            // Get executor client
+            // Get executor client from global singleton
             long executorClient = *(long*)(_baseAddress + GlobalOffsets.BattleMagicExecutor);
-            _logger.WriteLine($"[{_modId}] [CastSpell] ExecutorClient from global: 0x{executorClient:X}, Cached: 0x{_cachedExecutorClient:X}", _logger.ColorYellow);
-            
-            if (executorClient == 0) executorClient = _cachedExecutorClient;
+            _logger.WriteLine($"[{_modId}] [CastSpell] ExecutorClient from global: 0x{executorClient:X}", _logger.ColorYellow);
             
             if (executorClient != 0)
             {
                 _logger.WriteLine($"[{_modId}] [CastSpell] Calling InsertNewMagic with executor 0x{executorClient:X}", _logger.ColorYellow);
-                _castMagicWrapper!((long)executorClient, (long)magicBuffer);
+                _magicHooks.BattleMagicExecutor_InsertMagicHook.OriginalFunction((nint)executorClient, (BattleMagic*)magicBuffer);
                 _logger.WriteLine($"[{_modId}] [CastSpell] InsertNewMagic completed successfully", _logger.ColorGreen);
                 return true;
             }
@@ -478,7 +395,7 @@ internal unsafe class MagicCastingEngine : IDisposable
     }
     
     // ============================================================
-    // HOOK IMPLEMENTATIONS
+    // HOOK IMPLEMENTATIONS (called by MagicHooks via callbacks)
     // ============================================================
     
     private long SetupMagicImpl(long battleMagicPtr, int magicId, long casterActorRef, long positionStruct, int commandId, int actionID, byte flag)
@@ -498,28 +415,17 @@ internal unsafe class MagicCastingEngine : IDisposable
             _logger.WriteLine($"[{_modId}] [MagicCastingEngine] Captured TargetStruct VTable: 0x{_cachedTargetVTable:X}", _logger.ColorGreen);
         }
         
-        return _setupMagicHook!.OriginalFunction(battleMagicPtr, magicId, casterActorRef, positionStruct, commandId, actionID, flag);
-    }
-    
-    private char CastMagicImpl(long a1, long unkMagicStructPtr)
-    {
-        if (!_hasMagicContext)
-            _logger.WriteLine($"[{_modId}] [MagicCastingEngine] Captured Magic Context", _logger.ColorGreen);
-        
-        _cachedExecutorClient = a1;
-        _hasMagicContext = true;
-        
-        return _castMagicHook!.OriginalFunction(a1, unkMagicStructPtr);
+        return _magicHooks.Magic_SetupHook!.OriginalFunction(battleMagicPtr, magicId, casterActorRef, positionStruct, commandId, actionID, flag);
     }
     
     /// <summary>
-    /// Hook for UnkTargetStruct::Create - captures VTable from newly created TargetStructs.
+    /// Hook for TargetStruct::Create - captures VTable from newly created TargetStructs.
     /// This allows us to get the VTable without the player needing to cast a spell first.
     /// </summary>
-    private long* UnkTargetStructCreateImpl(long manager, long* outResult)
+    private long* TargetStructCreateImpl(long manager, long* outResult)
     {
         // Call original function first
-        var result = _unkTargetStructCreateHook!.OriginalFunction(manager, outResult);
+        var result = _magicHooks.TargetStruct_CreateHook!.OriginalFunction(manager, outResult);
         
         // Capture VTable from the created struct (first time only)
         if (_cachedTargetVTable == 0 && result != null && *result != 0)
@@ -530,31 +436,11 @@ internal unsafe class MagicCastingEngine : IDisposable
             if (createdStruct->VTable != 0)
             {
                 _cachedTargetVTable = createdStruct->VTable;
-                _logger.WriteLine($"[{_modId}] [MagicCastingEngine] Captured VTable from UnkTargetStruct::Create: 0x{_cachedTargetVTable:X}", _logger.ColorGreen);
+                _logger.WriteLine($"[{_modId}] [MagicCastingEngine] Captured VTable from TargetStruct::Create: 0x{_cachedTargetVTable:X}", _logger.ColorGreen);
             }
         }
         
         return result;
-    }
-
-    private char FireMagicProjectileImpl(long magicManagerPtr, long projectileDataPtr)
-    {
-        if (magicManagerPtr != 0)
-        {
-            int shotType = MagicManagerHelper.GetShotTypeFromManager(magicManagerPtr);
-            
-            if (shotType == (int)MagicShotType.Charged && OnChargedShotDetected != null && GetActiveEikon != null)
-            {
-                int activeEikon = GetActiveEikon();
-                if (OnChargedShotDetected(activeEikon))
-                {
-                    _logger.WriteLine($"[{_modId}] [MagicCastingEngine] Suppressing Charged Shot for Eikon {activeEikon}", _logger.ColorYellow);
-                    return (char)0;
-                }
-            }
-        }
-
-        return _fireMagicProjectileHook!.OriginalFunction(magicManagerPtr, projectileDataPtr);
     }
     
     // ============================================================
@@ -727,8 +613,6 @@ internal unsafe class MagicCastingEngine : IDisposable
     
     public void Reset()
     {
-        _hasMagicContext = false;
-        _cachedExecutorClient = 0;
         _cachedCasterActorRef = 0;
         _cachedPositionStruct = 0;
         _cachedCommandId = 0;

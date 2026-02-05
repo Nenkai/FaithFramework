@@ -87,7 +87,7 @@ public interface IMagicWriter
     /// <remarks>
     /// Example paths:
     /// - characterId="c1001", magicFileName=null → "chara/c1001/magic/c1001.magic"
-    /// - characterId="c1001", magicFileName="custom" → "chara/c1001/magic/custom.magic"
+    /// - characterId="c1001", magicFileName="c1001_101" → "chara/c1001/magic/c1001_101.magic"
     /// </remarks>
     MagicWriterHandle Register(
         string modId,

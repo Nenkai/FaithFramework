@@ -3,16 +3,17 @@ using System.Runtime.InteropServices;
 namespace FF16Framework.Faith.Structs;
 
 // ============================================================
-// BATTLE MAGIC STRUCT
+// BATTLE MAGIC STRUCT (Deprecated - use MagicHooks.BattleMagic instead)
 // ============================================================
 
 /// <summary>
 /// BattleMagic structure used by SetupMagic.
 /// This is the 'this' parameter in faith::Battle::Magic::SetupMagic.
 /// Size is approximately 0xE0 based on IDA analysis.
+/// DEPRECATED: Use FF16Framework.Faith.Hooks.BattleMagic instead.
 /// </summary>
 [StructLayout(LayoutKind.Explicit, Size = 0xE0)]
-internal unsafe struct BattleMagic
+internal unsafe struct BattleMagicLegacy
 {
     /// <summary>
     /// VTable pointer - initialized to g_off_7FF6A3500598 in game code.

@@ -6,6 +6,7 @@ using FF16Framework.Faith.Structs;
 using FF16Framework.Faith.Hooks;
 using FF16Framework.Interfaces.GameApis.Actor;
 using FF16Framework.Interfaces.GameApis.Structs;
+using FF16Framework.Services.GameApis.Structs;
 
 namespace FF16Framework.Services.GameApis.Actor;
 
@@ -379,47 +380,20 @@ public unsafe class ActorApi : IActorApi
     }
     
     /// <inheritdoc/>
-    public TargetStruct? CopyGameTargetStruct()
+    public ITargetInfo? CopyGameTargetInfo()
     {
         var gameTarget = GetTargetedEnemy();
         if (gameTarget == null)
         {
-            _logger.WriteLine($"[{_modConfig.ModId}] [ActorApi] CopyGameTargetStruct: No target locked", _logger.ColorYellow);
+            _logger.WriteLine($"[{_modConfig.ModId}] [ActorApi] CopyGameTargetInfo: No target locked", _logger.ColorYellow);
             return null;
         }
         
-        // Copy all fields, force Type = 1 for tracking
-        var copy = new TargetStruct
-        {
-            VTable = gameTarget->VTable,
-            Field_8 = gameTarget->Field_8,
-            Field_10 = gameTarget->Field_10,
-            Field_18 = gameTarget->Field_18,
-            GlobalOffset = gameTarget->GlobalOffset,
-            Node = gameTarget->Node,
-            X = gameTarget->X,
-            Y = gameTarget->Y,
-            Z = gameTarget->Z,
-            Dword1C = gameTarget->Dword1C,
-            DirectionX = gameTarget->DirectionX,
-            DirectionY = gameTarget->DirectionY,
-            DirectionZ = gameTarget->DirectionZ,
-            Padding4C = gameTarget->Padding4C,
-            Type = 1,  // Force actor-tracking mode
-            Field_54 = gameTarget->Field_54,
-            Field_58 = gameTarget->Field_58,
-            Field_5C = gameTarget->Field_5C,
-            Field_60 = gameTarget->Field_60,
-            Field_64 = gameTarget->Field_64,
-            Field_68 = gameTarget->Field_68,
-            ActorId = gameTarget->ActorId,
-            Field_70 = gameTarget->Field_70,
-            Field_74 = gameTarget->Field_74,
-            Field_78 = gameTarget->Field_78
-        };
+        var position = new Vector3(gameTarget->X, gameTarget->Y, gameTarget->Z);
+        var direction = new Vector3(gameTarget->DirectionX, gameTarget->DirectionY, gameTarget->DirectionZ);
         
-        _logger.WriteLine($"[{_modConfig.ModId}] [ActorApi] CopyGameTargetStruct: ActorId={copy.ActorId:X}, Pos=({copy.X:F2}, {copy.Y:F2}, {copy.Z:F2})", _logger.ColorGreen);
-        return copy;
+        _logger.WriteLine($"[{_modConfig.ModId}] [ActorApi] CopyGameTargetInfo: ActorId={gameTarget->ActorId:X}, Pos=({position.X:F2}, {position.Y:F2}, {position.Z:F2})", _logger.ColorGreen);
+        return new TargetInfo(position, direction, gameTarget->ActorId);
     }
     
     private TargetStruct* GetTargetedEnemy()
@@ -480,7 +454,105 @@ public unsafe class ActorApi : IActorApi
     // ============================================================
     
     /// <inheritdoc/>
-    public TargetStruct? CreateTargetFromActorWithTracking(nint staticActorInfo)
+    public ITargetInfo? CreateTargetFromActorWithTracking(nint staticActorInfo)
+    {
+        if (staticActorInfo == 0 || _getPositionFunc == null)
+            return null;
+        
+        NodePositionPair position;
+        var result = _getPositionFunc(staticActorInfo, &position);
+        if (result == null)
+            return null;
+        
+        var actorInfo = (StaticActorInfo*)staticActorInfo;
+        int actorId = (int)actorInfo->ActorId;
+        
+        return TargetInfo.FromActor(position.Position, actorId);
+    }
+    
+    /// <inheritdoc/>
+    public ITargetInfo? CreateTargetFromActor(nint staticActorInfo)
+    {
+        if (staticActorInfo == 0 || _getPositionFunc == null)
+            return null;
+        
+        NodePositionPair position;
+        var result = _getPositionFunc(staticActorInfo, &position);
+        if (result == null)
+            return null;
+        
+        return TargetInfo.FromPosition(position.Position);
+    }
+    
+    // ============================================================
+    // INTERNAL POSITION HELPER (used by CreateTargetFromActor)
+    // ============================================================
+    
+    private NodePositionPair* GetPositionInternal(nint staticActorInfo)
+    {
+        if (staticActorInfo == 0 || _getPositionFunc == null)
+            return null;
+        
+        NodePositionPair position;
+        return _getPositionFunc(staticActorInfo, &position);
+    }
+    
+    // ============================================================
+    // INTERNAL METHODS - For MagicCastingEngine (returns game TargetStruct)
+    // ============================================================
+    
+    /// <summary>
+    /// Copies the game's own TargetStruct for the currently locked enemy.
+    /// Internal use only - returns the raw game struct for SetupMagic.
+    /// </summary>
+    internal TargetStruct? CopyGameTargetStructInternal()
+    {
+        var gameTarget = GetTargetedEnemy();
+        if (gameTarget == null)
+        {
+            _logger.WriteLine($"[{_modConfig.ModId}] [ActorApi] CopyGameTargetStructInternal: No target locked", _logger.ColorYellow);
+            return null;
+        }
+        
+        // Copy all fields, force Type = 1 for tracking
+        var copy = new TargetStruct
+        {
+            VTable = gameTarget->VTable,
+            Field_8 = gameTarget->Field_8,
+            Field_10 = gameTarget->Field_10,
+            Field_18 = gameTarget->Field_18,
+            GlobalOffset = gameTarget->GlobalOffset,
+            Node = gameTarget->Node,
+            X = gameTarget->X,
+            Y = gameTarget->Y,
+            Z = gameTarget->Z,
+            Dword1C = gameTarget->Dword1C,
+            DirectionX = gameTarget->DirectionX,
+            DirectionY = gameTarget->DirectionY,
+            DirectionZ = gameTarget->DirectionZ,
+            Padding4C = gameTarget->Padding4C,
+            Type = 1,  // Force actor-tracking mode
+            Field_54 = gameTarget->Field_54,
+            Field_58 = gameTarget->Field_58,
+            Field_5C = gameTarget->Field_5C,
+            Field_60 = gameTarget->Field_60,
+            Field_64 = gameTarget->Field_64,
+            Field_68 = gameTarget->Field_68,
+            ActorId = gameTarget->ActorId,
+            Field_70 = gameTarget->Field_70,
+            Field_74 = gameTarget->Field_74,
+            Field_78 = gameTarget->Field_78
+        };
+        
+        _logger.WriteLine($"[{_modConfig.ModId}] [ActorApi] CopyGameTargetStructInternal: ActorId={copy.ActorId:X}, Pos=({copy.X:F2}, {copy.Y:F2}, {copy.Z:F2})", _logger.ColorGreen);
+        return copy;
+    }
+    
+    /// <summary>
+    /// Creates a TargetStruct from a StaticActorInfo with actor tracking.
+    /// Internal use only - returns the raw game struct for SetupMagic.
+    /// </summary>
+    internal TargetStruct? CreateTargetStructWithTracking(nint staticActorInfo)
     {
         if (staticActorInfo == 0 || _getPositionFunc == null)
             return null;
@@ -499,8 +571,11 @@ public unsafe class ActorApi : IActorApi
         return target;
     }
     
-    /// <inheritdoc/>
-    public TargetStruct? CreateTargetFromActor(nint staticActorInfo)
+    /// <summary>
+    /// Creates a TargetStruct from a StaticActorInfo's position only.
+    /// Internal use only - returns the raw game struct for SetupMagic.
+    /// </summary>
+    internal TargetStruct? CreateTargetStructFromPosition(nint staticActorInfo)
     {
         if (staticActorInfo == 0 || _getPositionFunc == null)
             return null;
@@ -513,19 +588,6 @@ public unsafe class ActorApi : IActorApi
         var target = TargetStruct.FromPosition(position.Position);
         target.Node = (nint)position.ParentNode;
         return target;
-    }
-    
-    // ============================================================
-    // INTERNAL POSITION HELPER (used by CreateTargetFromActor)
-    // ============================================================
-    
-    private NodePositionPair* GetPositionInternal(nint staticActorInfo)
-    {
-        if (staticActorInfo == 0 || _getPositionFunc == null)
-            return null;
-        
-        NodePositionPair position;
-        return _getPositionFunc(staticActorInfo, &position);
     }
     
     // ============================================================
