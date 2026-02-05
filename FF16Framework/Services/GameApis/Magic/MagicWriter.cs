@@ -4,6 +4,7 @@ using Reloaded.Mod.Interfaces;
 using FF16Framework.Faith.Hooks;
 using FF16Framework.Faith.Structs;
 using FF16Framework.Interfaces.GameApis.Magic;
+using FF16Framework.Interfaces.GameApis.Structs;
 using FF16Framework.Services.ResourceManager;
 using FF16Tools.Files.Magic;
 using FF16Tools.Files.Magic.Factories;
@@ -20,10 +21,10 @@ internal class RegisteredModificationSet
     public string ModId { get; }
     public string MagicFilePath { get; }
     public int MagicId { get; }
-    public List<MagicModification> Modifications { get; }
+    public List<IMagicModification> Modifications { get; }
     public DateTime RegisteredAt { get; }
     
-    public RegisteredModificationSet(MagicWriterHandle handle, string modId, string magicFilePath, int magicId, List<MagicModification> modifications)
+    public RegisteredModificationSet(MagicWriterHandle handle, string modId, string magicFilePath, int magicId, List<IMagicModification> modifications)
     {
         Handle = handle;
         ModId = modId;
@@ -332,7 +333,7 @@ public class MagicWriter : IMagicWriter, IDisposable
             return;
         
         // Collect all modifications for this file, grouped by MagicId
-        var modificationsByMagicId = new Dictionary<int, List<MagicModification>>();
+        var modificationsByMagicId = new Dictionary<int, List<IMagicModification>>();
         
         foreach (var handle in handles)
         {
@@ -341,7 +342,7 @@ public class MagicWriter : IMagicWriter, IDisposable
             
             if (!modificationsByMagicId.TryGetValue(modSet.MagicId, out var list))
             {
-                list = new List<MagicModification>();
+                list = new List<IMagicModification>();
                 modificationsByMagicId[modSet.MagicId] = list;
             }
             
@@ -399,7 +400,7 @@ public class MagicWriter : IMagicWriter, IDisposable
         }
     }
     
-    private void ApplySingleModification(MagicEntry magicEntry, MagicModification mod)
+    private void ApplySingleModification(MagicEntry magicEntry, IMagicModification mod)
     {
         // Handle operation group level modifications first
         switch (mod.Type)
@@ -441,21 +442,24 @@ public class MagicWriter : IMagicWriter, IDisposable
         }
     }
     
-    private void ApplyPropertyModification(MagicOperationGroup group, MagicModification mod)
+    private void ApplyPropertyModification(MagicOperationGroup group, IMagicModification mod)
     {
+        // Cast to concrete type for PropertyId/Value access (internal implementation detail)
+        var concreteMod = (MagicModification)mod;
+        
         var operation = group.OperationList.Operations
             .FirstOrDefault(op => (int)op.Type == mod.OperationId);
         
         if (operation == null)
             return;
         
-        var propType = (MagicPropertyType)mod.PropertyId;
+        var propType = (MagicPropertyType)concreteMod.PropertyId;
         var existingProp = operation.Properties.FirstOrDefault(p => p.Type == propType);
         
         if (existingProp != null)
         {
             // Update existing property value
-            existingProp.Value = CreatePropertyValue(propType, mod.Value);
+            existingProp.Value = CreatePropertyValue(propType, concreteMod.Value);
             existingProp.Data = existingProp.Value?.GetBytes() ?? Array.Empty<byte>();
         }
         else
@@ -465,7 +469,7 @@ public class MagicWriter : IMagicWriter, IDisposable
             if (newProp != null)
             {
                 // Override the default value with our specific value
-                newProp.Value = CreatePropertyValue(propType, mod.Value);
+                newProp.Value = CreatePropertyValue(propType, concreteMod.Value);
                 newProp.Data = newProp.Value?.GetBytes() ?? Array.Empty<byte>();
                 operation.Properties.Add(newProp);
             }
@@ -474,7 +478,7 @@ public class MagicWriter : IMagicWriter, IDisposable
                 // Fallback: create manually if factory doesn't support this property type
                 var manualProp = new MagicOperationProperty(propType)
                 {
-                    Value = CreatePropertyValue(propType, mod.Value)
+                    Value = CreatePropertyValue(propType, concreteMod.Value)
                 };
                 manualProp.Data = manualProp.Value?.GetBytes() ?? Array.Empty<byte>();
                 operation.Properties.Add(manualProp);
@@ -482,19 +486,21 @@ public class MagicWriter : IMagicWriter, IDisposable
         }
     }
     
-    private void RemovePropertyFromOperation(MagicOperationGroup group, MagicModification mod)
+    private void RemovePropertyFromOperation(MagicOperationGroup group, IMagicModification mod)
     {
+        var concreteMod = (MagicModification)mod;
         var operation = group.OperationList.Operations
             .FirstOrDefault(op => (int)op.Type == mod.OperationId);
         
         if (operation == null) return;
         
-        var propType = (MagicPropertyType)mod.PropertyId;
+        var propType = (MagicPropertyType)concreteMod.PropertyId;
         operation.Properties.RemoveAll(p => p.Type == propType);
     }
     
-    private void AddOperationToGroup(MagicOperationGroup group, MagicModification mod)
+    private void AddOperationToGroup(MagicOperationGroup group, IMagicModification mod)
     {
+        var concreteMod = (MagicModification)mod;
         var opType = (MagicOperationType)mod.OperationId;
         
         if (group.OperationList.Operations.Any(op => op.Type == opType))
@@ -503,14 +509,14 @@ public class MagicWriter : IMagicWriter, IDisposable
         // Use factory to create operation (same as MagicEditor)
         var newOperation = MagicOperationFactory.Create(opType);
         
-        if (mod.PropertyId >= 0 && mod.Value != null)
+        if (concreteMod.PropertyId >= 0 && concreteMod.Value != null)
         {
-            var propType = (MagicPropertyType)mod.PropertyId;
+            var propType = (MagicPropertyType)concreteMod.PropertyId;
             // Use factory to create property when possible
             var prop = MagicPropertyFactory.Create(propType);
             if (prop != null)
             {
-                prop.Value = CreatePropertyValue(propType, mod.Value);
+                prop.Value = CreatePropertyValue(propType, concreteMod.Value);
                 prop.Data = prop.Value?.GetBytes() ?? Array.Empty<byte>();
                 newOperation.Properties.Add(prop);
             }
@@ -519,7 +525,7 @@ public class MagicWriter : IMagicWriter, IDisposable
                 // Fallback for unsupported property types
                 var manualProp = new MagicOperationProperty(propType)
                 {
-                    Value = CreatePropertyValue(propType, mod.Value)
+                    Value = CreatePropertyValue(propType, concreteMod.Value)
                 };
                 manualProp.Data = manualProp.Value?.GetBytes() ?? Array.Empty<byte>();
                 newOperation.Properties.Add(manualProp);
@@ -529,7 +535,7 @@ public class MagicWriter : IMagicWriter, IDisposable
         group.OperationList.Operations.Add(newOperation);
     }
     
-    private void RemoveOperationFromGroup(MagicOperationGroup group, MagicModification mod)
+    private void RemoveOperationFromGroup(MagicOperationGroup group, IMagicModification mod)
     {
         var opType = (MagicOperationType)mod.OperationId;
         var operationsToRemove = group.OperationList.Operations
@@ -542,7 +548,7 @@ public class MagicWriter : IMagicWriter, IDisposable
         }
     }
     
-    private void AddOperationGroupToEntry(MagicEntry magicEntry, MagicModification mod)
+    private void AddOperationGroupToEntry(MagicEntry magicEntry, IMagicModification mod)
     {
         var groupId = (uint)mod.OperationGroupId;
         
@@ -562,7 +568,7 @@ public class MagicWriter : IMagicWriter, IDisposable
         magicEntry.OperationGroupList.OperationGroups.Add(newGroup);
     }
     
-    private void RemoveOperationGroupFromEntry(MagicEntry magicEntry, MagicModification mod)
+    private void RemoveOperationGroupFromEntry(MagicEntry magicEntry, IMagicModification mod)
     {
         var groupId = (uint)mod.OperationGroupId;
         

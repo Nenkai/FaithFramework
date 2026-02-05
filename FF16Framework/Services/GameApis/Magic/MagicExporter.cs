@@ -2,6 +2,7 @@ using System.Numerics;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using FF16Framework.Interfaces.GameApis.Magic;
+using FF16Framework.Interfaces.GameApis.Structs;
 using FF16Tools.Files.Magic;
 using FF16Tools.Files.Magic.Factories;
 

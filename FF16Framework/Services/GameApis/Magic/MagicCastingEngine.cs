@@ -7,6 +7,7 @@ using FF16Framework.Faith.Hooks;
 using FF16Framework.Faith.Structs;
 using FF16Framework.Services.GameApis.Actor;
 using FF16Framework.Interfaces.GameApis.Magic;
+using FF16Framework.Interfaces.GameApis.Structs;
 
 namespace FF16Framework.Services.GameApis.Magic;
 

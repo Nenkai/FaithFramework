@@ -3,10 +3,67 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Reloaded.Mod.Interfaces;
 using FF16Framework.Interfaces.GameApis.Magic;
+using FF16Framework.Interfaces.GameApis.Structs;
 using FF16Tools.Files.Magic;
 using FF16Tools.Files.Magic.Factories;
 
 namespace FF16Framework.Services.GameApis.Magic;
+
+/// <summary>
+/// Represents a single modification to a magic spell (runtime representation).
+/// This is the internal domain model used in the _modifications dictionary.
+/// Uses non-nullable types and init-only properties for immutability.
+/// </summary>
+/// <remarks>
+/// For JSON serialization, use <see cref="MagicModificationConfig"/> instead,
+/// which has nullable properties to allow omitting fields in JSON.
+/// </remarks>
+internal record MagicModification : IMagicModification
+{
+    public MagicModificationType Type { get; init; }
+    public int OperationGroupId { get; init; }
+    public int OperationId { get; init; }
+    public int PropertyId { get; init; }
+    public object? Value { get; init; }
+    public IDictionary<int, object>? Properties { get; init; }
+    public int InsertAfterOperationTypeId { get; init; } = -1;
+}
+
+/// <summary>
+/// JSON-serializable configuration for a spell (DTO for import/export).
+/// Contains metadata and a list of modification configs.
+/// </summary>
+internal class MagicSpellConfig : IMagicSpellConfig
+{
+    public int MagicId { get; set; }
+    public string? Name { get; set; }
+    public string? Description { get; set; }
+    public List<MagicModificationConfig> Modifications { get; set; } = new();
+    
+    IList<IMagicModificationConfig> IMagicSpellConfig.Modifications => 
+        Modifications.Cast<IMagicModificationConfig>().ToList();
+}
+
+/// <summary>
+/// JSON-serializable format for a single modification (DTO for import/export).
+/// Uses nullable types so fields can be omitted in JSON when not applicable.
+/// </summary>
+/// <remarks>
+/// Differs from <see cref="MagicModification"/>:
+/// - PropertyId is nullable (not used for AddOperation with Properties dictionary)
+/// - InsertAfterOperationTypeId is nullable (omitted means -1 / end of group)
+/// - Uses mutable { get; set; } for JSON deserialization
+/// </remarks>
+internal class MagicModificationConfig : IMagicModificationConfig
+{
+    public MagicModificationType Type { get; set; }
+    public int OperationGroupId { get; set; }
+    public int OperationId { get; set; }
+    public int? PropertyId { get; set; }
+    public object? Value { get; set; }
+    public IDictionary<int, object>? Properties { get; set; }
+    public int? InsertAfterOperationTypeId { get; set; }
+}
 
 /// <summary>
 /// Implementation of IMagicBuilder.
@@ -418,9 +475,9 @@ internal class MagicBuilder : IMagicBuilder
         return ImportFromJson(json);
     }
     
-    public IReadOnlyList<MagicModification> GetModifications()
+    public IReadOnlyList<IMagicModification> GetModifications()
     {
-        return _modifications.Values.ToList().AsReadOnly();
+        return _modifications.Values.ToList<IMagicModification>().AsReadOnly();
     }
     
     public IMagicBuilder Reset()
