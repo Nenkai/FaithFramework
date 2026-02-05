@@ -47,6 +47,21 @@ public readonly struct MagicWriterHandle : IEquatable<MagicWriterHandle>
 }
 
 /// <summary>
+/// Information about a registered modification set.
+/// </summary>
+public interface IRegisteredModificationInfo
+{
+    /// <summary>ID of the mod that registered this modification.</summary>
+    string ModId { get; }
+    
+    /// <summary>The magic ID being modified.</summary>
+    int MagicId { get; }
+    
+    /// <summary>Number of modifications in this set.</summary>
+    int ModificationCount { get; }
+}
+
+/// <summary>
 /// Public interface for the MagicWriter service.
 /// MagicWriter manages persistent modifications to .magic files.
 /// It listens for resource load events and automatically applies registered modifications
@@ -115,6 +130,6 @@ public interface IMagicWriter
     /// Gets all registered modification sets for a specific magic file.
     /// </summary>
     /// <param name="magicFilePath">The magic file path (e.g., "chara/c1001/magic/c1001.magic").</param>
-    /// <returns>List of (ModId, MagicId, ModificationCount) tuples.</returns>
-    IReadOnlyList<(string ModId, int MagicId, int ModificationCount)> GetRegisteredModifications(string magicFilePath);
+    /// <returns>List of registered modification info.</returns>
+    IReadOnlyList<IRegisteredModificationInfo> GetRegisteredModifications(string magicFilePath);
 }

@@ -35,6 +35,16 @@ internal class RegisteredModificationSet
 }
 
 /// <summary>
+/// Implementation of IRegisteredModificationInfo.
+/// </summary>
+internal class RegisteredModificationInfo : IRegisteredModificationInfo
+{
+    public string ModId { get; init; } = "";
+    public int MagicId { get; init; }
+    public int ModificationCount { get; init; }
+}
+
+/// <summary>
 /// MagicWriter manages persistent modifications to .magic files.
 /// It listens for resource load events and automatically applies registered modifications
 /// when the corresponding .magic file is loaded or reloaded by the game.
@@ -200,16 +210,21 @@ public class MagicWriter : IMagicWriter, IDisposable
     /// <summary>
     /// Gets all registered modification sets for a specific magic file.
     /// </summary>
-    public IReadOnlyList<(string ModId, int MagicId, int ModificationCount)> GetRegisteredModifications(string magicFilePath)
+    public IReadOnlyList<IRegisteredModificationInfo> GetRegisteredModifications(string magicFilePath)
     {
         if (!_fileToHandles.TryGetValue(magicFilePath, out var handles))
-            return Array.Empty<(string, int, int)>();
+            return Array.Empty<IRegisteredModificationInfo>();
         
         return handles
             .Where(h => _registeredSets.TryGetValue(h, out _))
             .Select(h => _registeredSets[h])
-            .Select(s => (s.ModId, s.MagicId, s.Modifications.Count))
-            .ToList();
+            .Select(s => new RegisteredModificationInfo
+            {
+                ModId = s.ModId,
+                MagicId = s.MagicId,
+                ModificationCount = s.Modifications.Count
+            })
+            .ToList<IRegisteredModificationInfo>();
     }
     
     /// <summary>
