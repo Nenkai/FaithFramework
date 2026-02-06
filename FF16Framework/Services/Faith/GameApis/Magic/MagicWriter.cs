@@ -46,12 +46,20 @@ internal class RegisteredModificationInfo : IRegisteredModificationInfo
 }
 
 /// <summary>
-/// MagicWriter manages persistent modifications to .magic files.
-/// It listens for resource load events and automatically applies registered modifications
-/// when the corresponding .magic file is loaded or reloaded by the game.
-/// 
-/// This enables mods to register their modifications once and have them automatically
-/// applied whenever the game loads (or reloads) the magic files.
+/// MagicWriter vs MagicAPI - Different purposes:
+///
+/// MagicWriter modifies .magic files in memory at load time using FF16Tools.Files.Magic.
+/// - Hooks into resource loading
+/// - Changes happen before any magic execution
+/// - Zero runtime cost when casting spells
+/// - Best for: permanent modifications to spell behavior
+///
+/// MagicAPI applies modifications at execution time:
+/// - Intercepts magic casting calls
+/// - Has computational overhead per cast
+/// - Best for: dynamic modifications that change based on game state
+///
+/// Both consume MagicBuilder to define what modifications to apply.
 /// </summary>
 public class MagicWriter : IMagicWriter, IDisposable
 {
@@ -209,16 +217,12 @@ public class MagicWriter : IMagicWriter, IDisposable
     }
     
     /// <summary>
-    /// Gets all registered modification sets for a specific magic file.
+    /// Gets all registered modification sets for a specific mod.
     /// </summary>
-    public IReadOnlyList<IRegisteredModificationInfo> GetRegisteredModifications(string magicFilePath)
+    public IReadOnlyList<IRegisteredModificationInfo> GetRegisteredModifications(string modId)
     {
-        if (!_fileToHandles.TryGetValue(magicFilePath, out var handles))
-            return Array.Empty<IRegisteredModificationInfo>();
-        
-        return handles
-            .Where(h => _registeredSets.TryGetValue(h, out _))
-            .Select(h => _registeredSets[h])
+        return _registeredSets.Values
+            .Where(s => s.ModId == modId)
             .Select(s => new RegisteredModificationInfo
             {
                 ModId = s.ModId,

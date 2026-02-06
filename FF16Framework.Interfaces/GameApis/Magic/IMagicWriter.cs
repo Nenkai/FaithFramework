@@ -5,29 +5,48 @@ namespace FF16Framework.Interfaces.GameApis.Magic;
 
 /// <summary>
 /// Public interface for the MagicWriter service.
+/// <para>
 /// MagicWriter manages persistent modifications to .magic files.
 /// It listens for resource load events and automatically applies registered modifications
 /// when the corresponding .magic file is loaded or reloaded by the game.
-/// 
+/// </para>
+/// <para>
 /// This enables mods to register their modifications once and have them automatically
 /// applied whenever the game loads (or reloads) the magic files.
-/// 
-/// Usage:
-/// 1. Create your spell modifications using IMagicApi.CreateSpell()
-/// 2. Register them with IMagicWriter.Register()
-/// 3. The MagicWriter will automatically apply them when the file loads
-/// 4. Optionally unregister when your mod is unloaded
+/// </para>
+/// <para>Usage:</para>
+/// <list type="number">
+/// <item><description>Create your spell modifications using IMagicApi.CreateSpell()</description></item>
+/// <item><description>Register them with IMagicWriter.Register()</description></item>
+/// <item><description>The MagicWriter will automatically apply them when the file loads</description></item>
+/// <item><description>Optionally unregister when your mod is unloaded</description></item>
+/// </list>
 /// </summary>
+/// <remarks>
+/// Example of code using the MagicWriter API:
+/// <code><![CDATA[
+/// var builder = magicApi.CreateSpell(214) // Dia's Magic ID
+///     .SetProperty(4338, 35, 35, 10.0f) // Modifies the duration of the projectile's linear trajectory to 10 seconds
+///
+/// // The modifications will be applied automatically whenever the game loads or reloads "chara/c1001/magic/c1001.magic"
+/// var handle = magicWriter.Register("my.mod", builder, "c1001"); // c1001 is the character ID for Clive
+/// 
+/// // Later, to stop applying changes on reload
+/// magicWriter.Unregister(handle);
+/// // This could be useful if for example your mod changes accesories effects to modify spells and when the item is unequipped 
+/// // you want to stop applying those modifications on reload to prevent making the accessory's effects linger after it's unequipped.
+/// ]]></code>
+/// </remarks>
 public interface IMagicWriter
 {
     /// <summary>
-    /// Event raised when modifications are applied to a magic file.
+    /// Event raised after modifications are applied to a magic file.
     /// Parameters: (magicFilePath, numberOfModifications)
     /// </summary>
     event Action<string, int>? OnModificationsApplied;
     
     /// <summary>
-    /// Gets the total count of registered modification sets.
+    /// Total count of registered modification spells.
     /// </summary>
     int RegisteredCount { get; }
     
@@ -69,11 +88,11 @@ public interface IMagicWriter
     int UnregisterAll(string modId);
     
     /// <summary>
-    /// Gets all registered modification sets for a specific magic file.
+    /// Gets all registered modification sets for a specific mod.
     /// </summary>
-    /// <param name="magicFilePath">The magic file path (e.g., "chara/c1001/magic/c1001.magic").</param>
+    /// <param name="modId">The mod ID to query modifications for.</param>
     /// <returns>List of registered modification info.</returns>
-    IReadOnlyList<IRegisteredModificationInfo> GetRegisteredModifications(string magicFilePath);
+    IReadOnlyList<IRegisteredModificationInfo> GetRegisteredModifications(string modId);
 }
 
 /// <summary>
