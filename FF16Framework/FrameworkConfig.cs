@@ -16,6 +16,7 @@ public class FrameworkConfig
     public SoundManagerConfig SoundManager { get; set; } = new();
     public EntityManagerConfig EntityManager { get; set; } = new();
     public MagicSystemConfig MagicSystem { get; set; } = new();
+    public GameApisConfig GameApis { get; set; } = new();
 
     public FrameworkConfig()
     {
@@ -60,5 +61,19 @@ public class FrameworkConfig
     {
         public bool PrintMagicCastsField = false;
         public bool PrintMagicCasts { get => PrintMagicCastsField; set => PrintMagicCastsField = value; }
+    }
+
+    public class GameApisConfig
+    {
+        public MagicApiConfig MagicApi { get; set; } = new();
+    }
+
+    public class MagicApiConfig
+    {
+        public bool EnablePropertyLoggingField = false;
+        public bool EnablePropertyLogging { get => EnablePropertyLoggingField; set => EnablePropertyLoggingField = value; }
+
+        public bool EnableInjectionLoggingField = false;
+        public bool EnableInjectionLogging { get => EnableInjectionLoggingField; set => EnableInjectionLoggingField = value; }
     }
 }

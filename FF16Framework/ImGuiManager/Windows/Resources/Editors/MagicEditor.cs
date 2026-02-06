@@ -7,7 +7,10 @@ using System.Runtime.InteropServices;
 using System.Text;
 
 using FF16Framework.Services.ResourceManager;
+using FF16Framework.Services.Faith.GameApis.Magic;
 using FF16Framework.Utils;
+using FF16Framework.Interfaces.GameApis.Magic;
+using FF16Framework.Interfaces.GameApis.Structs;
 
 using FF16Tools.Files.Magic;
 using FF16Tools.Files.Magic.Factories;
@@ -23,8 +26,12 @@ public class MagicEditor
     public MagicFile MagicFile;
     public bool IsOpen = true;
 
+    private readonly IMagicApi _magicApi;
     private MagicEntry? _currentEntry;
     private string _selectedName;
+
+    private ActorSelection _castSource = ActorSelection.Player;
+    private ActorSelection _castTarget = ActorSelection.LockedTarget;
 
     private MagicOperationGroup? _pendingGroupDelete;
     private MagicOperationProperty? _pendingPropertyDelete;
@@ -37,10 +44,11 @@ public class MagicEditor
     private IOperation? _addedOperation;
     private int _inputGroup;
 
-    public MagicEditor(ResourceHandle resource, MagicFile magicFile)
+    public MagicEditor(ResourceHandle resource, MagicFile magicFile, IMagicApi magicApi)
     {
         Resource = resource;
         MagicFile = magicFile;
+        _magicApi = magicApi;
     }
 
     public unsafe void Render(IImGuiShell shell, IImGui imgui)
@@ -179,6 +187,53 @@ public class MagicEditor
             if (_currentEntry is not null)
             {
                 imgui.SeparatorText($"Magic: {_selectedName}");
+
+                imgui.Text("Source:"u8);
+                imgui.SameLine();
+                imgui.SetNextItemWidth(150f);
+                if (imgui.BeginCombo("##Source", _castSource.ToString()))
+                {
+                    foreach (var val in Enum.GetValues<ActorSelection>())
+                    {
+                        if (imgui.SelectableEx(val.ToString(), _castSource == val, ImGuiSelectableFlags.ImGuiSelectableFlags_None, Vector2.Zero))
+                            _castSource = val;
+                    }
+                    imgui.EndCombo();
+                }
+
+                imgui.SameLine();
+                imgui.Text("Target:"u8);
+                imgui.SameLine();
+                imgui.SetNextItemWidth(150f);
+                if (imgui.BeginCombo("##Target", _castTarget.ToString()))
+                {
+                    foreach (var val in Enum.GetValues<ActorSelection>())
+                    {
+                        if (imgui.SelectableEx(val.ToString(), _castTarget == val, ImGuiSelectableFlags.ImGuiSelectableFlags_None, Vector2.Zero))
+                            _castTarget = val;
+                    }
+                    imgui.EndCombo();
+                }
+
+                imgui.SameLine();
+                imgui.PushStyleColor(ImGuiCol.ImGuiCol_Button, ColorUtils.RGBA(0, 112, 192, 255));
+                if (imgui.Button("🚀 Cast!"u8))
+                {
+                    bool success = _magicApi.Cast((int)_currentEntry.Id, _castSource, _castTarget);
+
+                    if (!success)
+                        shell.LogWriteLine(nameof(MagicEditor), "Failed to cast magic - API not ready?", Color.Red);
+                }
+                imgui.PopStyleColor();
+                
+                imgui.SameLine();
+                imgui.PushStyleColor(ImGuiCol.ImGuiCol_Button, ColorUtils.RGBA(64, 128, 64, 255));
+                if (imgui.Button("📋 Export to Clipboard"u8))
+                {
+                    ExportCurrentEntryToClipboard(shell, imgui);
+                }
+                imgui.PopStyleColor();
+
                 if (imgui.BeginChild($"##magicchild_{_currentEntry.Id}", Vector2.Zero))
                     RenderCurrentMagicEntry(shell, imgui);
 
@@ -505,6 +560,34 @@ public class MagicEditor
         else
         {
             imgui.Text($"Bytes: {string.Join(" ", property.Data.Select(e => e.ToString("X2")))}");
+        }
+    }
+    
+    // ========================================
+    // EXPORT TO JSON
+    // ========================================
+    
+    private void ExportCurrentEntryToClipboard(IImGuiShell shell, IImGui imgui)
+    {
+        if (_currentEntry == null)
+        {
+            shell.LogWriteLine(nameof(MagicEditor), "No magic entry selected", Color.Yellow);
+            return;
+        }
+        
+        try
+        {
+            var json = MagicExporter.ExportToJson(_currentEntry);
+            
+            // Copy to clipboard using ImGui API
+            imgui.SetClipboardText(json);
+            
+            var config = MagicExporter.BuildMagicSpellConfig(_currentEntry);
+            shell.LogWriteLine(nameof(MagicEditor), $"Exported Magic ID {_currentEntry.Id} to clipboard ({config.Modifications.Count} modifications)", Color.LightGreen);
+        }
+        catch (Exception ex)
+        {
+            shell.LogWriteLine(nameof(MagicEditor), $"Export failed: {ex.Message}", Color.Red);
         }
     }
 }
