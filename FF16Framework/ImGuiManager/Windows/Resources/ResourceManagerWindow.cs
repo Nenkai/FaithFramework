@@ -44,6 +44,7 @@ public class ResourceManagerWindow : IImGuiComponent
     public FrozenDictionary<string, string> _resourceNamesPerExtension = new Dictionary<string, string>
     {
         [".anmb"] = "Animation/Havok Binary",
+        [".apb"] = "SQEX Sead Audio Library - AudioSe Param Binary",
         [".bnfb"] = "Bonamik F Binary",
         [".bnmb"] = "Bonamik Binary",
         [".ccb"] = "Chara Collision Binary",
@@ -69,7 +70,7 @@ public class ResourceManagerWindow : IImGuiComponent
         [".magic"] = "Magic/Spell Resource",
         [".pac"] = "Pack Resource",
         [".pzd"] = "Panzer Data",
-        [".sab"] = "SQEX Audio Binary",
+        [".sab"] = "SQEX Sead Audio Library - Sead Audio Binary",
         [".shb"] = "Shader/Technique Binary",
         [".skl"] = "Skeleton/Havok Binary",
         [".sndenv"] = "Map Sound Environment",
