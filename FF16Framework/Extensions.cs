@@ -42,17 +42,6 @@ public static class Extensions
             action(result.Offset + baseAddress);
         });
     }
-
-    public static void AddScan(this IStartupScanner scans, string pattern, Action<nint> action)
-    {
-        var baseAddress = Process.GetCurrentProcess().MainModule!.BaseAddress;
-        scans!.AddMainModuleScan(pattern, result =>
-        {
-            if (!result.Found)
-                throw new Exception($"Scan unable to find pattern: {pattern}!");
-            action(result.Offset + baseAddress);
-        });
-    }
     
     /// <summary>
     /// Registers a service with implementation but also as an interface
