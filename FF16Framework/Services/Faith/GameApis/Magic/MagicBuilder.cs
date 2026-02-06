@@ -38,6 +38,8 @@ internal class MagicSpellConfig : IMagicSpellConfig
     public int MagicId { get; set; }
     public string? Name { get; set; }
     public string? Description { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public bool ReplaceOriginal { get; set; }
     public List<MagicModificationConfig> Modifications { get; set; } = new();
     
     IList<IMagicModificationConfig> IMagicSpellConfig.Modifications => 
@@ -80,6 +82,7 @@ internal class MagicBuilder : IMagicBuilder
     private readonly Dictionary<(MagicModificationType Type, int GroupId, int OpId, int PropId), MagicModification> _modifications = new();
     
     public int MagicId { get; }
+    public bool ReplaceOriginal { get; set; }
     
     internal MagicBuilder(int magicId, MagicCastingEngine engine, ILogger logger, string modId)
     {
@@ -345,6 +348,7 @@ internal class MagicBuilder : IMagicBuilder
         var config = new MagicSpellConfig
         {
             MagicId = MagicId,
+            ReplaceOriginal = ReplaceOriginal,
             Name = $"Magic_{MagicId}",
             Description = $"Exported spell configuration for Magic ID {MagicId}",
             Modifications = configs
@@ -455,6 +459,8 @@ internal class MagicBuilder : IMagicBuilder
             {
                 ApplyModificationConfig(modConfig);
             }
+            
+            ReplaceOriginal = config.ReplaceOriginal;
             
             return this;
         }

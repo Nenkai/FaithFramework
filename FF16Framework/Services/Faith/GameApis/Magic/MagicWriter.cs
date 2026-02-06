@@ -21,15 +21,17 @@ internal class RegisteredModificationSet
     public string ModId { get; }
     public string MagicFilePath { get; }
     public int MagicId { get; }
+    public bool ReplaceOriginal { get; }
     public List<IMagicModification> Modifications { get; }
     public DateTime RegisteredAt { get; }
     
-    public RegisteredModificationSet(MagicWriterHandle handle, string modId, string magicFilePath, int magicId, List<IMagicModification> modifications)
+    public RegisteredModificationSet(MagicWriterHandle handle, string modId, string magicFilePath, int magicId, bool replaceOriginal, List<IMagicModification> modifications)
     {
         Handle = handle;
         ModId = modId;
         MagicFilePath = magicFilePath;
         MagicId = magicId;
+        ReplaceOriginal = replaceOriginal;
         Modifications = modifications;
         RegisteredAt = DateTime.Now;
     }
@@ -134,7 +136,7 @@ public class MagicWriter : IMagicWriter, IDisposable
         
         // Create handle and registration
         var handle = new MagicWriterHandle(Guid.NewGuid());
-        var modSet = new RegisteredModificationSet(handle, modId, magicFilePath, magicId, modifications.ToList());
+        var modSet = new RegisteredModificationSet(handle, modId, magicFilePath, magicId, builder.ReplaceOriginal, modifications.ToList());
         
         // Register
         _registeredSets[handle] = modSet;
@@ -338,6 +340,7 @@ public class MagicWriter : IMagicWriter, IDisposable
         
         // Collect all modifications for this file, grouped by MagicId
         var modificationsByMagicId = new Dictionary<int, List<IMagicModification>>();
+        var replaceOriginalMagicIds = new HashSet<int>();
         
         foreach (var handle in handles)
         {
@@ -351,6 +354,9 @@ public class MagicWriter : IMagicWriter, IDisposable
             }
             
             list.AddRange(modSet.Modifications);
+            
+            if (modSet.ReplaceOriginal)
+                replaceOriginalMagicIds.Add(modSet.MagicId);
         }
         
         if (modificationsByMagicId.Count == 0)
@@ -373,6 +379,13 @@ public class MagicWriter : IMagicWriter, IDisposable
                 {
                     _logger.WriteLine($"[MagicWriter] MagicId {magicId} not found in {magicFilePath}", _logger.ColorYellow);
                     continue;
+                }
+                
+                // If any registration requested ReplaceOriginal, clear existing OperationGroups first
+                if (replaceOriginalMagicIds.Contains(magicId))
+                {
+                    magicEntry.OperationGroupList.OperationGroups.Clear();
+                    _logger.WriteLine($"[MagicWriter] Cleared existing OperationGroups for MagicId {magicId} (ReplaceOriginal)", _logger.ColorYellow);
                 }
                 
                 foreach (var mod in modifications)

@@ -224,6 +224,14 @@ public interface IMagicBuilder
     IReadOnlyList<IMagicModification> GetModifications();
     
     /// <summary>
+    /// When true, all existing OperationGroups for this MagicId will be removed
+    /// before applying the modifications via MagicWriter. This effectively replaces
+    /// the original spell definition with the one described in the builder.
+    /// Defaults to false (merge with existing).
+    /// </summary>
+    bool ReplaceOriginal { get; set; }
+    
+    /// <summary>
     /// Clears all modifications.
     /// </summary>
     /// <returns>This builder for chaining.</returns>

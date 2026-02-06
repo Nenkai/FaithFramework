@@ -38,6 +38,7 @@ internal static class MagicExporter
         var config = new MagicSpellConfig
         {
             MagicId = (int)entry.Id,
+            ReplaceOriginal = true,
             Name = $"Magic_{entry.Id}",
             Description = $"Exported spell configuration",
             Modifications = new List<MagicModificationConfig>()

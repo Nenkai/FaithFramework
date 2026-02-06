@@ -118,6 +118,14 @@ public interface IMagicSpellConfig
     string? Description { get; }
     
     /// <summary>
+    /// When true, all existing OperationGroups for this MagicId will be removed
+    /// before applying the modifications. This effectively replaces the original
+    /// spell definition with the one described in this config.
+    /// Defaults to false (merge with existing).
+    /// </summary>
+    bool ReplaceOriginal { get; }
+    
+    /// <summary>
     /// List of modifications to apply.
     /// </summary>
     IList<IMagicModificationConfig> Modifications { get; }
