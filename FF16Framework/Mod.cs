@@ -32,6 +32,7 @@ using FF16Framework.Template;
 using FF16Framework.Faith.Hooks;
 
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using FF16Framework.Services.ResourceManager;
 using FF16Framework.ImGuiManager.Windows.Resources;
@@ -155,6 +156,10 @@ public class Mod : ModBase, IExports // <= Do not Remove.
         foreach (HookGroupBase hookGroup in hookGroups)
             hookGroup.SetupHooks();
 
+        // Start hosted services (initialization that requires post-construction wiring)
+        foreach (var hostedService in _services.GetServices<IHostedService>())
+            hostedService.StartAsync(CancellationToken.None).GetAwaiter().GetResult();
+
         InitNex();
         InitGameApis();
         InitImGui();
@@ -276,36 +281,14 @@ public class Mod : ModBase, IExports // <= Do not Remove.
             .AddSingleton<AboutWindow>()
 
             // Game APIs
-            .AddSingleton<ActorApi>(provider =>
-            {
-                var logger = provider.GetRequiredService<Reloaded.Mod.Interfaces.ILogger>();
-                var modConfig = provider.GetRequiredService<IModConfig>();
-                var entityHooks = provider.GetRequiredService<EntityManagerHooks>();
-                var list35Hooks = provider.GetRequiredService<UnkList35Hooks>();
+            .AddSingleton<ActorApi>()
 
-                return new ActorApi(logger, modConfig, entityHooks, list35Hooks);
-            })
-            .AddSingleton<IMagicApi>(provider =>
-            {
-                var logger = provider.GetRequiredService<Reloaded.Mod.Interfaces.ILogger>();
-                var modConfig = provider.GetRequiredService<IModConfig>();
-                var frameworkConfig = provider.GetRequiredService<FrameworkConfig>();
-                var magicHooks = provider.GetRequiredService<MagicHooks>();
-                var actorApi = provider.GetRequiredService<ActorApi>();
-                
-                var magicApi = new MagicApi(logger, modConfig.ModId, frameworkConfig, magicHooks);
-                magicApi.SetActorApi(actorApi);
-                
-                return magicApi;
-            })
-            .AddSingleton<IMagicWriter>(provider =>
-            {
-                var logger = provider.GetRequiredService<Reloaded.Mod.Interfaces.ILogger>();
-                var resourceManagerHooks = provider.GetRequiredService<ResourceManagerHooks>();
-                var resourceManagerService = provider.GetRequiredService<ResourceManagerService>();
-                
-                return new MagicWriter(logger, resourceManagerHooks, resourceManagerService);
-            });
+            .AddSingleton<MagicApi>()
+            .AddSingleton<IMagicApi>(sp => sp.GetRequiredService<MagicApi>())
+            .AddHostedService<MagicApiInitializer>()
+
+            .AddSingleton<MagicWriter>()
+            .AddSingleton<IMagicWriter>(sp => sp.GetRequiredService<MagicWriter>());
 
         return services.BuildServiceProvider();
     }

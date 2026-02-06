@@ -18,11 +18,11 @@ public class MagicApi : IMagicApi, IDisposable
     private readonly string _modId;
     private readonly MagicCastingEngine _engine;
 
-    internal MagicApi(ILogger logger, string modId, FrameworkConfig frameworkConfig, MagicHooks magicHooks)
+    public MagicApi(ILogger logger, IModConfig modConfig, FrameworkConfig frameworkConfig, MagicHooks magicHooks)
     {
         _logger = logger;
-        _modId = modId;
-        _engine = new MagicCastingEngine(logger, modId, frameworkConfig, magicHooks);
+        _modId = modConfig.ModId;
+        _engine = new MagicCastingEngine(logger, _modId, frameworkConfig, magicHooks);
         
         _logger.WriteLine($"[{_modId}] [MagicApi] Initialized", _logger.ColorGreen);
     }
@@ -64,7 +64,8 @@ public class MagicApi : IMagicApi, IDisposable
         {
             var config = JsonSerializer.Deserialize<MagicSpellConfig>(json, new JsonSerializerOptions
             {
-                PropertyNameCaseInsensitive = true
+                PropertyNameCaseInsensitive = true,
+                Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() }
             });
             
             if (config == null)
