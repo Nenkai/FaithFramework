@@ -627,46 +627,47 @@ internal class MagicBuilder : IMagicBuilder
     {
         if (value == null) return 0;
         
-        object rawValue;
+        // 1. Convert JsonElement/raw → C# primitive
+        var rawValue = InferValue(value);
         
-        // Handle JSON element types
-        if (value is JsonElement element)
-        {
-            rawValue = element.ValueKind switch
-            {
-                JsonValueKind.Number => element.TryGetInt32(out int i) ? i : element.GetSingle(),
-                JsonValueKind.True => true,
-                JsonValueKind.False => false,
-                JsonValueKind.Array when element.GetArrayLength() == 3 => 
-                    new Vector3(
-                        element[0].GetSingle(),
-                        element[1].GetSingle(),
-                        element[2].GetSingle()
-                    ),
-                _ => value
-            };
-        }
-        // Handle arrays (for Vector3)
-        else if (value is float[] arr && arr.Length == 3)
-        {
-            rawValue = new Vector3(arr[0], arr[1], arr[2]);
-        }
-        else
-        {
-            rawValue = value;
-        }
-        
-        // Apply type coercion based on MagicPropertyValueTypeMapping
+        // 2. If property has a known type, coerce to that type
         if (propertyId.HasValue)
         {
             var propType = (MagicPropertyType)propertyId.Value;
-            if (MagicPropertyValueTypeMapping.TypeToValueType.TryGetValue(propType, out var valueType))
+            if (MagicPropertyValueTypeMapping.TypeToValueType.TryGetValue(propType, out var expectedType))
             {
-                rawValue = CoerceToPropertyType(rawValue, valueType);
+                return CoerceToPropertyType(rawValue, expectedType);
             }
         }
         
         return rawValue;
+    }
+    
+    /// <summary>
+    /// Infers the C# type from the raw value when no type mapping exists.
+    /// Prefers float for JSON numbers with decimals to avoid int-as-float bit pattern bugs.
+    /// </summary>
+    private static object InferValue(object value)
+    {
+        if (value is JsonElement element)
+        {
+            return element.ValueKind switch
+            {
+                // Only use int if the raw text has no decimal point (e.g. "10" → int, "10.0" → float)
+                JsonValueKind.Number => element.TryGetInt32(out int i) && !element.GetRawText().Contains('.') 
+                    ? i : element.GetSingle(),
+                JsonValueKind.True => true,
+                JsonValueKind.False => false,
+                JsonValueKind.Array when element.GetArrayLength() == 3 =>
+                    new Vector3(element[0].GetSingle(), element[1].GetSingle(), element[2].GetSingle()),
+                _ => value
+            };
+        }
+        
+        if (value is float[] arr && arr.Length == 3)
+            return new Vector3(arr[0], arr[1], arr[2]);
+        
+        return value;
     }
     
     /// <summary>

@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Numerics;
 using Reloaded.Hooks.Definitions;
 using Reloaded.Mod.Interfaces;
@@ -103,6 +104,8 @@ internal unsafe class MagicProcessor
     /// </summary>
     private long MagicFileProcessImpl(long a1, long a2, long a3, long a4)
     {
+        var sw = Stopwatch.StartNew();
+        
         // Reset trackers for new process call
         _opInstanceTracker.Clear();
         _propInstanceTracker.Clear();
@@ -157,6 +160,11 @@ internal unsafe class MagicProcessor
         }
         finally
         {
+            if (_activeInstanceMagicId != 0)
+            {
+                _logger.WriteLine($"[{_modId}] [MagicProcessor] MagicId {_activeInstanceMagicId}: " +
+                    $"total processing time [{sw.Elapsed.TotalMilliseconds:F3}ms]", _logger.ColorGreen);
+            }
             _activeInstanceEntries = null;
             _activeInstanceMagicId = 0;
         }
@@ -165,7 +173,50 @@ internal unsafe class MagicProcessor
     private long MagicFileHandleSubEntryImpl(long a1, long a2, long a3, long a4)
     {
         int opType = (int)a2;
+        
+        // Activate queued entries early (HandleSubEntry fires before the first UnkExecute)
+        var (magicId, groupId) = ResolveIds(a1);
+        if (_activeInstanceEntries == null && (magicId != 0 || groupId != 0))
+        {
+            var key = (magicId, groupId);
+            if (_groupedQueues.TryGetValue(key, out var queue) && queue.Count > 0)
+            {
+                _activeInstanceEntries = queue.Dequeue();
+                _activeInstanceMagicId = magicId;
+                if (_frameworkConfig.GameApis.MagicApi.EnableInjectionLogging)
+                {
+                    _logger.WriteLine($"[{_modId}] [ACTIVATE] Linked {_activeInstanceEntries.Count} mods to Magic {magicId} Group {groupId}", _logger.ColorGreen);
+                }
+            }
+        }
+        
         CheckOpChange(a1, opType);
+        
+        // Block HandleSubEntry for RemoveOperation entries.
+        // Without this, the game initializes the operation's component with default values
+        // (e.g., LinearProjectile with speed=0), which overrides/conflicts with injected
+        // replacement operations. DisableOp in UnkExecute only blocks properties, not
+        // component initialization.
+        if (_activeInstanceEntries != null)
+        {
+            foreach (var entry in _activeInstanceEntries)
+            {
+                if (entry.Enabled && entry.DisableOp && entry.PropertyId == -1 && entry.OpType == opType)
+                {
+                    int opOccurrence = _opInstanceTracker.GetValueOrDefault(opType, 0) - 1;
+                    if (opOccurrence < 0) opOccurrence = 0;
+                    if (EntryMatchesContext(entry, magicId, groupId, opOccurrence))
+                    {
+                        if (_frameworkConfig.GameApis.MagicApi.EnableInjectionLogging)
+                        {
+                            _logger.WriteLine($"[{_modId}] [REMOVE_OP] Blocked HandleSubEntry for Op {opType} in Magic {magicId} Group {groupId}", _logger.ColorRed);
+                        }
+                        return 0;
+                    }
+                }
+            }
+        }
+        
         return _magicHooks.MagicFile_HandleSubEntryHook!.OriginalFunction(a1, a2, a3, a4);
     }
 

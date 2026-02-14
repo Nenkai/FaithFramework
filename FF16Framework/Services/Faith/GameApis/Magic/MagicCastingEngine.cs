@@ -452,11 +452,29 @@ internal unsafe class MagicCastingEngine : IDisposable
     {
         var entries = new List<MagicModEntry>();
         
+        // Build a map of (groupId, opId) → insertAfterOp from AddOperation entries
+        // so we can propagate injection timing to their child AddProperty entries.
+        var addOpInsertAfter = new Dictionary<(int groupId, int opId), int>();
         foreach (var mod in modifications)
         {
-            // Skip AddOperation entries - they don't need to be injected
-            // The individual AddProperty entries contain all the data needed
             if (mod.Type == MagicModificationType.AddOperation)
+            {
+                addOpInsertAfter[(mod.OperationGroupId, mod.OperationId)] = mod.InsertAfterOperationTypeId;
+            }
+        }
+        
+        foreach (var mod in modifications)
+        {
+            // Skip AddOperation entries themselves — their child AddProperty entries carry the data.
+            // But we use the map above to propagate InjectAfterOp to the children.
+            if (mod.Type == MagicModificationType.AddOperation)
+            {
+                continue;
+            }
+            
+            // Skip structural modifications that only MagicWriter can handle
+            if (mod.Type == MagicModificationType.AddOperationGroup || 
+                mod.Type == MagicModificationType.RemoveOperationGroup)
             {
                 continue;
             }
@@ -467,8 +485,18 @@ internal unsafe class MagicCastingEngine : IDisposable
                 OpType = mod.OperationId,
                 PropertyId = mod.PropertyId,
                 TargetOperationGroupId = mod.OperationGroupId,
-                InjectAfterOp = mod.InsertAfterOperationTypeId  // Propagate injection timing
+                InjectAfterOp = mod.InsertAfterOperationTypeId
             };
+            
+            // For AddProperty entries that belong to an AddOperation, propagate InjectAfterOp
+            if (mod.Type == MagicModificationType.AddProperty)
+            {
+                var parentKey = (mod.OperationGroupId, mod.OperationId);
+                if (addOpInsertAfter.TryGetValue(parentKey, out int parentInsertAfter))
+                {
+                    entry.InjectAfterOp = parentInsertAfter;
+                }
+            }
             
             // Set the value based on type
             SetEntryValue(entry, mod.Value);
@@ -488,7 +516,6 @@ internal unsafe class MagicCastingEngine : IDisposable
                     entry.IsInjection = true;  // Inject a new property
                     entry.DisableOp = false;
                     break;
-                // AddOperation is skipped at the start of the loop
                 case MagicModificationType.RemoveOperation:
                     entry.DisableOp = true;
                     entry.PropertyId = -1;  // Block ALL properties of this operation
