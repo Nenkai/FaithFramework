@@ -107,12 +107,14 @@ public interface IMagicWriter
     /// <param name="builder">The builder containing the spell definition (its MagicId will be overwritten).</param>
     /// <param name="characterId">The character ID (folder name). Default is "c1001" for Clive.</param>
     /// <param name="magicFileName">Optional magic file name. If null, uses characterId as filename.</param>
+    /// <param name="name">Optional display name for the spell. Shown in the Magic Editor. If null, auto-generated.</param>
     /// <returns>A registration result containing the assigned magic ID and writer handle.</returns>
     MagicRegistration RegisterNewMagicId(
         string modId,
         IMagicBuilder builder,
         string characterId = "c1001",
-        string? magicFileName = null);
+        string? magicFileName = null,
+        string? name = null);
     
     /// <summary>
     /// Registers a brand-new magic ID with a specific ID chosen by the caller.
@@ -125,13 +127,15 @@ public interface IMagicWriter
     /// <param name="builder">The builder containing the spell definition (its MagicId will be overwritten).</param>
     /// <param name="characterId">The character ID (folder name). Default is "c1001" for Clive.</param>
     /// <param name="magicFileName">Optional magic file name. If null, uses characterId as filename.</param>
+    /// <param name="name">Optional display name for the spell. Shown in the Magic Editor. If null, auto-generated.</param>
     /// <returns>A registration result indicating success and the writer handle.</returns>
     MagicRegistration RegisterNewMagicId(
         string modId,
         int magicId,
         IMagicBuilder builder,
         string characterId = "c1001",
-        string? magicFileName = null);
+        string? magicFileName = null,
+        string? name = null);
 }
 
 /// <summary>
@@ -204,6 +208,11 @@ public readonly struct MagicRegistration : IEquatable<MagicRegistration>
     public int MagicId { get; }
     
     /// <summary>
+    /// Display name of the spell.
+    /// </summary>
+    public string Name { get; }
+    
+    /// <summary>
     /// The writer handle for managing (unregistering) this registration.
     /// </summary>
     public MagicWriterHandle Handle { get; }
@@ -216,17 +225,18 @@ public readonly struct MagicRegistration : IEquatable<MagicRegistration>
     /// <summary>
     /// Creates a valid registration result.
     /// </summary>
-    public MagicRegistration(int magicId, MagicWriterHandle handle)
+    public MagicRegistration(int magicId, MagicWriterHandle handle, string name)
     {
         MagicId = magicId;
         Handle = handle;
+        Name = name;
         IsValid = handle.IsValid;
     }
     
     /// <summary>
     /// Returns an invalid (failed) registration.
     /// </summary>
-    public static MagicRegistration Invalid => new(0, MagicWriterHandle.Invalid);
+    public static MagicRegistration Invalid => new(0, MagicWriterHandle.Invalid, string.Empty);
     
     /// <inheritdoc/>
     public bool Equals(MagicRegistration other) => MagicId == other.MagicId && Handle == other.Handle;
@@ -244,5 +254,5 @@ public readonly struct MagicRegistration : IEquatable<MagicRegistration>
     public static bool operator !=(MagicRegistration left, MagicRegistration right) => !left.Equals(right);
     
     /// <inheritdoc/>
-    public override string ToString() => IsValid ? $"MagicRegistration(Id={MagicId})" : "MagicRegistration(Invalid)";
+    public override string ToString() => IsValid ? $"MagicRegistration(Id={MagicId}, Name={Name})" : "MagicRegistration(Invalid)";
 }

@@ -86,7 +86,7 @@ public class MagicWriter : IMagicWriter, IDisposable
     /// Registry of reserved modded magic IDs. Key = new magic ID, Value = (modId, sourceMagicId).
     /// sourceMagicId is the original MagicId from the builder (e.g. 214) used as clone base when ReplaceOriginal is false.
     /// </summary>
-    private readonly ConcurrentDictionary<int, (string ModId, int SourceMagicId)> _reservedMagicIds = new();
+    private readonly ConcurrentDictionary<int, (string ModId, int SourceMagicId, string Name)> _reservedMagicIds = new();
     
     /// <summary>
     /// Next auto-assigned magic ID. Starts above vanilla range.
@@ -275,7 +275,7 @@ public class MagicWriter : IMagicWriter, IDisposable
     /// <summary>
     /// Attempts to reserve a specific magic ID for a mod.
     /// </summary>
-    private bool TryReserveId(int magicId, string modId, int sourceMagicId)
+    private bool TryReserveId(int magicId, string modId, int sourceMagicId, string name)
     {
         if (magicId <= MagicIdRanges.MAX_VANILLA_ID)
         {
@@ -283,12 +283,15 @@ public class MagicWriter : IMagicWriter, IDisposable
             return false;
         }
         
-        if (!_reservedMagicIds.TryAdd(magicId, (modId, sourceMagicId)))
+        if (!_reservedMagicIds.TryAdd(magicId, (modId, sourceMagicId, name)))
         {
             var existing = _reservedMagicIds[magicId];
             _logger.WriteLine($"[MagicWriter] [{modId}] Magic ID {magicId} already reserved by '{existing.ModId}'", _logger.ColorRed);
             return false;
         }
+        
+        // Register the name in the global mapping so the Magic Editor displays it
+        MagicIdsMapping.Add((uint)magicId, name);
         
         return true;
     }
@@ -298,14 +301,16 @@ public class MagicWriter : IMagicWriter, IDisposable
         string modId,
         IMagicBuilder builder,
         string characterId = "c1001",
-        string? magicFileName = null)
+        string? magicFileName = null,
+        string? name = null)
     {
         // Capture the source magic ID before overwriting (e.g. 214 from the JSON)
         int sourceMagicId = builder.MagicId;
         
         // Allocate a new ID
         int newId = AllocateNextFreeId();
-        if (!TryReserveId(newId, modId, sourceMagicId))
+        string spellName = name ?? $"Modded_{modId}_{newId}";
+        if (!TryReserveId(newId, modId, sourceMagicId, spellName))
             return MagicRegistration.Invalid;
         
         // Set the builder's MagicId to the allocated ID
@@ -320,14 +325,18 @@ public class MagicWriter : IMagicWriter, IDisposable
         
         // Register via existing flow (builder now has the new ID)
         var handle = Register(modId, builder, characterId, magicFileName);
+        
+        // Restore the builder's original MagicId so it can be reused for more registrations
+        concreteBuilder.MagicId = sourceMagicId;
+        
         if (!handle.IsValid)
         {
             _reservedMagicIds.TryRemove(newId, out _);
             return MagicRegistration.Invalid;
         }
         
-        _logger.WriteLine($"[MagicWriter] [{modId}] Registered NEW magic ID {newId} (auto-assigned, source={sourceMagicId}, replaceOriginal={builder.ReplaceOriginal})", _logger.ColorGreen);
-        return new MagicRegistration(newId, handle);
+        _logger.WriteLine($"[MagicWriter] [{modId}] Registered NEW magic '{spellName}' ID {newId} (auto-assigned, source={sourceMagicId}, replaceOriginal={builder.ReplaceOriginal})", _logger.ColorGreen);
+        return new MagicRegistration(newId, handle, spellName);
     }
     
     /// <inheritdoc/>
@@ -336,13 +345,15 @@ public class MagicWriter : IMagicWriter, IDisposable
         int magicId,
         IMagicBuilder builder,
         string characterId = "c1001",
-        string? magicFileName = null)
+        string? magicFileName = null,
+        string? name = null)
     {
         // Capture the source magic ID before overwriting
         int sourceMagicId = builder.MagicId;
+        string spellName = name ?? $"Modded_{modId}_{magicId}";
         
         // Validate and reserve the requested ID
-        if (!TryReserveId(magicId, modId, sourceMagicId))
+        if (!TryReserveId(magicId, modId, sourceMagicId, spellName))
             return MagicRegistration.Invalid;
         
         // Set the builder's MagicId to the requested ID
@@ -357,14 +368,18 @@ public class MagicWriter : IMagicWriter, IDisposable
         
         // Register via existing flow (builder now has the requested ID)
         var handle = Register(modId, builder, characterId, magicFileName);
+        
+        // Restore the builder's original MagicId so it can be reused for more registrations
+        concreteBuilder.MagicId = sourceMagicId;
+        
         if (!handle.IsValid)
         {
             _reservedMagicIds.TryRemove(magicId, out _);
             return MagicRegistration.Invalid;
         }
         
-        _logger.WriteLine($"[MagicWriter] [{modId}] Registered NEW magic ID {magicId} (manual, source={sourceMagicId}, replaceOriginal={builder.ReplaceOriginal})", _logger.ColorGreen);
-        return new MagicRegistration(magicId, handle);
+        _logger.WriteLine($"[MagicWriter] [{modId}] Registered NEW magic '{spellName}' ID {magicId} (manual, source={sourceMagicId}, replaceOriginal={builder.ReplaceOriginal})", _logger.ColorGreen);
+        return new MagicRegistration(magicId, handle, spellName);
     }
     
     // ========================================
