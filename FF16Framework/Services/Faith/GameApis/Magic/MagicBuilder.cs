@@ -81,7 +81,7 @@ internal class MagicBuilder : IMagicBuilder
     // For operations without properties, PropId = -1
     private readonly Dictionary<(MagicModificationType Type, int GroupId, int OpId, int PropId), MagicModification> _modifications = new();
     
-    public int MagicId { get; }
+    public int MagicId { get; internal set; }
     public bool ReplaceOriginal { get; set; }
     
     internal MagicBuilder(int magicId, MagicCastingEngine engine, ILogger logger, string modId)

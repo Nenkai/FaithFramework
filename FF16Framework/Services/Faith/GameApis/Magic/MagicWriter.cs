@@ -78,6 +78,21 @@ public class MagicWriter : IMagicWriter, IDisposable
     // Track which files have been modified (for logging/debugging)
     private readonly ConcurrentDictionary<string, int> _modificationCounts = new();
     
+    // ========================================
+    // NEW MAGIC ID REGISTRY
+    // ========================================
+    
+    /// <summary>
+    /// Registry of reserved modded magic IDs. Key = new magic ID, Value = (modId, sourceMagicId).
+    /// sourceMagicId is the original MagicId from the builder (e.g. 214) used as clone base when ReplaceOriginal is false.
+    /// </summary>
+    private readonly ConcurrentDictionary<int, (string ModId, int SourceMagicId)> _reservedMagicIds = new();
+    
+    /// <summary>
+    /// Next auto-assigned magic ID. Starts above vanilla range.
+    /// </summary>
+    private int _nextAutoId = MagicIdRanges.MAX_VANILLA_ID + 1;
+    
     private bool _disposed;
     
     /// <summary>
@@ -240,6 +255,119 @@ public class MagicWriter : IMagicWriter, IDisposable
     public int RegisteredCount => _registeredSets.Count;
     
     // ========================================
+    // NEW MAGIC ID REGISTRATION
+    // ========================================
+    
+    /// <summary>
+    /// Allocates the next free modded magic ID in a thread-safe manner.
+    /// </summary>
+    private int AllocateNextFreeId()
+    {
+        int id;
+        do
+        {
+            id = Interlocked.Increment(ref _nextAutoId) - 1;
+        } while (_reservedMagicIds.ContainsKey(id));
+        
+        return id;
+    }
+    
+    /// <summary>
+    /// Attempts to reserve a specific magic ID for a mod.
+    /// </summary>
+    private bool TryReserveId(int magicId, string modId, int sourceMagicId)
+    {
+        if (magicId <= MagicIdRanges.MAX_VANILLA_ID)
+        {
+            _logger.WriteLine($"[MagicWriter] [{modId}] Cannot reserve vanilla ID {magicId}. Must be > {MagicIdRanges.MAX_VANILLA_ID}", _logger.ColorRed);
+            return false;
+        }
+        
+        if (!_reservedMagicIds.TryAdd(magicId, (modId, sourceMagicId)))
+        {
+            var existing = _reservedMagicIds[magicId];
+            _logger.WriteLine($"[MagicWriter] [{modId}] Magic ID {magicId} already reserved by '{existing.ModId}'", _logger.ColorRed);
+            return false;
+        }
+        
+        return true;
+    }
+    
+    /// <inheritdoc/>
+    public MagicRegistration RegisterNewMagicId(
+        string modId,
+        IMagicBuilder builder,
+        string characterId = "c1001",
+        string? magicFileName = null)
+    {
+        // Capture the source magic ID before overwriting (e.g. 214 from the JSON)
+        int sourceMagicId = builder.MagicId;
+        
+        // Allocate a new ID
+        int newId = AllocateNextFreeId();
+        if (!TryReserveId(newId, modId, sourceMagicId))
+            return MagicRegistration.Invalid;
+        
+        // Set the builder's MagicId to the allocated ID
+        if (builder is MagicBuilder concreteBuilder)
+            concreteBuilder.MagicId = newId;
+        else
+        {
+            _logger.WriteLine($"[MagicWriter] [{modId}] Builder is not a MagicBuilder instance, cannot set MagicId", _logger.ColorRed);
+            _reservedMagicIds.TryRemove(newId, out _);
+            return MagicRegistration.Invalid;
+        }
+        
+        // Register via existing flow (builder now has the new ID)
+        var handle = Register(modId, builder, characterId, magicFileName);
+        if (!handle.IsValid)
+        {
+            _reservedMagicIds.TryRemove(newId, out _);
+            return MagicRegistration.Invalid;
+        }
+        
+        _logger.WriteLine($"[MagicWriter] [{modId}] Registered NEW magic ID {newId} (auto-assigned, source={sourceMagicId}, replaceOriginal={builder.ReplaceOriginal})", _logger.ColorGreen);
+        return new MagicRegistration(newId, handle);
+    }
+    
+    /// <inheritdoc/>
+    public MagicRegistration RegisterNewMagicId(
+        string modId,
+        int magicId,
+        IMagicBuilder builder,
+        string characterId = "c1001",
+        string? magicFileName = null)
+    {
+        // Capture the source magic ID before overwriting
+        int sourceMagicId = builder.MagicId;
+        
+        // Validate and reserve the requested ID
+        if (!TryReserveId(magicId, modId, sourceMagicId))
+            return MagicRegistration.Invalid;
+        
+        // Set the builder's MagicId to the requested ID
+        if (builder is MagicBuilder concreteBuilder)
+            concreteBuilder.MagicId = magicId;
+        else
+        {
+            _logger.WriteLine($"[MagicWriter] [{modId}] Builder is not a MagicBuilder instance, cannot set MagicId", _logger.ColorRed);
+            _reservedMagicIds.TryRemove(magicId, out _);
+            return MagicRegistration.Invalid;
+        }
+        
+        // Register via existing flow (builder now has the requested ID)
+        var handle = Register(modId, builder, characterId, magicFileName);
+        if (!handle.IsValid)
+        {
+            _reservedMagicIds.TryRemove(magicId, out _);
+            return MagicRegistration.Invalid;
+        }
+        
+        _logger.WriteLine($"[MagicWriter] [{modId}] Registered NEW magic ID {magicId} (manual, source={sourceMagicId}, replaceOriginal={builder.ReplaceOriginal})", _logger.ColorGreen);
+        return new MagicRegistration(magicId, handle);
+    }
+    
+    // ========================================
     // RESOURCE LOAD HANDLER
     // ========================================
     
@@ -377,8 +505,37 @@ public class MagicWriter : IMagicWriter, IDisposable
                 
                 if (!magicFile.MagicEntries.TryGetValue((uint)magicId, out var magicEntry))
                 {
-                    _logger.WriteLine($"[MagicWriter] MagicId {magicId} not found in {magicFilePath}", _logger.ColorYellow);
-                    continue;
+                    // Check if this is a reserved new magic ID
+                    if (_reservedMagicIds.TryGetValue(magicId, out var reservation))
+                    {
+                        int sourceMagicId = reservation.SourceMagicId;
+                        bool isReplaceOriginal = replaceOriginalMagicIds.Contains(magicId);
+                        
+                        if (!isReplaceOriginal && sourceMagicId > 0 
+                            && magicFile.MagicEntries.TryGetValue((uint)sourceMagicId, out var sourceEntry))
+                        {
+                            // Clone the source magic entry as base for delta modifications
+                            magicEntry = CloneMagicEntry(sourceEntry, (uint)magicId);
+                            _logger.WriteLine($"[MagicWriter] Cloned Magic {sourceMagicId} -> new ID {magicId} in {magicFilePath}", _logger.ColorGreen);
+                        }
+                        else
+                        {
+                            // ReplaceOriginal or no valid source: create blank entry
+                            magicEntry = new MagicEntry
+                            {
+                                Id = (uint)magicId,
+                                OperationGroupList = new MagicOperationGroupList()
+                            };
+                            _logger.WriteLine($"[MagicWriter] Created blank MagicEntry for reserved ID {magicId} in {magicFilePath}", _logger.ColorGreen);
+                        }
+                        
+                        magicFile.MagicEntries[(uint)magicId] = magicEntry;
+                    }
+                    else
+                    {
+                        _logger.WriteLine($"[MagicWriter] MagicId {magicId} not found in {magicFilePath}", _logger.ColorYellow);
+                        continue;
+                    }
                 }
                 
                 // If any registration requested ReplaceOriginal, clear existing OperationGroups first
@@ -386,6 +543,13 @@ public class MagicWriter : IMagicWriter, IDisposable
                 {
                     magicEntry.OperationGroupList.OperationGroups.Clear();
                     _logger.WriteLine($"[MagicWriter] Cleared existing OperationGroups for MagicId {magicId} (ReplaceOriginal)", _logger.ColorYellow);
+                }
+                
+                // For reserved (new) magic IDs, auto-create any operation groups
+                // referenced by the modifications so they have somewhere to land.
+                if (_reservedMagicIds.ContainsKey(magicId))
+                {
+                    EnsureReferencedGroupsExist(magicEntry, modifications);
                 }
                 
                 foreach (var mod in modifications)
@@ -415,6 +579,82 @@ public class MagicWriter : IMagicWriter, IDisposable
         {
             _logger.WriteLine($"[MagicWriter] Failed to apply modifications to {magicFilePath}: {ex.Message}", _logger.ColorRed);
         }
+    }
+    
+    /// <summary>
+    /// For new magic entries, pre-creates any operation groups referenced by the
+    /// modifications so that SetProperty/AddOperation/RemoveOperation have a target.
+    /// Skips groups that already exist or those explicitly added via AddOperationGroup.
+    /// </summary>
+    private void EnsureReferencedGroupsExist(MagicEntry magicEntry, List<IMagicModification> modifications)
+    {
+        var existingGroupIds = new HashSet<uint>(
+            magicEntry.OperationGroupList.OperationGroups.Select(g => g.Id));
+        
+        // Collect all unique group IDs referenced by non-group-level modifications
+        var referencedGroupIds = modifications
+            .Where(m => m.Type != MagicModificationType.AddOperationGroup
+                     && m.Type != MagicModificationType.RemoveOperationGroup)
+            .Select(m => (uint)m.OperationGroupId)
+            .Distinct()
+            .Where(gid => !existingGroupIds.Contains(gid));
+        
+        foreach (var groupId in referencedGroupIds)
+        {
+            var newGroup = new MagicOperationGroup
+            {
+                Id = groupId,
+                OperationList = new OperationList()
+            };
+            magicEntry.OperationGroupList.OperationGroups.Add(newGroup);
+            _logger.WriteLine($"[MagicWriter] Auto-created OperationGroup {groupId} for new MagicEntry {magicEntry.Id}", _logger.ColorGreen);
+        }
+    }
+    
+    /// <summary>
+    /// Deep-clones a MagicEntry with a new ID.
+    /// Used when RegisterNewMagicId references a source magic (e.g. 214) to serve as the base
+    /// for delta modifications (RemoveOperation, SetProperty, AddOperation).
+    /// </summary>
+    private static MagicEntry CloneMagicEntry(MagicEntry source, uint newId)
+    {
+        var clone = new MagicEntry
+        {
+            Id = newId,
+            OperationGroupList = new MagicOperationGroupList()
+        };
+        
+        foreach (var srcGroup in source.OperationGroupList.OperationGroups)
+        {
+            var cloneGroup = new MagicOperationGroup
+            {
+                Id = srcGroup.Id,
+                OperationList = new OperationList()
+            };
+            
+            foreach (var srcOp in srcGroup.OperationList.Operations)
+            {
+                // Create operation via factory to get the correct typed instance
+                var cloneOp = MagicOperationFactory.Create(srcOp.Type);
+                
+                // Copy all properties
+                foreach (var srcProp in srcOp.Properties)
+                {
+                    var cloneProp = new MagicOperationProperty(srcProp.Type)
+                    {
+                        Data = (byte[])srcProp.Data.Clone(),
+                        Value = srcProp.Value
+                    };
+                    cloneOp.Properties.Add(cloneProp);
+                }
+                
+                cloneGroup.OperationList.Operations.Add(cloneOp);
+            }
+            
+            clone.OperationGroupList.OperationGroups.Add(cloneGroup);
+        }
+        
+        return clone;
     }
     
     private void ApplySingleModification(MagicEntry magicEntry, IMagicModification mod)
@@ -662,6 +902,7 @@ public class MagicWriter : IMagicWriter, IDisposable
         }
         _registeredSets.Clear();
         _fileToHandles.Clear();
+        _reservedMagicIds.Clear();
         
         _logger.WriteLine("[MagicWriter] Disposed", _logger.ColorYellow);
     }

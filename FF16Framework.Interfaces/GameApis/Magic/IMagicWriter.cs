@@ -93,6 +93,45 @@ public interface IMagicWriter
     /// <param name="modId">The mod ID to query modifications for.</param>
     /// <returns>List of registered modification info.</returns>
     IReadOnlyList<IRegisteredModificationInfo> GetRegisteredModifications(string modId);
+    
+    // ========================================
+    // NEW MAGIC ID REGISTRATION
+    // ========================================
+    
+    /// <summary>
+    /// Registers a brand-new magic ID with an auto-assigned ID in the modded range (>30000).
+    /// The builder's MagicId will be set internally to the allocated ID.
+    /// The new entry is created in the .magic file when it loads.
+    /// </summary>
+    /// <param name="modId">The ID of the mod registering the new magic.</param>
+    /// <param name="builder">The builder containing the spell definition (its MagicId will be overwritten).</param>
+    /// <param name="characterId">The character ID (folder name). Default is "c1001" for Clive.</param>
+    /// <param name="magicFileName">Optional magic file name. If null, uses characterId as filename.</param>
+    /// <returns>A registration result containing the assigned magic ID and writer handle.</returns>
+    MagicRegistration RegisterNewMagicId(
+        string modId,
+        IMagicBuilder builder,
+        string characterId = "c1001",
+        string? magicFileName = null);
+    
+    /// <summary>
+    /// Registers a brand-new magic ID with a specific ID chosen by the caller.
+    /// The ID must be in the modded range (>30000) and must not already be reserved.
+    /// The builder's MagicId will be set internally to the requested ID.
+    /// The new entry is created in the .magic file when it loads.
+    /// </summary>
+    /// <param name="modId">The ID of the mod registering the new magic.</param>
+    /// <param name="magicId">The specific magic ID to reserve. Must be >30000.</param>
+    /// <param name="builder">The builder containing the spell definition (its MagicId will be overwritten).</param>
+    /// <param name="characterId">The character ID (folder name). Default is "c1001" for Clive.</param>
+    /// <param name="magicFileName">Optional magic file name. If null, uses characterId as filename.</param>
+    /// <returns>A registration result indicating success and the writer handle.</returns>
+    MagicRegistration RegisterNewMagicId(
+        string modId,
+        int magicId,
+        IMagicBuilder builder,
+        string characterId = "c1001",
+        string? magicFileName = null);
 }
 
 /// <summary>
@@ -151,4 +190,59 @@ public interface IRegisteredModificationInfo
     
     /// <summary>Number of modifications in this set.</summary>
     int ModificationCount { get; }
+}
+
+/// <summary>
+/// Result of registering a new magic ID via <see cref="IMagicWriter.RegisterNewMagicId"/>.
+/// Contains the assigned magic ID and a writer handle to manage the registration.
+/// </summary>
+public readonly struct MagicRegistration : IEquatable<MagicRegistration>
+{
+    /// <summary>
+    /// The magic ID that was assigned or reserved.
+    /// </summary>
+    public int MagicId { get; }
+    
+    /// <summary>
+    /// The writer handle for managing (unregistering) this registration.
+    /// </summary>
+    public MagicWriterHandle Handle { get; }
+    
+    /// <summary>
+    /// Whether the registration was successful.
+    /// </summary>
+    public bool IsValid { get; }
+    
+    /// <summary>
+    /// Creates a valid registration result.
+    /// </summary>
+    public MagicRegistration(int magicId, MagicWriterHandle handle)
+    {
+        MagicId = magicId;
+        Handle = handle;
+        IsValid = handle.IsValid;
+    }
+    
+    /// <summary>
+    /// Returns an invalid (failed) registration.
+    /// </summary>
+    public static MagicRegistration Invalid => new(0, MagicWriterHandle.Invalid);
+    
+    /// <inheritdoc/>
+    public bool Equals(MagicRegistration other) => MagicId == other.MagicId && Handle == other.Handle;
+    
+    /// <inheritdoc/>
+    public override bool Equals(object? obj) => obj is MagicRegistration other && Equals(other);
+    
+    /// <inheritdoc/>
+    public override int GetHashCode() => HashCode.Combine(MagicId, Handle);
+    
+    /// <summary>Equality operator.</summary>
+    public static bool operator ==(MagicRegistration left, MagicRegistration right) => left.Equals(right);
+    
+    /// <summary>Inequality operator.</summary>
+    public static bool operator !=(MagicRegistration left, MagicRegistration right) => !left.Equals(right);
+    
+    /// <inheritdoc/>
+    public override string ToString() => IsValid ? $"MagicRegistration(Id={MagicId})" : "MagicRegistration(Invalid)";
 }
