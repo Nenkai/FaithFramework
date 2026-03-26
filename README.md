@@ -1,6 +1,6 @@
 # Faith Framework (ff16.utility.framework)
 
-Mod Framework for FFXVI using Reloaded-II.
+Mod Framework for Faith (FFXVI) based engine games using Reloaded-II.
 
 Features:
 
