@@ -32,10 +32,17 @@ using FF16Framework.Template;
 using FF16Framework.Faith.Hooks;
 
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using FF16Framework.Services.ResourceManager;
 using FF16Framework.ImGuiManager.Windows.Resources;
 using FF16Framework.ImGuiManager.Windows.Visualizers;
+
+using FF16Framework.Interfaces.GameApis.Magic;
+using FF16Framework.Services.Faith.GameApis.Actor;
+using FF16Framework.Services.Faith.GameApis.Magic;
+using FF16Framework.Interfaces.GameApis.Magic;
+using Reloaded.Memory.SigScan.ReloadedII.Interfaces;
 
 namespace FF16Framework;
 
@@ -51,7 +58,9 @@ public class Mod : ModBase, IExports // <= Do not Remove.
         typeof(IImGui),
         typeof(IImGuiShell),
         typeof(IImGuiTextureManager),
-        typeof(INextExcelDBApiManagedV2)
+        typeof(INextExcelDBApiManagedV2),
+        typeof(IMagicApi),
+        typeof(IMagicWriter)
     ];
 
     /// <summary>
@@ -147,7 +156,12 @@ public class Mod : ModBase, IExports // <= Do not Remove.
         foreach (HookGroupBase hookGroup in hookGroups)
             hookGroup.SetupHooks();
 
+        // Start hosted services (initialization that requires post-construction wiring)
+        foreach (var hostedService in _services.GetServices<IHostedService>())
+            hostedService.StartAsync(CancellationToken.None).GetAwaiter().GetResult();
+
         InitNex();
+        InitGameApis();
         InitImGui();
 
         _logger.WriteLine($"[{_modConfig.ModId}] Framework {_modConfig.ModVersion} initted.", _logger.ColorGreen);
@@ -264,7 +278,17 @@ public class Mod : ModBase, IExports // <= Do not Remove.
             .AddSingleton<GameOverlay>()
             .AddSingleton<EidVisualizerComponent>()
             .AddSingleton<MainVisualizerComponent>()
-            .AddSingleton<AboutWindow>();
+            .AddSingleton<AboutWindow>()
+
+            // Game APIs
+            .AddSingleton<ActorApi>()
+
+            .AddSingleton<MagicApi>()
+            .AddSingleton<IMagicApi>(sp => sp.GetRequiredService<MagicApi>())
+            .AddHostedService<MagicApiInitializer>()
+
+            .AddSingleton<MagicWriter>()
+            .AddSingleton<IMagicWriter>(sp => sp.GetRequiredService<MagicWriter>());
 
         return services.BuildServiceProvider();
     }
@@ -435,6 +459,13 @@ public class Mod : ModBase, IExports // <= Do not Remove.
         _modLoader.AddOrReplaceController<INextExcelDBApi>(_owner, _services.GetRequiredService<INextExcelDBApi>());
         _modLoader.AddOrReplaceController<INextExcelDBApiManaged>(_owner, _services.GetRequiredService<INextExcelDBApiManagedV2>());
         _modLoader.AddOrReplaceController<INextExcelDBApiManagedV2>(_owner, _services.GetRequiredService<INextExcelDBApiManagedV2>());
+    }
+
+    private void InitGameApis()
+    {
+        // Publish Game APIs for other mods
+        _modLoader.AddOrReplaceController<IMagicApi>(_owner, _services.GetRequiredService<IMagicApi>());
+        _modLoader.AddOrReplaceController<IMagicWriter>(_owner, _services.GetRequiredService<IMagicWriter>());
     }
 
     #region Standard Overrides
