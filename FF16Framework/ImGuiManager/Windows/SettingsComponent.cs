@@ -74,6 +74,17 @@ public class SettingsComponent(IImGui imGui, GameContext gameContext, ImGuiShell
                 _imGui.MenuItemBoolPtr("Ignore volume changes (background audio)"u8, ""u8, ref _frameworkConfig.SoundManager.IgnoreSystemVolumeChangesField, true);
                 _imGui.EndMenu();
             }
+
+            if (_imGui.BeginMenu("Game APIs"u8))
+            {
+                if (_imGui.BeginMenu("Magic API"u8))
+                {
+                    _imGui.MenuItemBoolPtr("Log Magic Property Reads"u8, ""u8, ref _frameworkConfig.GameApis.MagicApi.EnablePropertyLoggingField, true);
+                    _imGui.MenuItemBoolPtr("Log Operation Injections"u8, ""u8, ref _frameworkConfig.GameApis.MagicApi.EnableInjectionLoggingField, true);
+                    _imGui.EndMenu();
+                }
+                _imGui.EndMenu();
+            }
         }
         _imGui.PopItemFlag();
 

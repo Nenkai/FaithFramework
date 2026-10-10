@@ -22,7 +22,8 @@ public unsafe class UnkList35Hooks : HookGroupBase
 
     public delegate UnkTargetStruct* UnkList35Entry_GetCurrentTargettedEnemy(nint @this, byte forceUnk);
     public UnkList35Entry_GetCurrentTargettedEnemy UnkList35Entry_GetCurrentTargettedEnemyFunction { get; private set; }
-
+    public delegate nint StaticActorInfo_GetActorData35Entry(nint staticActorInfo);
+    public StaticActorInfo_GetActorData35Entry GetActorData35EntryFunction { get; private set; }
     public delegate UnkSingletonPlayer* UnkSingletonPlayer_UnkSingletonPlayer(UnkSingletonPlayer* @this);
     public IHook<UnkSingletonPlayer_UnkSingletonPlayer> UnkSingletonPlayer_UnkSingletonPlayerHook { get; private set; }
 
@@ -41,6 +42,8 @@ public unsafe class UnkList35Hooks : HookGroupBase
             => UnkList35Entry_GetCurrentTargettedEnemyFunction = hooks.CreateWrapper<UnkList35Entry_GetCurrentTargettedEnemy>(result, out _));
         Project.Scans.AddScanHook(nameof(UnkSingletonPlayer_UnkSingletonPlayer), (result, hooks)
             => UnkSingletonPlayer_UnkSingletonPlayerHook = hooks.CreateHook<UnkSingletonPlayer_UnkSingletonPlayer>(UnkSingletonPlayer_UnkSingletonPlayerImpl, result).Activate());
+        Project.Scans.AddScanHook(nameof(StaticActorInfo_GetActorData35Entry), (result, hooks)
+            => GetActorData35EntryFunction = hooks.CreateWrapper<StaticActorInfo_GetActorData35Entry>(result, out _));
 
     }
 
