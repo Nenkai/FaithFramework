@@ -37,8 +37,8 @@ public class ResourceManagerService
 
             LoadedHandles.TryAdd(resourcePointer->PathHash, resource);
 
-            SortedHandles.TryAdd(extension, []);
-            SortedHandles[extension].TryAdd(path, resource);
+            var handle = SortedHandles.GetOrAdd(extension, []);
+            handle.TryAdd(path, resource);
         }
     }
 
